@@ -1,4 +1,4 @@
-# ViserTrip — Multi-Tenant SaaS Travel & Visa Management Platform
+# softobrotravel — Multi-Tenant SaaS Travel & Visa Management Platform
 
 > A complete SaaS platform where multiple travel agencies can subscribe and operate independently — each with their own database, admin panel, website, and branding.
 
