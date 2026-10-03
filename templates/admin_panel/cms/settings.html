@@ -1,0 +1,78 @@
+{% extends 'admin_panel/base.html' %}
+
+{% block title %}Website CMS & Agency Branding - Agency Admin{% endblock %}
+{% block header_title %}Website CMS & Agency Branding Settings{% endblock %}
+
+{% block content %}
+<div class="row g-4 justify-content-center">
+    <div class="col-lg-8">
+        <!-- Agency Branding (Logo & Platform Title) -->
+        <div class="card border-0 shadow-sm p-4 mb-4">
+            <div class="d-flex align-items-center gap-3 mb-4 border-bottom pb-3">
+                <div class="stat-icon bg-primary text-white rounded-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; font-size: 1.25rem;">
+                    <i class="fa-solid fa-paintbrush"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold m-0 text-dark">Agency Logo & Branding</h5>
+                    <p class="text-muted small mb-0">Customize your agency name and logo displayed on customer dashboards and landing pages</p>
+                </div>
+            </div>
+
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="mb-4">
+                    <label class="form-label small fw-bold text-muted">Agency Platform Name</label>
+                    <input type="text" name="agency_name" class="form-control" value="{{ tenant.agency_name }}" placeholder="e.g. Viser Agency" required>
+                    <small class="text-muted fs-8">This name appears in your customer dashboard sidebar, landing page title, and headers.</small>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label small fw-bold text-muted">Agency Dashboard & Website Logo</label>
+                    <div class="d-flex align-items-center gap-3">
+                        {% if tenant.logo %}
+                            <img src="{{ tenant.logo.url }}" alt="Agency Logo" class="rounded border p-1 bg-light" style="max-height: 54px;">
+                        {% else %}
+                            <div class="rounded bg-primary-subtle text-primary fw-bold d-flex align-items-center justify-content-center border" style="width: 54px; height: 54px; font-size: 1.5rem;">
+                                <i class="fa-solid fa-plane-departure"></i>
+                            </div>
+                        {% endif %}
+                        <div class="flex-grow-1">
+                            <input type="file" name="logo" class="form-control" accept="image/*">
+                            <small class="text-muted fs-8">Upload PNG/JPG logo (recommended height: 60px).</small>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <!-- Landing Page Content (CMS) -->
+                <div class="d-flex align-items-center gap-3 mb-4 border-bottom pb-3">
+                    <div class="stat-icon bg-info text-white rounded-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; font-size: 1.25rem;">
+                        <i class="fa-solid fa-globe"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold m-0 text-dark">Homepage Hero Banner (CMS)</h5>
+                        <p class="text-muted small mb-0">Update your agency landing page headline and subtitle</p>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-muted">Homepage Hero Headline</label>
+                    <input type="text" name="hero_title" class="form-control" value="{{ hero.title|default:'Explore Extraordinary Worldwide Destinations' }}" required>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label small fw-bold text-muted">Homepage Hero Subtitle</label>
+                    <textarea name="hero_subtitle" class="form-control" rows="3" required>{{ hero.subtitle|default:'Book premium tour packages, luxury travel itineraries, and complete your visa application in a single platform.' }}</textarea>
+                </div>
+
+                <div class="d-flex align-items-center justify-content-end gap-2 pt-3 border-top">
+                    <button type="submit" class="btn btn-primary px-4 fw-bold">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> Save Branding & CMS Settings
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

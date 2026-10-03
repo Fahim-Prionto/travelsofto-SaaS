@@ -1,0 +1,74 @@
+{% extends 'auth/base.html' %}
+
+{% block title %}Register Travel Agency - Softobro Travel{% endblock %}
+
+{% block content %}
+<div class="text-center mb-4">
+    <span class="badge bg-primary-subtle text-primary fw-bold px-3 py-2 rounded-pill mb-2">Instant Setup</span>
+    <h3 class="fw-extrabold text-dark mb-1">Start Your SaaS Travel Agency</h3>
+    <p class="text-muted small">Get your dedicated website, admin portal, and database in under 60 seconds</p>
+</div>
+
+<form method="POST">
+    {% csrf_token %}
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label small fw-bold text-muted">Agency Name</label>
+            <input type="text" name="agency_name" class="form-control" placeholder="e.g. Horizon Travels" required>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label small fw-bold text-muted">Owner Full Name</label>
+            <input type="text" name="owner_name" class="form-control" placeholder="John Doe" required>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label small fw-bold text-muted">Admin Email</label>
+            <input type="email" name="email" class="form-control" placeholder="admin@horizontravels.com" required>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label small fw-bold text-muted">Password</label>
+            <div class="input-group">
+                <input type="password" name="password" id="agencyPw" class="form-control border-end-0" placeholder="••••••••" required>
+                <button class="btn btn-outline-secondary bg-light text-muted border-start-0" type="button" onclick="togglePasswordVisibility('agencyPw', this)">
+                    <i class="fa-solid fa-eye"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <label class="form-label small fw-bold text-muted">Select SaaS Subscription Package</label>
+            <select name="package_id" class="form-select fw-semibold" required>
+                {% for pkg in packages %}
+                    <option value="{{ pkg.id }}">
+                        {{ pkg.name }} – ${{ pkg.monthly_price }}/month ({{ pkg.trial_days }}-day free trial included)
+                    </option>
+                {% empty %}
+                    <option value="">Starter Plan – $49/month (14-day free trial)</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12 mt-3">
+            <div class="bg-primary-subtle text-primary border border-primary-subtle rounded-3 p-3 text-center">
+                <i class="fa-solid fa-money-bill-wave me-1"></i> <strong>bKash (Send Money):</strong> <span class="fs-5 fw-bold ms-1" style="letter-spacing: 1px;">{{ bkash_number }}</span>
+                <p class="small mb-2 mt-1 opacity-75">Please send the exact subscription amount to this number via bKash and enter your Transaction ID below.</p>
+                <div class="row justify-content-center">
+                    <div class="col-md-8 col-12">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-primary-subtle fw-bold text-primary small">Trx ID</span>
+                            <input type="text" name="bkash_trx_id" class="form-control border-primary-subtle text-center text-uppercase fw-bold" placeholder="e.g. 9J87X1A2ZB" required>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div> <!-- Close row g-3 -->
+
+    <button type="submit" class="btn btn-primary w-100 py-3 fw-extrabold fs-6 rounded-3 shadow-sm mt-4">
+        <i class="fa-solid fa-rocket me-2"></i> Launch My Agency Platform
+    </button>
+</form>
+
+<div class="text-center mt-4 pt-3 border-top">
+    <span class="text-muted small">Already have an agency account?</span>
+    <a href="{% url 'accounts:login' %}" class="fw-bold text-primary text-decoration-none ms-1">Sign in here</a>
+</div>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends 'superadmin/base.html' %}
+
+{% block title %}SaaS Subscription Plans - Super Admin{% endblock %}
+{% block header_title %}SaaS Subscription Package Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-extrabold m-0 text-dark">SaaS Subscription Tiers</h4>
+        <p class="text-muted small mb-0">Configure Starter, Professional, and Enterprise plans for agency onboarding</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    {% for pkg in packages %}
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm p-4 h-100 position-relative {% if pkg.is_recommended %}border-primary border-2 shadow-lg{% endif %}">
+                {% if pkg.is_recommended %}
+                    <span class="position-absolute top-0 end-0 bg-primary text-white small fw-extrabold px-3 py-1 rounded-bottom-start shadow-sm">MOST POPULAR</span>
+                {% endif %}
+                
+                <h4 class="fw-bold text-dark mb-1">{{ pkg.name }}</h4>
+                <p class="text-muted small mb-3">{{ pkg.description }}</p>
+
+                <div class="bg-light p-3 rounded-3 mb-4 text-center">
+                    <span class="display-6 fw-extrabold text-primary">৳{{ pkg.monthly_price }}</span>
+                    <span class="text-muted fw-semibold">/ month</span>
+                    <div class="small text-success fw-bold mt-1"><i class="fa-solid fa-tag me-1"></i>Yearly Savings Rate: ৳{{ pkg.yearly_price }}/yr</div>
+                    {% if pkg.trial_days > 0 %}
+                        <div class="badge bg-warning-subtle text-warning mt-2"><i class="fa-solid fa-gift me-1"></i> {{ pkg.trial_days }}-Day Free Trial</div>
+                    {% endif %}
+                </div>
+
+                <ul class="list-unstyled mb-4 space-y-3 small">
+                    <li class="mb-2 d-flex align-items-center">
+                        <i class="fa-solid fa-check-circle text-success me-2 fs-6"></i>
+                        <span><strong>{% if pkg.max_users == -1 %}Unlimited{% else %}{{ pkg.max_users }}{% endif %}</strong> Customers</span>
+                    </li>
+                    <li class="mb-2 d-flex align-items-center">
+                        <i class="fa-solid fa-check-circle text-success me-2 fs-6"></i>
+                        <span><strong>{% if pkg.max_travel_packages == -1 %}Unlimited{% else %}{{ pkg.max_travel_packages }}{% endif %}</strong> Tour Packages</span>
+                    </li>
+                    <li class="mb-2 d-flex align-items-center">
+                        <i class="fa-solid fa-check-circle text-success me-2 fs-6"></i>
+                        <span><strong>{% if pkg.max_visa_services == -1 %}Unlimited{% else %}{{ pkg.max_visa_services }}{% endif %}</strong> Visa Services</span>
+                    </li>
+                    <li class="mb-2 d-flex align-items-center">
+                        <i class="fa-solid fa-check-circle text-success me-2 fs-6"></i>
+                        <span><strong>{% if pkg.max_staff == -1 %}Unlimited{% else %}{{ pkg.max_staff }}{% endif %}</strong> Staff Members</span>
+                    </li>
+                    <li class="mb-2 d-flex align-items-center">
+                        {% if pkg.custom_domain %}
+                            <i class="fa-solid fa-check-circle text-success me-2 fs-6"></i>
+                            <span class="fw-semibold text-dark">Custom Domain Support Included</span>
+                        {% else %}
+                            <i class="fa-solid fa-circle-xmark text-muted me-2 fs-6"></i>
+                            <span class="text-muted">Subdomain Only</span>
+                        {% endif %}
+                    </li>
+                    <li class="mb-2 d-flex align-items-center">
+                        {% if pkg.advanced_analytics %}
+                            <i class="fa-solid fa-check-circle text-success me-2 fs-6"></i>
+                            <span class="fw-semibold text-dark">Advanced Analytics & Charting</span>
+                        {% else %}
+                            <i class="fa-solid fa-circle-xmark text-muted me-2 fs-6"></i>
+                            <span class="text-muted">Basic Metrics</span>
+                        {% endif %}
+                    </li>
+                </ul>
+
+                <a href="{% url 'superadmin:package_edit' pkg.pk %}" class="btn btn-outline-custom w-100 mt-auto py-2 fw-semibold">
+                    <i class="fa-solid fa-pen-to-square me-1"></i> Edit Plan Limits
+                </a>
+            </div>
+        </div>
+    {% empty %}
+        <div class="col-12 text-center text-muted py-5">
+            <i class="fa-solid fa-box-open fs-1 text-secondary mb-2"></i>
+            <p class="mb-0">No subscription packages found. Run seed command or add package.</p>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends 'website/base.html' %}
+
+{% block title %}Complete Subscription Payment - {{ PLATFORM_NAME }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Warning Banner -->
+            <div class="alert alert-warning border-0 shadow-sm rounded-4 p-4 mb-4 text-center">
+                <i class="fa-solid fa-lock text-warning fs-1 mb-2"></i>
+                <h4 class="fw-bold text-dark mb-1">Subscription Payment Required</h4>
+                <p class="text-muted mb-0 small">
+                    Your travel agency account (<strong>{{ tenant.agency_name }}</strong>) requires an approved subscription payment to access agency management features.
+                </p>
+            </div>
+
+            <!-- Payment Form Card -->
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="card-header bg-primary text-white border-0 p-4">
+                    <h5 class="fw-bold m-0"><i class="fa-solid fa-credit-card me-2"></i> Choose Plan & Pay</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" action="{% url 'admin_panel:subscription_checkout' %}">
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-dark">Select SaaS Package Plan</label>
+                            <div class="row g-3">
+                                {% for pkg in packages %}
+                                    <div class="col-md-6">
+                                        <div class="border rounded-3 p-3 text-center h-100 position-relative">
+                                            <input type="radio" name="package_id" value="{{ pkg.id }}" id="pkg_{{ pkg.id }}" class="form-check-input position-absolute top-0 end-0 m-3" {% if forloop.first %}checked{% endif %}>
+                                            <label for="pkg_{{ pkg.id }}" class="w-100 cursor-pointer">
+                                                <h6 class="fw-bold text-dark mb-1">{{ pkg.name }}</h6>
+                                                <div class="display-6 fw-extrabold text-primary my-2">৳{{ pkg.monthly_price }}</div>
+                                                <small class="text-muted d-block">/ month</small>
+                                            </label>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-dark">Payment Method</label>
+                            <select name="payment_method" class="form-select rounded-3 py-2.5">
+                                <option value="bKash Mobile Banking">bKash Mobile Banking</option>
+                                <option value="Nagad Mobile Banking">Nagad Mobile Banking</option>
+                                <option value="Bank Wire Transfer">Bank Wire Transfer</option>
+                                <option value="Credit / Debit Card">Credit / Debit Card</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-dark">Payment Transaction ID / Reference No.</label>
+                            <input type="text" name="transaction_id" class="form-control rounded-3 py-2.5" placeholder="e.g. BKS982348123 or Bank Ref #" required>
+                            <small class="text-muted fs-8">Provide the transaction ID of your subscription payment for Super Admin verification.</small>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-lg w-100 rounded-3 py-3 fw-bold shadow-sm">
+                            <i class="fa-solid fa-paper-plane me-2"></i> Submit Payment for Super Admin Approval
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

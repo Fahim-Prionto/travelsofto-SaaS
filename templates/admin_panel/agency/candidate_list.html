@@ -1,0 +1,1106 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}Candidate Registration{% endblock %}
+{% block header_title %}Candidate Registration & Management{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+
+  <!-- Financial & Candidate Stats Row -->
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="stat-card primary">
+        <div class="d-flex align-items-center gap-3">
+          <div class="stat-icon primary"><i class="fa-solid fa-users"></i></div>
+          <div class="min-w-0 flex-grow-1">
+            <span class="stat-label text-truncate">Total Candidates</span>
+            <div class="stat-value text-truncate">{{ total_candidates }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="stat-card info">
+        <div class="d-flex align-items-center gap-3">
+          <div class="stat-icon info" style="background:rgba(14,165,233,0.1);color:#0ea5e9;"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+          <div class="min-w-0 flex-grow-1">
+            <span class="stat-label text-truncate">Total Package Value</span>
+            <div class="stat-value text-primary text-truncate" title="৳{{ total_package_value|floatformat:2 }}">৳{{ total_package_value|floatformat:2 }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="stat-card success">
+        <div class="d-flex align-items-center gap-3">
+          <div class="stat-icon success"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+          <div class="min-w-0 flex-grow-1">
+            <span class="stat-label text-truncate">Total Collected</span>
+            <div class="stat-value text-success text-truncate" title="৳{{ total_collected|floatformat:2 }}">৳{{ total_collected|floatformat:2 }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="stat-card danger">
+        <div class="d-flex align-items-center gap-3">
+          <div class="stat-icon danger" style="background:rgba(239,68,68,0.1);color:#ef4444;"><i class="fa-solid fa-clock-rotate-left"></i></div>
+          <div class="min-w-0 flex-grow-1">
+            <span class="stat-label text-truncate">Outstanding Due</span>
+            <div class="stat-value text-danger text-truncate" title="৳{{ total_due|floatformat:2 }}">৳{{ total_due|floatformat:2 }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="card mb-4">
+    <div class="card-body py-3">
+      <form method="get" class="row g-2 align-items-center">
+        <div class="col-12 col-md-4">
+          <div class="input-group">
+            <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-search text-muted"></i></span>
+            <input type="text" name="q" value="{{ query }}" class="form-control border-start-0 ps-0" placeholder="Search name, passport, reg ID...">
+          </div>
+        </div>
+        <div class="col-6 col-md-2">
+          <select name="selection_status" class="form-select">
+            <option value="">All Selection</option>
+            <option value="pending" {% if request.GET.selection_status == 'pending' %}selected{% endif %}>Pending</option>
+            <option value="selected" {% if request.GET.selection_status == 'selected' %}selected{% endif %}>Selected</option>
+            <option value="awaiting" {% if request.GET.selection_status == 'awaiting' %}selected{% endif %}>Awaiting</option>
+            <option value="rejected" {% if request.GET.selection_status == 'rejected' %}selected{% endif %}>Rejected</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <select name="medical_status" class="form-select">
+            <option value="">All Medical</option>
+            <option value="pending" {% if request.GET.medical_status == 'pending' %}selected{% endif %}>Pending</option>
+            <option value="fit" {% if request.GET.medical_status == 'fit' %}selected{% endif %}>Fit</option>
+            <option value="unfit" {% if request.GET.medical_status == 'unfit' %}selected{% endif %}>Unfit</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <button type="submit" class="btn btn-primary w-100"><i class="fa-solid fa-filter me-1"></i>Filter</button>
+        </div>
+        <div class="col-6 col-md-2">
+          <button type="button" class="btn btn-accent w-100" data-bs-toggle="modal" data-bs-target="#addCandidateModal">
+            <i class="fa-solid fa-user-plus me-1"></i>Add New
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Candidate Table -->
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h6 class="mb-0 fw-bold"><i class="fa-solid fa-list me-2 text-primary"></i>Candidate Master List ({{ candidates|length }} candidates)</h6>
+      <a href="{% url 'admin_panel:candidate_id_card_bulk' %}" class="btn btn-sm btn-outline-custom">
+        <i class="fa-solid fa-print me-1"></i>Bulk ID Cards
+      </a>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table-custom w-100 align-middle">
+          <thead>
+            <tr>
+              <th><input type="checkbox" id="selectAll"></th>
+              <th>Reg ID</th>
+              <th>Candidate</th>
+              <th>Passport No</th>
+              <th>Visa Lot</th>
+              <th>Total Fee</th>
+              <th>Paid Amount</th>
+              <th>Due Balance</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in candidates %}
+            <tr>
+              <td><input type="checkbox" name="ids" value="{{ c.id }}" class="candidate-check"></td>
+              <td><span class="fw-bold text-primary small">{{ c.registration_id }}</span></td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  {% if c.photo %}
+                    <img src="{{ c.photo.url }}" class="rounded-circle" style="width:32px;height:32px;object-fit:cover;">
+                  {% else %}
+                    <div class="rounded-circle bg-primary-light d-flex align-items-center justify-content-center fw-bold text-primary" style="width:32px;height:32px;font-size:0.75rem;">
+                      {{ c.name|first|upper }}
+                    </div>
+                  {% endif %}
+                  <div>
+                    <div class="fw-semibold small">{{ c.name }}</div>
+                    <div class="text-muted" style="font-size:0.75rem;">{{ c.mobile|default:"—" }}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="small fw-mono">{{ c.passport_number }}</td>
+              <td>
+                {% if c.visa_lot %}
+                  <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-1 small">
+                    <i class="fa-solid fa-passport me-1"></i>{{ c.visa_lot.title }}
+                  </span>
+                {% else %}
+                  <span class="text-muted small">—</span>
+                {% endif %}
+              </td>
+              <td class="small fw-semibold">৳{{ c.total_amount|floatformat:2 }}</td>
+              <td class="small text-success fw-semibold">৳{{ c.paid_amount|floatformat:2 }}</td>
+              <td>
+                {% if c.due_amount > 0 %}
+                  <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2 py-1 small fw-bold">
+                    ৳{{ c.due_amount|floatformat:2 }} Due
+                  </span>
+                {% else %}
+                  <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1 small">
+                    <i class="fa-solid fa-check me-1"></i>Paid
+                  </span>
+                {% endif %}
+              </td>
+              <td style="white-space:nowrap;">
+                <div class="d-flex flex-nowrap gap-1">
+                  <button class="btn btn-sm btn-outline-custom px-2 py-1" data-bs-toggle="modal" data-bs-target="#viewModal{{ c.id }}" title="View Candidate Profile">
+                    <i class="fa-solid fa-eye text-secondary"></i>
+                  </button>
+                  <a href="{% url 'admin_panel:candidate_download' c.id %}" class="btn btn-sm btn-outline-custom px-2 py-1" title="Download Info & Documents as ZIP">
+                    <i class="fa-solid fa-file-zipper text-warning"></i>
+                  </a>
+                  <button class="btn btn-sm btn-outline-custom px-2 py-1" data-bs-toggle="modal" data-bs-target="#paymentModal{{ c.id }}" title="Payments">
+                    <i class="fa-solid fa-wallet text-success"></i>
+                  </button>
+                  <button class="btn btn-sm btn-outline-custom px-2 py-1" data-bs-toggle="modal" data-bs-target="#documentModal{{ c.id }}" title="Attached Sector Documents">
+                    <i class="fa-solid fa-paperclip text-info"></i>
+                    {% if c.documents.count %}<span class="badge bg-info text-dark rounded-pill" style="font-size:0.6rem;">{{ c.documents.count }}</span>{% endif %}
+                  </button>
+                  <button class="btn btn-sm btn-outline-custom px-2 py-1" data-bs-toggle="modal" data-bs-target="#editModal{{ c.id }}" title="Edit">
+                    <i class="fa-solid fa-pen-to-square text-primary"></i>
+                  </button>
+                  <button class="btn btn-sm btn-outline-custom px-2 py-1" data-bs-toggle="modal" data-bs-target="#stageModal{{ c.id }}" title="Update Stage">
+                    <i class="fa-solid fa-diagram-project text-accent"></i>
+                  </button>
+                  <a href="{% url 'admin_panel:candidate_delete' c.id %}" class="btn btn-sm btn-outline-custom px-2 py-1" onclick="return confirm('Delete {{ c.name }}?')" title="Delete">
+                    <i class="fa-solid fa-trash text-danger"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="9" class="text-center py-5 text-muted">
+              <i class="fa-solid fa-users fa-3x mb-3 opacity-25 d-block"></i>
+              No candidates found. <a href="#" data-bs-toggle="modal" data-bs-target="#addCandidateModal">Register the first candidate</a>.
+            </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── ADD CANDIDATE MODAL ────────────────────────────────── -->
+<div class="modal fade" id="addCandidateModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <form method="post" action="{% url 'admin_panel:candidate_create' %}" enctype="multipart/form-data" class="modal-content border-0 shadow-lg">
+      {% csrf_token %}
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-plus me-2"></i>Register New Candidate</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-6"><label class="form-label fw-semibold small">Full Name *</label>
+            <input name="name" class="form-control" required placeholder="Candidate full name"></div>
+          <div class="col-md-6"><label class="form-label fw-semibold small">Passport Number *</label>
+            <input name="passport_number" class="form-control" required placeholder="e.g. AB1234567"></div>
+          <div class="col-md-6"><label class="form-label fw-semibold small">Date of Birth</label>
+            <input type="date" name="date_of_birth" class="form-control"></div>
+          <div class="col-md-6"><label class="form-label fw-semibold small">Passport Expiry</label>
+            <input type="date" name="passport_expiry" class="form-control"></div>
+          <div class="col-md-6"><label class="form-label fw-semibold small">Mobile</label>
+            <input name="mobile" class="form-control" placeholder="+880..."></div>
+          <div class="col-md-6"><label class="form-label fw-semibold small">Email</label>
+            <input type="email" name="email" class="form-control" placeholder="email@example.com"></div>
+          <div class="col-md-4"><label class="form-label fw-semibold small">Gender</label>
+            <select name="gender" class="form-select">
+              <option value="male">Male</option><option value="female">Female</option><option value="other">Other</option>
+            </select></div>
+          <div class="col-md-4"><label class="form-label fw-semibold small">Destination Country</label>
+            <input name="country" class="form-control" value="Saudi Arabia">
+          </div>
+          <div class="col-md-4"><label class="form-label fw-semibold small">Interview Slot</label>
+            <input name="interview_slot" class="form-control" placeholder="e.g. Slot A-01"></div>
+
+          <!-- Visa Lot Selection -->
+          <div class="col-md-6 bg-light p-2 rounded border">
+            <label class="form-label fw-bold small text-primary"><i class="fa-solid fa-passport me-1"></i>Select Visa Lot</label>
+            <select name="visa_lot" class="form-select">
+              <option value="">— Select Visa Lot (Optional) —</option>
+              {% for lot in visa_lots %}
+                <option value="{{ lot.id }}">
+                  {{ lot.title }} ({{ lot.country }}) — Quota: {{ lot.quota }} | Remaining: {{ lot.remaining_visas }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Financial Pricing -->
+          <div class="col-md-6 bg-light p-2 rounded border">
+            <label class="form-label fw-bold small text-primary"><i class="fa-solid fa-money-bill me-1"></i>Total Visa / Package Fee (BDT ৳)</label>
+            <input type="number" step="0.01" name="total_amount" class="form-control" placeholder="e.g. 250000.00">
+            <div class="form-text small text-muted">Leave empty to auto-use Visa Lot price if selected.</div>
+          </div>
+
+          <!-- Initial Payment Setup -->
+          <div class="col-12 border-top pt-2">
+            <h6 class="fw-bold text-success small mb-2"><i class="fa-solid fa-cash-register me-1"></i>Initial Payment (Optional)</h6>
+            <div class="row g-2">
+              <div class="col-md-3">
+                <label class="form-label small">Initial Paid Amount (৳)</label>
+                <input type="number" step="0.01" name="initial_payment" class="form-control" placeholder="0.00">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small">Payment Date</label>
+                <input type="date" name="payment_date" class="form-control">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small">Payment Method</label>
+                <select name="payment_method" class="form-select">
+                  <option value="Cash">Cash</option>
+                  <option value="Bank Transfer">Bank Transfer</option>
+                  <option value="bKash / Mobile Banking">bKash / Mobile</option>
+                  <option value="Cheque">Cheque</option>
+                </select>
+              </div>
+
+              <div class="col-md-2">
+                <label class="form-label small fw-semibold">Voucher Serial</label>
+                <select name="voucher_no" class="form-select" onchange="autoFillVoucherAmount(this)">
+                  <option value="">— Auto New Voucher ({{ next_cr_serial }}) —</option>
+                  {% for v in existing_vouchers %}
+                    <option value="{{ v.voucher_no }}" data-amount="{{ v.amount }}">{{ v.voucher_no }} ({{ v.get_voucher_type_display }} — ৳{{ v.amount|floatformat:2 }})</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small">Reference / Txn ID</label>
+                <input name="reference_no" class="form-control" placeholder="Receipt #">
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-4"><label class="form-label fw-semibold small">Position</label>
+            <select name="position" class="form-select">
+              <option value="">— Select —</option>
+              {% for p in positions %}<option value="{{ p.id }}">{{ p.title }}</option>{% endfor %}
+            </select></div>
+          <div class="col-md-4"><label class="form-label fw-semibold small">Agent</label>
+            <select name="agent" class="form-select">
+              <option value="">— Select —</option>
+              {% for a in agents %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}
+            </select></div>
+          <div class="col-md-4"><label class="form-label fw-semibold small">Company / Sponsor</label>
+            <select name="company" class="form-select">
+              <option value="">— Select —</option>
+              {% for co in companies %}<option value="{{ co.id }}">{{ co.name }}</option>{% endfor %}
+            </select></div>
+          <div class="col-md-6"><label class="form-label fw-semibold small">Selection Grade</label>
+            <select name="selection_grade" class="form-select">
+              <option value="">— Select —</option>
+              {% for g in grades %}<option value="{{ g.id }}">{{ g.grade_name }}</option>{% endfor %}
+            </select></div>
+          <div class="col-md-6"><label class="form-label fw-semibold small">Photo</label>
+            <input type="file" name="photo" class="form-control" accept="image/*"></div>
+
+          <!-- Sector Requirements Selection -->
+          <div class="col-12 border-top pt-2">
+            <h6 class="fw-bold text-primary small mb-2"><i class="fa-solid fa-list-check me-1"></i>Select Applicable Sectors / Workflow Stages for Candidate</h6>
+            <div class="row g-2 bg-light p-2 rounded border small">
+              <div class="col-6 col-md-3">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="applicable_sectors" value="selection" id="sec_sel" checked>
+                  <label class="form-check-label fw-semibold" for="sec_sel">Selection & Grade</label>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="applicable_sectors" value="medical" id="sec_med" checked>
+                  <label class="form-check-label fw-semibold" for="sec_med">Medical Clearance</label>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="applicable_sectors" value="police_clearance" id="sec_pc" checked>
+                  <label class="form-check-label fw-semibold" for="sec_pc">Police Clearance</label>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="applicable_sectors" value="mofa" id="sec_mofa" checked>
+                  <label class="form-check-label fw-semibold" for="sec_mofa">MOFA / Enjaz</label>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="applicable_sectors" value="fingerprint" id="sec_finger" checked>
+                  <label class="form-check-label fw-semibold" for="sec_finger">Biometric / Finger</label>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="applicable_sectors" value="visa_stamping" id="sec_visa" checked>
+                  <label class="form-check-label fw-semibold" for="sec_visa">Visa Stamping</label>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="applicable_sectors" value="training" id="sec_train" checked>
+                  <label class="form-check-label fw-semibold" for="sec_train">Training</label>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="applicable_sectors" value="manpower" id="sec_mp" checked>
+                  <label class="form-check-label fw-semibold" for="sec_mp">Manpower / BMET</label>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="applicable_sectors" value="flight" id="sec_flight" checked>
+                  <label class="form-check-label fw-semibold" for="sec_flight">Flight & NOC</label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sector File Uploads Accordion -->
+          <div class="col-12">
+            <h6 class="fw-bold text-dark small mb-2"><i class="fa-solid fa-paperclip me-1"></i>Upload Sector File Attachments (Optional)</h6>
+            <div class="accordion" id="addDocAccordion">
+              <div class="accordion-item border">
+                <h2 class="accordion-header">
+                  <button class="accordion-button collapsed py-2 small fw-bold text-primary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseUploads">
+                    <i class="fa-solid fa-cloud-arrow-up me-2"></i>Attach Documents (Passport, Medical, PC, MOFA, Visa, etc.)
+                  </button>
+                </h2>
+                <div id="collapseUploads" class="accordion-collapse collapse" data-bs-parent="#addDocAccordion">
+                  <div class="accordion-body small bg-light">
+                    <div class="row g-2">
+                      <div class="col-md-6">
+                        <label class="form-label mb-1 fw-semibold">Passport Copy</label>
+                        <input type="file" name="doc_passport" class="form-control form-control-sm">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label mb-1 fw-semibold">Medical Report</label>
+                        <input type="file" name="doc_medical" class="form-control form-control-sm">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label mb-1 fw-semibold">Police Clearance</label>
+                        <input type="file" name="doc_police_clearance" class="form-control form-control-sm">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label mb-1 fw-semibold">MOFA / Enjaz Copy</label>
+                        <input type="file" name="doc_mofa" class="form-control form-control-sm">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label mb-1 fw-semibold">Visa Stamping Copy</label>
+                        <input type="file" name="doc_visa_stamping" class="form-control form-control-sm">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label mb-1 fw-semibold">BMET Manpower Card</label>
+                        <input type="file" name="doc_manpower" class="form-control form-control-sm">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label mb-1 fw-semibold">Ticket & NOC</label>
+                        <input type="file" name="doc_flight" class="form-control form-control-sm">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label mb-1 fw-semibold">Other Attachment</label>
+                        <input type="file" name="doc_other" class="form-control form-control-sm">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12"><label class="form-label fw-semibold small">Notes</label>
+            <textarea name="notes" class="form-control" rows="2"></textarea></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save me-1"></i>Register Candidate</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── PER-CANDIDATE MODALS (Payment, Edit, Stage) ────────── -->
+{% for c in candidates %}
+
+<!-- Candidate Payment Modal with Date Tracking -->
+<div class="modal fade" id="paymentModal{{ c.id }}" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title fw-bold">
+          <i class="fa-solid fa-coins me-2"></i>Financial & Payment History — {{ c.name }}
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Candidate Financial Overview Cards -->
+        <div class="row g-2 mb-3 text-center">
+          <div class="col-4">
+            <div class="p-2 border rounded bg-light">
+              <div class="small text-muted">Total Package Fee</div>
+              <div class="fw-bold fs-6">৳{{ c.total_amount|floatformat:2 }}</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="p-2 border rounded bg-success-subtle text-success">
+              <div class="small">Total Paid</div>
+              <div class="fw-bold fs-6">৳{{ c.paid_amount|floatformat:2 }}</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="p-2 border rounded bg-danger-subtle text-danger">
+              <div class="small">Current Due</div>
+              <div class="fw-bold fs-6">৳{{ c.due_amount|floatformat:2 }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add New Payment Form -->
+        <div class="card mb-3 border-success">
+          <div class="card-header bg-success-subtle fw-bold small text-success py-2">
+            <i class="fa-solid fa-plus-circle me-1"></i>Add New Payment Entry
+          </div>
+          <div class="card-body py-2">
+            <form method="post" action="{% url 'admin_panel:candidate_add_payment' c.id %}">
+              {% csrf_token %}
+              <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                  <label class="form-label small fw-semibold">Amount (৳) *</label>
+                  <input type="number" step="0.01" name="amount" class="form-control" required placeholder="0.00">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label small fw-semibold">Payment Date *</label>
+                  <input type="date" name="payment_date" class="form-control" required>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small fw-semibold">Method</label>
+                  <select name="payment_method" class="form-select">
+                    <option value="Cash">Cash</option>
+                    <option value="Bank Transfer">Bank Transfer</option>
+                    <option value="bKash / Mobile Banking">bKash / Mobile</option>
+                    <option value="Cheque">Cheque</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div class="col-md-2">
+                  <label class="form-label small fw-semibold">Voucher Serial</label>
+                  <select name="voucher_no" class="form-select" onchange="autoFillVoucherAmount(this)">
+                    <option value="">— Auto New Voucher ({{ next_cr_serial }}) —</option>
+                    {% for v in existing_vouchers %}
+                      <option value="{{ v.voucher_no }}" data-amount="{{ v.amount }}">{{ v.voucher_no }} ({{ v.get_voucher_type_display }} — ৳{{ v.amount|floatformat:2 }})</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small fw-semibold">Reference / Txn ID</label>
+                  <input name="reference_no" class="form-control" placeholder="Txn # / Slip">
+                </div>
+                <div class="col-md-9 mt-2">
+                  <input name="notes" class="form-control form-control-sm" placeholder="Optional notes for this payment...">
+                </div>
+                <div class="col-md-3 mt-2">
+                  <button type="submit" class="btn btn-success btn-sm w-100 fw-bold">
+                    <i class="fa-solid fa-save me-1"></i>Save Payment
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Payment History List -->
+        <h6 class="fw-bold small text-primary mb-2"><i class="fa-solid fa-clock-rotate-left me-1"></i>Payment History Log</h6>
+        <div class="table-responsive">
+          <table class="table table-sm table-striped align-middle border">
+            <thead class="table-light small">
+              <tr>
+                <th>Date</th>
+                <th>Amount</th>
+                <th>Method</th>
+                <th>Voucher No</th>
+                <th>Reference</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody class="small">
+              {% for p in c.payments.all %}
+              <tr>
+                <td class="fw-semibold">{{ p.payment_date|date:"Y-m-d" }}</td>
+                <td class="text-success fw-bold">৳{{ p.amount|floatformat:2 }}</td>
+                <td><span class="badge bg-secondary">{{ p.payment_method }}</span></td>
+                <td>
+                  {% if p.voucher %}
+                    <span class="badge bg-primary bg-opacity-10 text-primary fw-bold"><i class="fa-solid fa-receipt me-1"></i>{{ p.voucher.voucher_no }}</span>
+                  {% else %}
+                    <span class="text-muted">—</span>
+                  {% endif %}
+                </td>
+                <td>{{ p.reference_no|default:"—" }}</td>
+                <td class="text-muted">{{ p.notes|default:"—" }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="6" class="text-center py-3 text-muted">No payments recorded yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal{{ c.id }}" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold">Edit Candidate: {{ c.name }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'admin_panel:candidate_edit' c.id %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6"><label class="form-label small fw-semibold">Full Name</label>
+              <input name="name" value="{{ c.name }}" class="form-control" required></div>
+            <div class="col-md-6"><label class="form-label small fw-semibold">Passport Number</label>
+              <input name="passport_number" value="{{ c.passport_number }}" class="form-control" required></div>
+            <div class="col-md-6"><label class="form-label small fw-semibold">Mobile</label>
+              <input name="mobile" value="{{ c.mobile }}" class="form-control"></div>
+            <div class="col-md-6"><label class="form-label small fw-semibold">Destination Country</label>
+              <input name="country" value="{{ c.country }}" class="form-control"></div>
+            <div class="col-md-4"><label class="form-label small fw-semibold">Position</label>
+              <select name="position" class="form-select">
+                <option value="">— Select —</option>
+                {% for p in positions %}<option value="{{ p.id }}" {% if c.position_id == p.id %}selected{% endif %}>{{ p.title }}</option>{% endfor %}
+              </select></div>
+            <div class="col-md-4"><label class="form-label small fw-semibold">Agent</label>
+              <select name="agent" class="form-select">
+                <option value="">— Select —</option>
+                {% for a in agents %}<option value="{{ a.id }}" {% if c.agent_id == a.id %}selected{% endif %}>{{ a.name }}</option>{% endfor %}
+              </select></div>
+            <div class="col-md-4"><label class="form-label small fw-semibold">Photo</label>
+              <input type="file" name="photo" class="form-control" accept="image/*"></div>
+
+            <!-- Applicable Sectors Checklist in Edit Modal -->
+            <div class="col-12 border-top pt-2">
+              <label class="form-label small fw-bold text-primary"><i class="fa-solid fa-list-check me-1"></i>Applicable Recruitment Sectors for Candidate</label>
+              <div class="row g-2 bg-light p-2 rounded border small">
+                <div class="col-6 col-md-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="applicable_sectors" value="selection" id="edit_sec_sel_{{ c.id }}" {% if not c.applicable_sectors or 'selection' in c.applicable_sectors %}checked{% endif %}>
+                    <label class="form-check-label fw-semibold" for="edit_sec_sel_{{ c.id }}">Selection & Grade</label>
+                  </div>
+                </div>
+                <div class="col-6 col-md-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="applicable_sectors" value="medical" id="edit_sec_med_{{ c.id }}" {% if not c.applicable_sectors or 'medical' in c.applicable_sectors %}checked{% endif %}>
+                    <label class="form-check-label fw-semibold" for="edit_sec_med_{{ c.id }}">Medical Clearance</label>
+                  </div>
+                </div>
+                <div class="col-6 col-md-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="applicable_sectors" value="police_clearance" id="edit_sec_pc_{{ c.id }}" {% if not c.applicable_sectors or 'police_clearance' in c.applicable_sectors %}checked{% endif %}>
+                    <label class="form-check-label fw-semibold" for="edit_sec_pc_{{ c.id }}">Police Clearance</label>
+                  </div>
+                </div>
+                <div class="col-6 col-md-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="applicable_sectors" value="mofa" id="edit_sec_mofa_{{ c.id }}" {% if not c.applicable_sectors or 'mofa' in c.applicable_sectors %}checked{% endif %}>
+                    <label class="form-check-label fw-semibold" for="edit_sec_mofa_{{ c.id }}">MOFA / Enjaz</label>
+                  </div>
+                </div>
+                <div class="col-6 col-md-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="applicable_sectors" value="fingerprint" id="edit_sec_finger_{{ c.id }}" {% if not c.applicable_sectors or 'fingerprint' in c.applicable_sectors %}checked{% endif %}>
+                    <label class="form-check-label fw-semibold" for="edit_sec_finger_{{ c.id }}">Biometric / Finger</label>
+                  </div>
+                </div>
+                <div class="col-6 col-md-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="applicable_sectors" value="visa_stamping" id="edit_sec_visa_{{ c.id }}" {% if not c.applicable_sectors or 'visa_stamping' in c.applicable_sectors %}checked{% endif %}>
+                    <label class="form-check-label fw-semibold" for="edit_sec_visa_{{ c.id }}">Visa Stamping</label>
+                  </div>
+                </div>
+                <div class="col-6 col-md-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="applicable_sectors" value="training" id="edit_sec_train_{{ c.id }}" {% if not c.applicable_sectors or 'training' in c.applicable_sectors %}checked{% endif %}>
+                    <label class="form-check-label fw-semibold" for="edit_sec_train_{{ c.id }}">Training</label>
+                  </div>
+                </div>
+                <div class="col-6 col-md-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="applicable_sectors" value="manpower" id="edit_sec_mp_{{ c.id }}" {% if not c.applicable_sectors or 'manpower' in c.applicable_sectors %}checked{% endif %}>
+                    <label class="form-check-label fw-semibold" for="edit_sec_mp_{{ c.id }}">Manpower / BMET</label>
+                  </div>
+                </div>
+                <div class="col-6 col-md-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="applicable_sectors" value="flight" id="edit_sec_flight_{{ c.id }}" {% if not c.applicable_sectors or 'flight' in c.applicable_sectors %}checked{% endif %}>
+                    <label class="form-check-label fw-semibold" for="edit_sec_flight_{{ c.id }}">Flight & NOC</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save me-1"></i>Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Stage Update Modal -->
+<div class="modal fade" id="stageModal{{ c.id }}" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header" style="background:linear-gradient(135deg,#4f46e5,#8b5cf6);color:#fff;">
+        <h5 class="modal-title fw-bold"><i class="fa-solid fa-diagram-project me-2"></i>Workflow Stage & Document — {{ c.name }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'admin_panel:candidate_update_stage' c.id %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="row g-3">
+            <!-- Selection -->
+            {% if not c.applicable_sectors or 'selection' in c.applicable_sectors %}
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-primary">Selection Status</label>
+              <select name="selection_status" class="form-select">
+                <option value="pending" {% if c.selection_status == 'pending' %}selected{% endif %}>Pending</option>
+                <option value="selected" {% if c.selection_status == 'selected' %}selected{% endif %}>Selected</option>
+                <option value="awaiting" {% if c.selection_status == 'awaiting' %}selected{% endif %}>Awaiting</option>
+                <option value="rejected" {% if c.selection_status == 'rejected' %}selected{% endif %}>Rejected</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-primary">Delegate Approval</label>
+              <select name="delegate_status" class="form-select">
+                <option value="pending" {% if c.delegate_status == 'pending' %}selected{% endif %}>Pending</option>
+                <option value="approved" {% if c.delegate_status == 'approved' %}selected{% endif %}>Approved</option>
+              </select>
+            </div>
+            {% endif %}
+
+            <!-- Medical -->
+            {% if not c.applicable_sectors or 'medical' in c.applicable_sectors %}
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-success">Medical Status</label>
+              <select name="medical_status" class="form-select">
+                <option value="pending" {% if c.medical_status == 'pending' %}selected{% endif %}>Pending</option>
+                <option value="fit" {% if c.medical_status == 'fit' %}selected{% endif %}>Fit</option>
+                <option value="unfit" {% if c.medical_status == 'unfit' %}selected{% endif %}>Unfit</option>
+                <option value="expired" {% if c.medical_status == 'expired' %}selected{% endif %}>Expired</option>
+                <option value="canceled" {% if c.medical_status == 'canceled' %}selected{% endif %}>Canceled</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-success">Medical Clinic</label>
+              <input name="medical_clinic" value="{{ c.medical_clinic }}" class="form-control" placeholder="Clinic name">
+            </div>
+            {% endif %}
+
+            <!-- Police Clearance -->
+            {% if not c.applicable_sectors or 'police_clearance' in c.applicable_sectors %}
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-warning">Police Clearance</label>
+              <select name="police_clearance_status" class="form-select">
+                <option value="pending" {% if c.police_clearance_status == 'pending' %}selected{% endif %}>Pending</option>
+                <option value="cleared" {% if c.police_clearance_status == 'cleared' %}selected{% endif %}>Cleared</option>
+                <option value="uncleared" {% if c.police_clearance_status == 'uncleared' %}selected{% endif %}>Uncleared</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-warning">Police Clearance Ref</label>
+              <input name="police_clearance_ref" value="{{ c.police_clearance_ref }}" class="form-control" placeholder="Reference number">
+            </div>
+            {% endif %}
+
+            <!-- MOFA -->
+            {% if not c.applicable_sectors or 'mofa' in c.applicable_sectors %}
+            <div class="col-md-4">
+              <label class="form-label small fw-bold" style="color:#7c3aed;">MOFA Status</label>
+              <select name="mofa_status" class="form-select">
+                <option value="mofa_pending" {% if c.mofa_status == 'mofa_pending' %}selected{% endif %}>Mofa Pending</option>
+                <option value="enjaz_pending" {% if c.mofa_status == 'enjaz_pending' %}selected{% endif %}>Enjaz Pending</option>
+                <option value="mofa_cleared" {% if c.mofa_status == 'mofa_cleared' %}selected{% endif %}>Mofa Cleared</option>
+              </select>
+            </div>
+            {% endif %}
+
+            <!-- Fingerprint / Biometric -->
+            {% if not c.applicable_sectors or 'fingerprint' in c.applicable_sectors %}
+            <div class="col-md-4">
+              <label class="form-label small fw-bold" style="color:#7c3aed;">Finger Status</label>
+              <select name="finger_status" class="form-select">
+                <option value="finger_pending" {% if c.finger_status == 'finger_pending' %}selected{% endif %}>Finger Pending</option>
+                <option value="finger_completed" {% if c.finger_status == 'finger_completed' %}selected{% endif %}>Finger Completed</option>
+              </select>
+            </div>
+            {% endif %}
+
+            <!-- Visa Stamping -->
+            {% if not c.applicable_sectors or 'visa_stamping' in c.applicable_sectors %}
+            <div class="col-md-4">
+              <label class="form-label small fw-bold" style="color:#7c3aed;">Visa Stamping</label>
+              <select name="visa_stamping_status" class="form-select">
+                <option value="visa_pending" {% if c.visa_stamping_status == 'visa_pending' %}selected{% endif %}>Visa Pending</option>
+                <option value="visa_completed" {% if c.visa_stamping_status == 'visa_completed' %}selected{% endif %}>Visa Completed</option>
+              </select>
+            </div>
+            {% endif %}
+
+            <!-- Training -->
+            {% if not c.applicable_sectors or 'training' in c.applicable_sectors %}
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-info">Training Status</label>
+              <select name="training_status" class="form-select">
+                <option value="training_pending" {% if c.training_status == 'training_pending' %}selected{% endif %}>Training Pending</option>
+                <option value="training_completed" {% if c.training_status == 'training_completed' %}selected{% endif %}>Training Completed</option>
+              </select>
+            </div>
+            {% endif %}
+
+            <!-- Manpower -->
+            {% if not c.applicable_sectors or 'manpower' in c.applicable_sectors %}
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-info">Manpower Status</label>
+              <select name="manpower_status" class="form-select">
+                <option value="manpower_pending" {% if c.manpower_status == 'manpower_pending' %}selected{% endif %}>Manpower Approval</option>
+                <option value="manpower_completed" {% if c.manpower_status == 'manpower_completed' %}selected{% endif %}>Manpower Completed</option>
+              </select>
+            </div>
+            {% endif %}
+
+            <!-- Flight & NOC -->
+            {% if not c.applicable_sectors or 'flight' in c.applicable_sectors %}
+            <div class="col-md-4">
+              <label class="form-label small fw-bold text-danger">Ticket Status</label>
+              <select name="ticket_status" class="form-select">
+                <option value="ticket_issue" {% if c.ticket_status == 'ticket_issue' %}selected{% endif %}>Ticket Issue</option>
+                <option value="ticket_pending" {% if c.ticket_status == 'ticket_pending' %}selected{% endif %}>Ticket Pending</option>
+                <option value="ticket_completed" {% if c.ticket_status == 'ticket_completed' %}selected{% endif %}>Ticket Completed</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold text-danger">Airline</label>
+              <input name="airline" value="{{ c.airline }}" class="form-control" placeholder="Airline name">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold text-danger">NOC Status</label>
+              <select name="noc_status" class="form-select">
+                <option value="noc_pending" {% if c.noc_status == 'noc_pending' %}selected{% endif %}>NOC Pending</option>
+                <option value="noc_completed" {% if c.noc_status == 'noc_completed' %}selected{% endif %}>NOC Completed</option>
+              </select>
+            </div>
+            {% endif %}
+
+            <!-- Upload Sector Document with Stage Update -->
+            <div class="col-12 border-top pt-3 mt-3">
+              <h6 class="fw-bold text-primary small mb-2"><i class="fa-solid fa-paperclip me-1"></i>Attach Document for Sector</h6>
+              <div class="row g-2 bg-light p-2 rounded border">
+                <div class="col-md-4">
+                  <label class="form-label small fw-semibold">Target Sector</label>
+                  <select name="stage_sector" class="form-select form-select-sm">
+                    <option value="passport">Passport / Bio Data</option>
+                    {% if not c.applicable_sectors or 'selection' in c.applicable_sectors %}<option value="selection">Selection & Assessment</option>{% endif %}
+                    {% if not c.applicable_sectors or 'medical' in c.applicable_sectors %}<option value="medical">Medical Clearance</option>{% endif %}
+                    {% if not c.applicable_sectors or 'police_clearance' in c.applicable_sectors %}<option value="police_clearance">Police Clearance</option>{% endif %}
+                    {% if not c.applicable_sectors or 'mofa' in c.applicable_sectors %}<option value="mofa">MOFA / Enjaz</option>{% endif %}
+                    {% if not c.applicable_sectors or 'fingerprint' in c.applicable_sectors %}<option value="fingerprint">Biometric / Finger</option>{% endif %}
+                    {% if not c.applicable_sectors or 'visa_stamping' in c.applicable_sectors %}<option value="visa_stamping">Visa Stamping</option>{% endif %}
+                    {% if not c.applicable_sectors or 'training' in c.applicable_sectors %}<option value="training">Training</option>{% endif %}
+                    {% if not c.applicable_sectors or 'manpower' in c.applicable_sectors %}<option value="manpower">Manpower / BMET</option>{% endif %}
+                    {% if not c.applicable_sectors or 'flight' in c.applicable_sectors %}<option value="flight">Flight Ticket & NOC</option>{% endif %}
+                    <option value="other">Other Document</option>
+                  </select>
+                </div>
+                <div class="col-md-8">
+                  <label class="form-label small fw-semibold">Choose File</label>
+                  <input type="file" name="stage_document" class="form-control form-control-sm">
+                </div>
+              </div>
+            </div>
+
+            <!-- Existing Attached Documents list -->
+            {% if c.documents.all %}
+            <div class="col-12 mt-2">
+              <label class="form-label small fw-bold text-secondary">Attached Documents for {{ c.name }}</label>
+              <div class="list-group list-group-flush border rounded small">
+                {% for doc in c.documents.all %}
+                <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+                  <div>
+                    <span class="badge bg-primary-subtle text-primary me-2">{{ doc.get_sector_display }}</span>
+                    <strong class="me-2">{{ doc.title }}</strong>
+                    <span class="text-muted opacity-75">({{ doc.uploaded_at|date:"M d, Y" }})</span>
+                  </div>
+                  <div class="d-flex gap-1">
+                    <a href="{{ doc.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary py-0 px-2" title="View Document">
+                      <i class="fa-solid fa-arrow-up-right-from-square"></i> Open
+                    </a>
+                    <a href="{% url 'admin_panel:candidate_delete_document' doc.id %}" onclick="return confirm('Delete document {{ doc.title }}?')" class="btn btn-sm btn-outline-danger py-0 px-2" title="Delete">
+                      <i class="fa-solid fa-trash"></i>
+                    </a>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            {% endif %}
+
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save me-1"></i>Update All Stages & Attachments</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Candidate Document Attachment Manager Modal -->
+<div class="modal fade" id="documentModal{{ c.id }}" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title fw-bold">
+          <i class="fa-solid fa-folder-open me-2"></i>Attached Sector Documents — {{ c.name }}
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Upload Document Form -->
+        <div class="card mb-3 border-info">
+          <div class="card-header bg-info-subtle fw-bold small text-info py-2">
+            <i class="fa-solid fa-plus-circle me-1"></i>Upload New Sector Attachment
+          </div>
+          <div class="card-body py-2">
+            <form method="post" action="{% url 'admin_panel:candidate_upload_document' c.id %}" enctype="multipart/form-data">
+              {% csrf_token %}
+              <div class="row g-2 align-items-end">
+                <div class="col-md-4">
+                  <label class="form-label small fw-semibold">Sector / Category *</label>
+                  <select name="sector" class="form-select form-select-sm" required>
+                    <option value="passport">Passport / Bio Data</option>
+                    {% if not c.applicable_sectors or 'selection' in c.applicable_sectors %}<option value="selection">Selection & Assessment</option>{% endif %}
+                    {% if not c.applicable_sectors or 'medical' in c.applicable_sectors %}<option value="medical">Medical Clearance</option>{% endif %}
+                    {% if not c.applicable_sectors or 'police_clearance' in c.applicable_sectors %}<option value="police_clearance">Police Clearance</option>{% endif %}
+                    {% if not c.applicable_sectors or 'mofa' in c.applicable_sectors %}<option value="mofa">MOFA Document</option>{% endif %}
+                    {% if not c.applicable_sectors or 'enjaz' in c.applicable_sectors %}<option value="enjaz">Enjaz Receipt</option>{% endif %}
+                    {% if not c.applicable_sectors or 'fingerprint' in c.applicable_sectors %}<option value="fingerprint">Biometric / Finger</option>{% endif %}
+                    {% if not c.applicable_sectors or 'visa_stamping' in c.applicable_sectors %}<option value="visa_stamping">Visa Stamping Document</option>{% endif %}
+                    {% if not c.applicable_sectors or 'training' in c.applicable_sectors %}<option value="training">Training Certificate</option>{% endif %}
+                    {% if not c.applicable_sectors or 'manpower' in c.applicable_sectors %}<option value="manpower">Manpower / BMET Smart Card</option>{% endif %}
+                    {% if not c.applicable_sectors or 'flight' in c.applicable_sectors %}<option value="flight">Ticket & NOC Approval</option>{% endif %}
+                    <option value="other">Other Document</option>
+                  </select>
+                </div>
+                <div class="col-md-5">
+                  <label class="form-label small fw-semibold">Select File *</label>
+                  <input type="file" name="file" class="form-control form-control-sm" required>
+                </div>
+                <div class="col-md-3">
+                  <button type="submit" class="btn btn-sm btn-info text-white w-100 fw-bold">
+                    <i class="fa-solid fa-upload me-1"></i>Upload Document
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Document List Table -->
+        <div class="table-responsive border rounded">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light small">
+              <tr>
+                <th>Sector</th>
+                <th>Document Title / File</th>
+                <th>Uploaded Date</th>
+                <th class="text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody class="small">
+              {% for doc in c.documents.all %}
+              <tr>
+                <td><span class="badge bg-primary-subtle text-primary fw-semibold">{{ doc.get_sector_display }}</span></td>
+                <td>
+                  <a href="{{ doc.file.url }}" target="_blank" class="fw-bold text-decoration-none">
+                    <i class="fa-solid fa-file-pdf text-danger me-1"></i>{{ doc.title }}
+                  </a>
+                </td>
+                <td class="text-muted">{{ doc.uploaded_at|date:"Y-m-d H:i" }}</td>
+                <td class="text-end">
+                  <a href="{{ doc.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary me-1" title="View / Download">
+                    <i class="fa-solid fa-download"></i>
+                  </a>
+                  <a href="{% url 'admin_panel:candidate_delete_document' doc.id %}" onclick="return confirm('Delete this document?')" class="btn btn-sm btn-outline-danger" title="Delete">
+                    <i class="fa-solid fa-trash"></i>
+                  </a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4" class="text-center py-4 text-muted">No documents uploaded for this candidate yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endfor %}
+
+<!-- ── PER-CANDIDATE VIEW PROFILE MODALS ─────────────────────── -->
+{% for c in candidates %}
+<div class="modal fade" id="viewModal{{ c.id }}" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header text-white" style="background:linear-gradient(135deg,#1e293b,#334155);">
+        <div class="d-flex align-items-center gap-3">
+          {% if c.photo %}
+            <img src="{{ c.photo.url }}" class="rounded-circle border border-white border-2" style="width:48px;height:48px;object-fit:cover;">
+          {% else %}
+            <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center fw-bold text-white" style="width:48px;height:48px;font-size:1.2rem;">{{ c.name|first|upper }}</div>
+          {% endif %}
+          <div>
+            <h5 class="modal-title fw-bold mb-0"><i class="fa-solid fa-id-card me-2"></i>{{ c.name }}</h5>
+            <small class="opacity-75">{{ c.registration_id }} &nbsp;&middot;&nbsp; {{ c.passport_number }}</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+
+        <!-- Personal Info -->
+        <div class="row g-3 mb-4">
+          <div class="col-12"><h6 class="fw-bold text-primary border-bottom pb-1 mb-3"><i class="fa-solid fa-user me-2"></i>Personal Information</h6></div>
+          <div class="col-md-3 col-6"><div class="small text-muted">Full Name</div><div class="fw-semibold">{{ c.name }}</div></div>
+          <div class="col-md-3 col-6"><div class="small text-muted">Registration ID</div><div class="fw-semibold text-primary">{{ c.registration_id }}</div></div>
+          <div class="col-md-3 col-6"><div class="small text-muted">Passport No.</div><div class="fw-semibold font-monospace">{{ c.passport_number }}</div></div>
+          <div class="col-md-3 col-6"><div class="small text-muted">Passport Expiry</div><div class="fw-semibold">{{ c.passport_expiry|date:"Y-m-d"|default:"—" }}</div></div>
+          <div class="col-md-3 col-6"><div class="small text-muted">Date of Birth</div><div class="fw-semibold">{{ c.date_of_birth|date:"Y-m-d"|default:"—" }}</div></div>
+          <div class="col-md-3 col-6"><div class="small text-muted">Gender</div><div class="fw-semibold">{{ c.get_gender_display }}</div></div>
+          <div class="col-md-3 col-6"><div class="small text-muted">Mobile</div><div class="fw-semibold">{{ c.mobile|default:"—" }}</div></div>
+          <div class="col-md-3 col-6"><div class="small text-muted">Email</div><div class="fw-semibold">{{ c.email|default:"—" }}</div></div>
+          <div class="col-md-3 col-6"><div class="small text-muted">Country</div><div class="fw-semibold">{{ c.country }}</div></div>
+          <div class="col-md-3 col-6"><div class="small text-muted">Interview Slot</div><div class="fw-semibold">{{ c.interview_slot|default:"—" }}</div></div>
+          <div class="col-md-3 col-6"><div class="small text-muted">Position</div><div class="fw-semibold">{{ c.position|default:"—" }}</div></div>
+          <div class="col-md-3 col-6"><div class="small text-muted">Agent</div><div class="fw-semibold">{{ c.agent|default:"—" }}</div></div>
+          <div class="col-md-3 col-6"><div class="small text-muted">Company / Sponsor</div><div class="fw-semibold">{{ c.company|default:"—" }}</div></div>
+          <div class="col-md-3 col-6"><div class="small text-muted">Visa Lot</div><div class="fw-semibold">{{ c.visa_lot.title|default:"—" }}</div></div>
+          <div class="col-md-3 col-6"><div class="small text-muted">Registered On</div><div class="fw-semibold">{{ c.created_at|date:"Y-m-d" }}</div></div>
+          {% if c.notes %}<div class="col-12"><div class="small text-muted">Notes</div><div class="fw-semibold">{{ c.notes }}</div></div>{% endif %}
+        </div>
+
+        <!-- Financial Summary -->
+        <div class="mb-4">
+          <h6 class="fw-bold text-success border-bottom pb-1 mb-3"><i class="fa-solid fa-coins me-2"></i>Financial Summary</h6>
+          <div class="row g-2 text-center">
+            <div class="col-4"><div class="p-3 border rounded bg-light"><div class="small text-muted">Total Fee</div><div class="fw-bold fs-5">৳{{ c.total_amount|floatformat:2 }}</div></div></div>
+            <div class="col-4"><div class="p-3 border rounded bg-success-subtle text-success"><div class="small">Total Paid</div><div class="fw-bold fs-5">৳{{ c.paid_amount|floatformat:2 }}</div></div></div>
+            <div class="col-4"><div class="p-3 border rounded {% if c.due_amount > 0 %}bg-danger-subtle text-danger{% else %}bg-success-subtle text-success{% endif %}"><div class="small">Due / Balance</div><div class="fw-bold fs-5">৳{{ c.due_amount|floatformat:2 }}</div></div></div>
+          </div>
+        </div>
+
+        <!-- Workflow Stages -->
+        <div class="mb-4">
+          <h6 class="fw-bold text-secondary border-bottom pb-1 mb-3"><i class="fa-solid fa-diagram-project me-2"></i>Workflow Stages</h6>
+          <div class="row g-2 small">
+            <div class="col-6 col-md-3"><div class="text-muted">Selection</div><span class="badge bg-primary-subtle text-primary">{{ c.get_selection_status_display }}</span></div>
+            <div class="col-6 col-md-3"><div class="text-muted">Delegate</div><span class="badge bg-secondary-subtle text-secondary">{{ c.get_delegate_status_display }}</span></div>
+            <div class="col-6 col-md-3"><div class="text-muted">Medical</div><span class="badge bg-{% if c.medical_status == 'fit' %}success{% elif c.medical_status == 'unfit' %}danger{% else %}warning{% endif %}-subtle text-{% if c.medical_status == 'fit' %}success{% elif c.medical_status == 'unfit' %}danger{% else %}warning{% endif %}">{{ c.get_medical_status_display }}</span></div>
+            <div class="col-6 col-md-3"><div class="text-muted">Police Clear.</div><span class="badge bg-info-subtle text-info">{{ c.get_police_clearance_status_display }}</span></div>
+            <div class="col-6 col-md-3"><div class="text-muted">MOFA</div><span class="badge bg-secondary-subtle text-secondary">{{ c.get_mofa_status_display }}</span></div>
+            <div class="col-6 col-md-3"><div class="text-muted">Fingerprint</div><span class="badge bg-secondary-subtle text-secondary">{{ c.get_finger_status_display }}</span></div>
+            <div class="col-6 col-md-3"><div class="text-muted">Visa Stamping</div><span class="badge bg-{% if c.visa_stamping_status == 'visa_completed' %}success{% else %}warning{% endif %}-subtle text-{% if c.visa_stamping_status == 'visa_completed' %}success{% else %}warning{% endif %}">{{ c.get_visa_stamping_status_display }}</span></div>
+            <div class="col-6 col-md-3"><div class="text-muted">Training</div><span class="badge bg-info-subtle text-info">{{ c.get_training_status_display }}</span></div>
+            <div class="col-6 col-md-3"><div class="text-muted">Manpower</div><span class="badge bg-secondary-subtle text-secondary">{{ c.get_manpower_status_display }}</span></div>
+            <div class="col-6 col-md-3"><div class="text-muted">Ticket</div><span class="badge bg-danger-subtle text-danger">{{ c.get_ticket_status_display }}</span></div>
+            <div class="col-6 col-md-3"><div class="text-muted">NOC</div><span class="badge bg-secondary-subtle text-secondary">{{ c.get_noc_status_display }}</span></div>
+          </div>
+        </div>
+
+        <!-- Documents -->
+        <div>
+          <h6 class="fw-bold text-info border-bottom pb-1 mb-3"><i class="fa-solid fa-folder-open me-2"></i>Attached Documents ({{ c.documents.count }})</h6>
+          {% if c.documents.all %}
+          <div class="list-group list-group-flush border rounded small">
+            {% for doc in c.documents.all %}
+            <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+              <div>
+                <span class="badge bg-primary-subtle text-primary me-2">{{ doc.get_sector_display }}</span>
+                <strong>{{ doc.title }}</strong>
+                <span class="text-muted ms-2 small">{{ doc.uploaded_at|date:"Y-m-d" }}</span>
+              </div>
+              <div class="d-flex gap-1">
+                <a href="{{ doc.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary py-0 px-2" title="View"><i class="fa-solid fa-eye"></i></a>
+                <a href="{{ doc.file.url }}" download class="btn btn-sm btn-outline-success py-0 px-2" title="Download"><i class="fa-solid fa-download"></i></a>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="text-center py-3 text-muted small"><i class="fa-solid fa-folder-open fa-2x mb-2 d-block opacity-25"></i>No documents attached yet.</div>
+          {% endif %}
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <a href="{% url 'admin_panel:candidate_download' c.id %}" class="btn btn-warning fw-bold">
+          <i class="fa-solid fa-file-zipper me-2"></i>Download Info &amp; All Documents (ZIP)
+        </a>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<script>
+function autoFillVoucherAmount(selectElem) {
+  if (!selectElem) return;
+  const selectedOption = selectElem.options[selectElem.selectedIndex];
+  const amount = selectedOption ? selectedOption.getAttribute('data-amount') : null;
+  if (amount) {
+    const form = selectElem.closest('form');
+    if (form) {
+      const amountInput = form.querySelector('input[name="amount"], input[name="initial_payment"]');
+      if (amountInput) {
+        amountInput.value = amount;
+      }
+    }
+  }
+}
+</script>
+{% endblock %}

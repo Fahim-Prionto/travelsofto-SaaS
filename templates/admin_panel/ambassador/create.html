@@ -1,0 +1,48 @@
+{% extends 'admin_panel/base.html' %}
+
+{% block header_title %}Add Ambassador{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 p-4">
+                <h4 class="fw-bold text-dark mb-1">Create Ambassador Account</h4>
+                <p class="text-muted small mb-4">Ambassadors can make bookings for customers and earn commissions.</p>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">First Name</label>
+                            <input type="text" name="first_name" class="form-control" placeholder="John">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Last Name</label>
+                            <input type="text" name="last_name" class="form-control" placeholder="Doe">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Email Address *</label>
+                        <input type="email" name="email" class="form-control" required placeholder="ambassador@agency.com">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Mobile Number</label>
+                        <input type="text" name="mobile" class="form-control" placeholder="+8801700000000">
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Password</label>
+                        <input type="password" name="password" class="form-control" placeholder="Default: AmbassadorPass@123">
+                        <small class="text-muted">Leave blank for auto-generated default password.</small>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'admin_panel:ambassador_list' %}" class="btn btn-light px-4">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4">Create Account</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends 'auth/base.html' %}
+
+{% block title %}Sign In - Softobro Travel{% endblock %}
+
+{% block content %}
+<div class="text-center mb-4">
+    <h3 class="fw-extrabold text-dark mb-1">Welcome Back</h3>
+    {% if current_tenant %}
+        <p class="text-muted small">Sign in to book your next adventure with {{ current_tenant.agency_name }}</p>
+    {% else %}
+        <p class="text-muted small">Sign in to access your portal (Super Admin, Agency, or Customer)</p>
+    {% endif %}
+</div>
+
+<form method="POST">
+    {% csrf_token %}
+    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+    <div class="mb-3">
+        <label class="form-label small fw-bold text-muted">Email Address</label>
+        <div class="input-group">
+            <span class="input-group-text bg-light text-muted border-end-0"><i class="fa-solid fa-envelope"></i></span>
+            <input type="email" name="email" class="form-control border-start-0 ps-0" placeholder="email" required>
+        </div>
+    </div>
+
+    <div class="mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+            <label class="form-label small fw-bold text-muted mb-0">Password</label>
+        </div>
+        <div class="input-group">
+            <span class="input-group-text bg-light text-muted border-end-0"><i class="fa-solid fa-lock"></i></span>
+            <input type="password" name="password" id="passwordInput" class="form-control border-start-0 border-end-0 ps-0" placeholder="password" required>
+            <button class="btn btn-outline-secondary bg-light text-muted border-start-0" type="button" onclick="togglePasswordVisibility('passwordInput', this)">
+                <i class="fa-solid fa-eye"></i>
+            </button>
+        </div>
+    </div>
+
+
+    <button type="submit" class="btn btn-primary w-100 py-2.5 fw-bold fs-6 rounded-3 shadow-sm mb-3">
+        <i class="fa-solid fa-right-to-bracket me-2"></i> Sign In to Account
+    </button>
+</form>
+
+{% if current_tenant %}
+<div class="text-center mt-4 pt-3 border-top">
+    <p class="text-muted small mb-1">New here? Create a free customer account.</p>
+    <a href="{% url 'accounts:customer_register' %}" class="fw-bold text-primary text-decoration-none">
+        <i class="fa-solid fa-user-plus me-1"></i> Register as a Customer
+    </a>
+</div>
+{% else %}
+<div class="text-center mt-4 pt-3 border-top">
+    <p class="text-muted small mb-1">Want to start your own Travel Agency platform?</p>
+    <a href="{% url 'accounts:agency_register' %}" class="fw-bold text-primary text-decoration-none">
+        <i class="fa-solid fa-building-user me-1"></i> Register Travel Agency SaaS
+    </a>
+</div>
+{% endif %}
+{% endblock %}

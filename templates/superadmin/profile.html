@@ -1,0 +1,119 @@
+{% extends 'superadmin/base.html' %}
+
+{% block title %}Super Admin Profile Settings - {{ PLATFORM_NAME }}{% endblock %}
+{% block header_title %}Account Profile & Settings{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <div class="row g-4">
+        <!-- Sidebar Summary Card -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 text-center p-4">
+                <div class="mb-3 position-relative d-inline-block">
+                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto shadow-sm" style="width: 90px; height: 90px; font-size: 2.5rem; font-weight: 700;">
+                        {{ user.email|first|upper }}
+                    </div>
+                </div>
+                <h5 class="fw-bold mb-1">{{ user.get_full_name|default:user.email }}</h5>
+                <p class="text-muted small mb-2"><i class="fa-solid fa-envelope me-1"></i> {{ user.email }}</p>
+                <span class="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill fs-7 fw-semibold">
+                    <i class="fa-solid fa-shield-halved me-1"></i> Super Admin Role
+                </span>
+                <hr class="my-4 opacity-10">
+                <div class="text-start">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted small">Account ID:</span>
+                        <span class="fw-semibold small">#{{ user.id }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted small">Last Login:</span>
+                        <span class="fw-semibold small">{{ user.last_login|date:"M d, Y H:i"|default:"First Session" }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted small">Date Joined:</span>
+                        <span class="fw-semibold small">{{ user.date_joined|date:"M d, Y" }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Forms -->
+        <div class="col-lg-8">
+            <!-- Update Profile Information Card -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
+                    <h5 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-user-gear text-primary me-2"></i> Profile Details
+                    </h5>
+                    <p class="text-muted small mb-0">Update your super admin account personal information</p>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" action="{% url 'superadmin:profile' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="update_profile">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small text-muted">First Name</label>
+                                <input type="text" name="first_name" class="form-control rounded-3 py-2" value="{{ user.first_name }}" placeholder="Super">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small text-muted">Last Name</label>
+                                <input type="text" name="last_name" class="form-control rounded-3 py-2" value="{{ user.last_name }}" placeholder="Admin">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small text-muted">Primary Email Address</label>
+                                <input type="email" class="form-control rounded-3 py-2 bg-light" value="{{ user.email }}" disabled readonly>
+                                <small class="text-muted fs-8">Primary login email address cannot be modified.</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small text-muted">Phone Number</label>
+                                <input type="text" name="phone" class="form-control rounded-3 py-2" value="{{ user.phone|default:'' }}" placeholder="+1 (555) 000-0000">
+                            </div>
+                        </div>
+                        <div class="mt-4 text-end">
+                            <button type="submit" class="btn btn-primary rounded-3 px-4 fw-semibold">
+                                <i class="fa-solid fa-floppy-disk me-1"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Change Password Card -->
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
+                    <h5 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-lock text-warning me-2"></i> Update Password
+                    </h5>
+                    <p class="text-muted small mb-0">Ensure your administrative account remains secure by using a strong password</p>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" action="{% url 'superadmin:profile' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="change_password">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label fw-semibold small text-muted">Current Password</label>
+                                <input type="password" name="current_password" class="form-control rounded-3 py-2" required placeholder="Enter current password">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small text-muted">New Password</label>
+                                <input type="password" name="new_password" class="form-control rounded-3 py-2" required minlength="6" placeholder="At least 6 characters">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small text-muted">Confirm New Password</label>
+                                <input type="password" name="confirm_password" class="form-control rounded-3 py-2" required minlength="6" placeholder="Re-enter new password">
+                            </div>
+                        </div>
+                        <div class="mt-4 text-end">
+                            <button type="submit" class="btn btn-dark rounded-3 px-4 fw-semibold">
+                                <i class="fa-solid fa-key me-1"></i> Change Password
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,882 @@
+================================================================================
+               VISERTRIP - MULTI-TENANT SaaS TRAVEL & VISA MANAGEMENT PLATFORM
+                              COMPLETE PROJECT REQUIREMENTS
+================================================================================
+Generated: 2026-08-21
+Version: 1.0
+
+================================================================================
+1. PROJECT OVERVIEW
+================================================================================
+
+Project Name    : ViserTrip
+Project Type    : Multi-Tenant SaaS Travel, Tour Booking & Visa Management Platform
+
+ViserTrip is a complete SaaS-based platform where multiple travel agencies can
+subscribe and use the system independently.
+
+Each travel agency receives:
+  - Its own Admin Panel
+  - Its own separate PostgreSQL database
+  - Its own users and customers
+  - Its own Travel & Visa Management System
+  - Its own website / landing page
+  - CMS functionality to manage its website
+  - Individual domain or subdomain support
+  - Individual packages and subscription
+  - Separate bookings and payments
+  - Separate branding and website settings
+
+The platform has three main levels:
+  1. Super Admin
+  2. Agency Admin / Tenant
+  3. Customer / User
+
+================================================================================
+2. SYSTEM ARCHITECTURE
+================================================================================
+
+A. SUPER ADMIN
+--------------
+The Super Admin owns and controls the complete ViserTrip SaaS platform.
+
+Capabilities:
+  - Manage all travel agency admins
+  - Create subscription packages
+  - Approve / Activate / Suspend / Deactivate agencies
+  - View individual agency information
+  - View all system analytics
+  - Manage domains and subdomains
+  - Monitor subscriptions and payments
+  - View platform revenue
+  - Manage global settings
+  - Control individual tenant systems
+  - View booking analytics
+  - View visa application analytics
+  - View customer statistics
+  - Manage support tickets
+  - Manage SaaS plans
+  - Manage landing page templates
+
+================================================================================
+3. SUPER ADMIN DASHBOARD
+================================================================================
+
+Dashboard Statistics:
+  - Total Admin/Tenants
+  - Active Admins
+  - Inactive Admins
+  - Suspended Admins
+  - Trial Admins
+  - Expired Subscriptions
+  - Total Customers
+  - Total Bookings
+  - Total Visa Applications
+  - Total Travel Packages
+  - Total Revenue
+  - Monthly Revenue
+  - Yearly Revenue
+  - Pending Payments
+  - Successful Payments
+  - Failed Payments
+  - Total Domains
+  - Active Domains
+  - Pending Domain Requests
+
+Analytics Charts (Chart.js):
+  - Monthly Revenue
+  - New Admin Registrations
+  - New Customer Registrations
+  - Booking Statistics
+  - Visa Application Statistics
+  - Subscription Statistics
+  - Package Popularity
+  - Active vs Inactive Tenants
+  - Payment Analytics
+
+================================================================================
+4. SUPER ADMIN - ADMIN/TENANT MANAGEMENT
+================================================================================
+
+Per-Tenant Information:
+  - Agency Name
+  - Owner Name
+  - Email
+  - Mobile Number
+  - Company Address
+  - Registration Date
+  - Subscription Package
+  - Subscription Start/End Dates
+  - Subscription Status
+  - Website URL
+  - Subdomain
+  - Custom Domain
+  - Database Status
+  - Total Customers / Bookings / Visa Applications / Revenue
+  - Account Status
+
+Actions Available:
+  - View Details
+  - Edit Information
+  - Activate / Suspend / Disable / Delete
+  - Change Subscription Package
+  - Extend Subscription
+  - View Analytics
+  - View Payment History
+  - View Customers / Bookings / Visa Applications
+  - View Website
+  - Manage Domain
+  - Login/View Admin Account (with authorization)
+  - Send Notification
+
+================================================================================
+5. SaaS SUBSCRIPTION PACKAGE MANAGEMENT
+================================================================================
+
+Package Types:
+
+STARTER PLAN:
+  - Limited Users
+  - Limited Travel Packages
+  - Limited Visa Services
+  - Subdomain Included
+  - Basic Website
+  - Basic Analytics
+
+PROFESSIONAL PLAN:
+  - More Users
+  - More Packages
+  - More Visa Services
+  - Custom Website
+  - Advanced Analytics
+  - Custom Domain Support
+
+ENTERPRISE PLAN:
+  - Unlimited Users
+  - Unlimited Travel Packages
+  - Unlimited Visa Services
+  - Advanced CMS
+  - Custom Domain
+  - Full Analytics
+  - Priority Support
+  - Advanced Features
+
+Package Management (Super Admin):
+  - Create / Edit / Delete Package
+  - Set Monthly Price
+  - Set Yearly Price
+  - Set Trial Period
+  - Set Feature Limits
+  - Set User Limits
+  - Set Storage Limits
+  - Enable / Disable Package
+
+================================================================================
+6. SUBSCRIPTION MANAGEMENT
+================================================================================
+
+Tracking:
+  - Subscription Start/End Dates
+  - Package Type
+  - Monthly / Yearly / Trial billing cycles
+  - Active / Expired / Pending Payment statuses
+
+Automatic Actions:
+  ON EXPIRY:
+    - Send notification
+    - Send email reminder
+    - Restrict features
+    - Show subscription renewal page
+  ON RENEWAL:
+    - Automatically activate subscription
+    - Update expiry date
+    - Enable package features
+
+Background Tasks: Celery + Redis
+
+================================================================================
+7. MULTI-TENANT DATABASE SYSTEM
+================================================================================
+
+Architecture:
+  Super Admin Database (main)
+    |
+    |-- Tenant: ABC Travel       --> abc_travel_db
+    |-- Tenant: XYZ Travels      --> xyz_travels_db
+    |-- Tenant: Viser Agency     --> viser_agency_db
+
+Each Tenant Database Contains:
+  - Customers
+  - User Profiles
+  - Travel Packages
+  - Bookings
+  - Visa Services
+  - Visa Applications
+  - Visa Documents
+  - Payments
+  - Transactions
+  - Coupons
+  - Reviews
+  - Support Tickets
+  - Notifications
+  - KYC Information
+  - Website CMS Content
+
+Super Admin Database Contains:
+  - SuperAdmins
+  - Tenant/Admin Information
+  - Subscription Packages
+  - Subscriptions
+  - SaaS Payments
+  - Domain Information
+  - Global Settings
+  - Tenant Database Information
+  - System Analytics
+
+================================================================================
+8. AUTOMATIC TENANT CREATION WORKFLOW
+================================================================================
+
+When a new Admin/Tenant subscribes successfully, the system automatically:
+
+  1. Creates the Admin/Tenant account
+  2. Generates a unique Tenant ID
+  3. Creates a separate PostgreSQL database
+  4. Runs tenant database migrations
+  5. Creates the default Admin account
+  6. Creates default roles and permissions
+  7. Creates a default website
+  8. Creates a default CMS configuration
+  9. Generates a subdomain
+  10. Activates the selected subscription package
+  11. Sends account credentials and welcome email
+
+Example:
+  Agency Name : ABC Travel
+  Admin Panel : abc-travel.visertrip.com/admin
+  Website     : abc-travel.visertrip.com
+  Database    : abc_travel_db
+
+================================================================================
+9. TENANT / ADMIN PANEL
+================================================================================
+
+Admin Dashboard Shows:
+  - Total Customers
+  - Total Bookings
+  - Pending Bookings
+  - Completed Trips
+  - Ongoing Trips
+  - Total Visa Applications
+  - Pending Visa Applications
+  - Approved Visa Applications
+  - Total Payments
+  - Total Revenue
+  - Recent Bookings
+  - Recent Visa Applications
+  - Recent Customers
+
+================================================================================
+10. USER MANAGEMENT
+================================================================================
+
+User Lists:
+  - Active Users
+  - Banned Users
+  - Email Unverified Users
+  - Mobile Unverified Users
+  - KYC Unverified Users
+  - KYC Pending Users
+  - All Users
+
+Admin Actions:
+  - Add Balance
+  - Deduct Balance
+  - Ban User
+  - Activate User
+  - View Login History
+  - View Bookings / Visa Applications / Payments
+  - Send Notifications
+
+================================================================================
+11. TRAVEL PACKAGE MANAGEMENT
+================================================================================
+
+Fields:
+  - Package Name
+  - Package Description
+  - Destination
+  - Travel Date
+  - Duration
+  - Price
+  - Available Seats
+  - Package Image
+  - Multiple Images
+  - Included Services
+  - Excluded Services
+  - Package Status
+
+Actions:
+  - Add / Edit / Delete Package
+  - Enable / Disable
+  - View Bookings
+
+================================================================================
+12. LOCATION AND DESTINATION MANAGEMENT
+================================================================================
+
+Modules:
+  - Countries
+  - Cities
+  - Destinations
+
+Destination Fields:
+  - Name
+  - Country / City
+  - Description
+  - Featured Image
+  - Multiple Images
+  - Status
+
+Actions: Add / Edit / Delete / Enable / Disable
+
+================================================================================
+13. VISA SERVICE MANAGEMENT
+================================================================================
+
+Fields:
+  - Visa Name
+  - Visa Type
+  - Country
+  - Visa Price
+  - Required Documents
+  - Processing Time
+  - Visa Description
+  - Visa Status
+
+Visa Types:
+  - Tourist Visa
+  - Business Visa
+  - Student Visa
+  - Work Visa
+  - Transit Visa
+
+================================================================================
+14. VISA APPLICATION MANAGEMENT
+================================================================================
+
+Customer Flow:
+  1. Select Visa Service
+  2. Select Country
+  3. Complete Application Form
+  4. Upload Required Documents
+  5. Pay Application Fee
+  6. Track Application Status
+
+Application Statuses:
+  - Pending
+  - Processing
+  - Approved
+  - Rejected
+  - Completed
+
+================================================================================
+15. BOOKING MANAGEMENT
+================================================================================
+
+Fields:
+  - Booking Code
+  - Travel Package
+  - Travel Date
+  - Booking Amount
+  - Payment Status
+  - Booking Status
+  - Customer Details
+
+Booking Statuses:
+  - Pending
+  - Confirmed
+  - Ongoing
+  - Completed
+  - Cancelled
+
+================================================================================
+16. PAYMENT MANAGEMENT
+================================================================================
+
+Payment Types:
+  - Subscription Payments (SaaS)
+  - Travel Booking Payments
+  - Visa Application Payments
+
+Fields:
+  - Transaction ID
+  - Customer / Tenant
+  - Amount
+  - Payment Method
+  - Payment Status
+  - Payment Date
+
+Statuses:
+  - Paid
+  - Unpaid
+  - Pending
+  - Failed
+  - Refunded
+
+Design for easy payment gateway integration.
+
+================================================================================
+17. COUPON MANAGEMENT
+================================================================================
+
+Fields:
+  - Coupon Code
+  - Fixed Discount
+  - Percentage Discount
+  - Start Date
+  - Expiry Date
+  - Usage Limit
+  - Status
+
+================================================================================
+18. TENANT WEBSITE AND CMS
+================================================================================
+
+CMS Sections:
+  - Home Page
+    * Hero Section (Title, Subtitle, Background Image, CTA Button)
+  - About Us (Company Info, Mission, Vision, Image)
+  - Destinations (List, Details, Images)
+  - Travel Packages (List, Details, Booking Button)
+  - Visa Services (List, Details, Apply Button)
+  - Contact Page (Address, Email, Phone, Map, Form)
+  - Testimonials
+  - Reviews
+  - FAQ
+  - Blog
+  - Footer Settings
+  - Social Media Links
+  - SEO Settings
+  - Logo Upload
+  - Favicon Upload
+  - Theme Settings
+
+Admin CMS Actions: Add / Edit / Delete / Publish / Unpublish
+
+================================================================================
+19. WEBSITE TEMPLATE SYSTEM
+================================================================================
+
+Template Examples:
+  - Modern Travel Template
+  - Luxury Travel Template
+  - Minimal Travel Template
+  - Corporate Travel Template
+
+Super Admin manages templates.
+Tenants select templates based on subscription package.
+
+================================================================================
+20. DOMAIN AND SUBDOMAIN MANAGEMENT
+================================================================================
+
+Auto-generated Subdomain:
+  tenant-name.visertrip.com
+
+Custom Domain:
+  www.customertravelagency.com
+
+Features:
+  - Automatic Subdomain Generation
+  - Custom Domain Request
+  - Domain Verification
+  - Domain Status / SSL Status
+  - Enable / Disable Domain
+  - Primary Domain Selection
+
+Routing: System routes visitor to correct tenant based on domain/subdomain.
+
+================================================================================
+21. CUSTOMER / USER PANEL
+================================================================================
+
+Menu:
+  - Dashboard
+  - Booking History
+  - Visa History
+  - Payment History
+  - My Reviews
+  - Support Tickets
+  - Profile Settings
+  - Change Password
+  - Two-Factor Authentication (2FA)
+  - Notifications
+  - Logout
+
+Dashboard Cards:
+  - Total Bookings
+  - Completed Trips
+  - Pending Bookings
+  - Visa Applications
+  - Total Spending
+  - Recent Bookings
+
+================================================================================
+22. AUTHENTICATION AND SECURITY
+================================================================================
+
+Features:
+  - Registration / Login / Logout
+  - Forgot Password / Reset Password
+  - Email Verification
+  - Mobile Verification
+  - KYC Verification
+  - Two-Factor Authentication (2FA)
+  - Role-Based Access Control (RBAC)
+  - Secure Password Hashing
+  - Session Management
+
+Roles:
+  - Super Admin
+  - Tenant Admin
+  - Tenant Staff
+  - Customer
+
+================================================================================
+23. NOTIFICATION SYSTEM
+================================================================================
+
+Types:
+  - In-App Notifications
+  - Email Notifications
+  - Booking Notifications
+  - Visa Application Notifications
+  - Payment Notifications
+  - Subscription Expiry Notifications
+  - Admin Notifications
+  - Super Admin Notifications
+
+Show unread notification counts in UI.
+
+================================================================================
+24. SUPPORT TICKET SYSTEM
+================================================================================
+
+Customer Actions:
+  - Create Ticket
+  - Add Subject / Message
+  - Upload Attachments
+  - View Replies
+  - Close Ticket
+
+Admin Actions:
+  - View Tickets
+  - Reply
+  - Change Ticket Status
+  - Close Tickets
+
+Super Admin manages platform-level support tickets.
+
+================================================================================
+25. KYC SYSTEM
+================================================================================
+
+Features:
+  - KYC Document Upload
+  - Pending KYC List
+  - Verified / Unverified KYC
+  - Approval / Rejection
+
+Documents stored securely.
+
+================================================================================
+26. TECHNOLOGY STACK
+================================================================================
+
+Backend:
+  - Python
+  - Django
+  - Django REST Framework
+
+Database:
+  - PostgreSQL (separate DB per tenant)
+
+Frontend:
+  - HTML5
+  - CSS3
+  - JavaScript
+  - Bootstrap 5
+  - HTMX
+  - Alpine.js
+  - Chart.js
+
+Background Tasks:
+  - Celery
+  - Redis
+
+Authentication:
+  - Django Authentication
+  - django-allauth
+  - django-otp (2FA)
+
+File Storage:
+  - Cloudinary OR Amazon S3
+
+Deployment:
+  - Docker
+  - Nginx
+  - Gunicorn
+
+================================================================================
+27. DATABASE DESIGN
+================================================================================
+
+MAIN DATABASE (Super Admin):
+  - SuperAdmins
+  - Tenants
+  - Tenant Domains
+  - Subscription Packages
+  - Subscriptions
+  - SaaS Payments
+  - Platform Transactions
+  - Global Notifications
+  - Global Settings
+  - Website Templates
+  - Tenant Provisioning Logs
+
+TENANT DATABASE (per agency):
+  - Users
+  - User Profiles
+  - Staff
+  - Countries
+  - Cities
+  - Destinations
+  - Travel Packages
+  - Package Images
+  - Bookings
+  - Visa Services
+  - Visa Applications
+  - Visa Documents
+  - Payments
+  - Transactions
+  - Coupons
+  - Coupon Usage
+  - Reviews
+  - Support Tickets
+  - Support Messages
+  - Notifications
+  - KYC Requests
+  - Login History
+  - CMS Pages
+  - CMS Sections
+  - Website Settings
+  - SEO Settings
+
+================================================================================
+28. DJANGO PROJECT STRUCTURE
+================================================================================
+
+visertrip/
+|
+|-- config/
+|-- apps/
+|   |-- core/
+|   |-- accounts/
+|   |-- superadmin/
+|   |-- tenants/
+|   |-- subscriptions/
+|   |-- domains/
+|   |-- travel_packages/
+|   |-- destinations/
+|   |-- visa/
+|   |-- bookings/
+|   |-- payments/
+|   |-- coupons/
+|   |-- cms/
+|   |-- notifications/
+|   |-- support/
+|   |-- reviews/
+|   |-- kyc/
+|   |-- analytics/
+|
+|-- templates/
+|-- static/
+|-- media/
+|-- requirements/
+
+================================================================================
+29. UI/UX REQUIREMENTS
+================================================================================
+
+Design Standards:
+  - Responsive Layout (Desktop, Tablet, Mobile)
+  - Left Sidebar for Admin Dashboards
+  - Top Navigation Bar
+  - Clean Dashboard Cards
+  - Modern Tables with Search, Filters, Pagination
+  - Status Badges
+  - Bootstrap Modals
+  - Confirmation Dialogs
+  - Toast Notifications
+  - Chart.js Analytics Charts
+  - Professional SaaS color system
+
+================================================================================
+30. DEVELOPMENT RULES
+================================================================================
+
+  1. Build in phases
+  2. Start with Django project structure and PostgreSQL configuration
+  3. Create custom User model first
+  4. Implement Super Admin and Tenant architecture before business modules
+  5. Implement secure tenant isolation
+  6. Create migrations carefully for multi-database architecture
+  7. Add proper permissions to every module
+  8. Never mix one tenant's data with another
+  9. Use environment variables for sensitive credentials
+  10. Add validation and error handling
+  11. Write clean and maintainable code
+  12. Follow Django best practices
+  13. Design for scalability (hundreds/thousands of tenants)
+
+================================================================================
+31. DEVELOPMENT PHASES
+================================================================================
+
+PHASE 1: Project Foundation
+  - Django project setup
+  - PostgreSQL configuration
+  - Custom User model
+  - Environment configuration
+  - Base templates
+
+PHASE 2: Multi-Tenant Core
+  - Tenant model
+  - Multi-database router
+  - Tenant middleware
+  - Domain routing
+  - Automatic database provisioning
+
+PHASE 3: Super Admin Panel
+  - Super Admin dashboard
+  - Tenant management
+  - Subscription packages
+  - Platform analytics
+
+PHASE 4: Subscription System
+  - Package management
+  - Subscription lifecycle
+  - Celery tasks for reminders
+  - Payment recording
+
+PHASE 5: Tenant Admin Panel
+  - Admin dashboard
+  - User management
+  - Destination management
+  - Travel package management
+  - Visa service management
+
+PHASE 6: Booking and Visa System
+  - Booking management
+  - Visa applications
+  - Document uploads
+  - Status tracking
+
+PHASE 7: Payment System
+  - Payment recording
+  - Transaction history
+  - Coupon system
+
+PHASE 8: CMS and Website
+  - Tenant website engine
+  - CMS modules
+  - Template system
+  - Domain routing
+
+PHASE 9: Customer Panel
+  - Customer dashboard
+  - Booking/Visa history
+  - Profile management
+  - Support tickets
+
+PHASE 10: Authentication and Security
+  - All auth flows
+  - 2FA
+  - KYC
+  - RBAC
+
+PHASE 11: Notifications
+  - In-app notifications
+  - Email notifications
+  - Subscription reminders
+
+PHASE 12: Testing and Deployment
+  - Unit tests
+  - Integration tests
+  - Docker setup
+  - Nginx/Gunicorn configuration
+
+================================================================================
+END OF REQUIREMENTS DOCUMENT
+================================================================================
+
+
+# Database Setup and domain
+
+In your project, individual databases for new agencies are created and isolated automatically by your Django backend whenever a new agency subscribes.
+
+Here is how the automatic process works under the hood, along with the critical cPanel/PostgreSQL setup steps required for it to run smoothly on your server.
+
+1. How It Works Automatically in Your Project
+When a new agency subscribes, your application executes the 
+
+provision_tenant
+ pipeline (located in 
+
+apps/tenants/provisioning.py
+):
+
+Automatic Database Creation (CREATE DATABASE): Django connects to your PostgreSQL server using the master database user set in your .env file and executes:
+
+sql
+CREATE DATABASE "travel_agency_slug";
+This creates a completely separate, clean PostgreSQL database just for that agency.
+
+Automatic Table Migration (
+
+run_tenant_migrations
+): Django runs migrations on the newly created database alias (tenant_agencyslug), automatically setting up all required agency tables (Travel Packages, Visas, Bookings, CMS, Payments, etc.).
+
+Automatic Admin & Subdomain Provisioning:
+
+Creates the default agency admin user and sets up their initial CMS settings.
+Assigns them a subdomain (e.g., agencyname.yourdomain.com).
+Dynamic Data Isolation (TenantDatabaseRouter): When a user or agency admin visits agencyname.yourdomain.com, the Tenant Middleware detects the agency and routes all SQL queries exclusively to that agency's individual PostgreSQL database (
+
+apps/tenants/routers.py
+).
+
+2. Required cPanel / PostgreSQL Configuration
+For this automatic database creation to work on your cPanel server without throwing permission errors:
+
+A. Grant CREATEDB Permission to your PostgreSQL User
+Standard cPanel database users often do not have permission to create databases dynamically via code.
+
+Open your PostgreSQL interface (or connect via SSH / Terminal to PostgreSQL) as superuser and execute:
+sql
+ALTER USER your_db_username WITH CREATEDB;
+(Replace your_db_username with the DB_USER defined in your Django .env file).
+
+B. Wildcard Subdomain in cPanel
+Since every agency gets their own subdomain (agency1.yourdomain.com, agency2.yourdomain.com):
+
+Log into cPanel.
+Go to Domains / Subdomains.
+Create a Wildcard Subdomain: * (e.g., *.yourdomain.com).
+Set its Document Root to point to your Django application directory.
+Summary Checklist for Deployment
+Requirement	Setting / Command
+PostgreSQL User Privilege	Must have CREATEDB (ALTER USER db_user WITH CREATEDB;)
+.env Configuration	DB_HOST=127.0.0.1 (or localhost), DB_PORT=5432, DB_USER, DB_PASSWORD
+Subdomain Routing	Setup *.yourdomain.com wildcard in cPanel DNS/Subdomains

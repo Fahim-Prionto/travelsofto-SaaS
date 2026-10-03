@@ -1,0 +1,340 @@
+{% extends 'website/base.html' %}
+
+{% block title %}
+{% if is_platform_home %}Launch Your Travel Agency — Softobro Travel SaaS{% else %}Explore Tours &amp; Visa Services{% endif %}
+{% endblock %}
+
+{% block content %}
+
+{% if is_platform_home %}
+{# ─────────────────────────────────────────────────────────────────────────── #}
+{# MAIN PLATFORM HOME — Softobro Travel SaaS Marketing Page                   #}
+{# ─────────────────────────────────────────────────────────────────────────── #}
+
+<!-- Hero Section -->
+<section class="hero-section text-center py-6" style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #312e81 100%); color:#fff; min-height: 78vh; display:flex; align-items:center;">
+    <div class="container py-5">
+        <span class="badge rounded-pill px-4 py-2 fw-bold mb-4 d-inline-block"
+              style="background: rgba(99,102,241,0.25); color:#a5b4fc; border:1px solid rgba(99,102,241,0.4); font-size: 0.88rem;">
+            <i class="fa-solid fa-rocket me-2"></i>The #1 SaaS Platform for Travel Agencies
+        </span>
+        <h1 class="display-3 fw-extrabold mb-4" style="line-height:1.15;">
+            Launch Your Own<br>
+            <span style="background: linear-gradient(90deg,#818cf8,#a78bfa,#f472b6); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Travel Agency Website</span>
+        </h1>
+        <p class="lead mb-5 mx-auto" style="max-width:620px; color: rgba(255,255,255,0.75); font-size:1.2rem;">
+            Softobro Travel gives every agency its own branded website — with tour packages, visa services, bookings, and customer management, all ready in minutes.
+        </p>
+        <div class="d-flex justify-content-center gap-3 flex-wrap">
+            <a href="{% url 'accounts:agency_register' %}" class="btn btn-lg px-5 py-3 fw-bold rounded-pill shadow-lg"
+               style="background: linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border:none;">
+                <i class="fa-solid fa-star me-2"></i> Start Free Trial
+            </a>
+            <a href="#pricing" class="btn btn-outline-light btn-lg px-5 py-3 fw-bold rounded-pill">
+                <i class="fa-solid fa-tag me-2"></i> View Pricing
+            </a>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="mt-5 pt-3 d-flex justify-content-center gap-5 flex-wrap" style="color: rgba(255,255,255,0.6);">
+            <div class="text-center">
+                <div class="fw-extrabold fs-3 text-white">500+</div>
+                <div class="small">Agencies</div>
+            </div>
+            <div class="text-center">
+                <div class="fw-extrabold fs-3 text-white">50K+</div>
+                <div class="small">Bookings Handled</div>
+            </div>
+            <div class="text-center">
+                <div class="fw-extrabold fs-3 text-white">99.9%</div>
+                <div class="small">Uptime</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-6 bg-light" id="features">
+    <div class="container py-4">
+        <div class="text-center mb-5">
+            <span class="badge bg-primary-subtle text-primary fw-bold px-3 py-2 rounded-pill mb-3">Platform Features</span>
+            <h2 class="fw-extrabold display-6 text-dark mb-2">Everything Your Agency Needs</h2>
+            <p class="text-muted mx-auto" style="max-width: 520px;">One platform. Your own branded website. Full control over packages, visas, bookings, and customers.</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100 p-4 rounded-4">
+                    <div class="mb-3" style="width:52px;height:52px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:14px;display:flex;align-items:center;justify-content:center;">
+                        <i class="fa-solid fa-globe text-white fs-5"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-2">Branded Agency Website</h5>
+                    <p class="text-muted small mb-0">Your own subdomain and custom domain. Full CMS control over hero banners, content, and branding colors.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100 p-4 rounded-4">
+                    <div class="mb-3" style="width:52px;height:52px;background:linear-gradient(135deg,#0ea5e9,#06b6d4);border-radius:14px;display:flex;align-items:center;justify-content:center;">
+                        <i class="fa-solid fa-compass text-white fs-5"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-2">Tour Package Management</h5>
+                    <p class="text-muted small mb-0">Add unlimited tour packages with pricing, seat limits, galleries, and descriptions. Published directly on your website.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100 p-4 rounded-4">
+                    <div class="mb-3" style="width:52px;height:52px;background:linear-gradient(135deg,#f59e0b,#f97316);border-radius:14px;display:flex;align-items:center;justify-content:center;">
+                        <i class="fa-solid fa-passport text-white fs-5"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-2">Visa Services</h5>
+                    <p class="text-muted small mb-0">Offer tourist, business, student visa services. Customers apply online and track their applications in real-time.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100 p-4 rounded-4">
+                    <div class="mb-3" style="width:52px;height:52px;background:linear-gradient(135deg,#10b981,#059669);border-radius:14px;display:flex;align-items:center;justify-content:center;">
+                        <i class="fa-solid fa-users text-white fs-5"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-2">Customer CRM</h5>
+                    <p class="text-muted small mb-0">Manage all customers, their bookings, KYC verification, wallets, and support tickets from one place.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100 p-4 rounded-4">
+                    <div class="mb-3" style="width:52px;height:52px;background:linear-gradient(135deg,#ec4899,#db2777);border-radius:14px;display:flex;align-items:center;justify-content:center;">
+                        <i class="fa-solid fa-user-tie text-white fs-5"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-2">Staff Accounts</h5>
+                    <p class="text-muted small mb-0">Add multiple staff members to help run your agency. Each staff gets their own login and access to the agency panel.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100 p-4 rounded-4">
+                    <div class="mb-3" style="width:52px;height:52px;background:linear-gradient(135deg,#6366f1,#4338ca);border-radius:14px;display:flex;align-items:center;justify-content:center;">
+                        <i class="fa-solid fa-chart-line text-white fs-5"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-2">Analytics &amp; Reports</h5>
+                    <p class="text-muted small mb-0">Track revenue, bookings, visa applications, and customer growth with a real-time agency analytics dashboard.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Pricing Section -->
+<section class="py-6" id="pricing">
+    <div class="container py-4">
+        <div class="text-center mb-5">
+            <span class="badge bg-primary-subtle text-primary fw-bold px-3 py-2 rounded-pill mb-3">Subscription Plans</span>
+            <h2 class="fw-extrabold display-6 text-dark mb-2">Simple, Transparent Pricing</h2>
+            <p class="text-muted mx-auto" style="max-width:480px;">Choose the plan that fits your agency. No hidden fees. Cancel anytime.</p>
+        </div>
+
+        {% if subscription_packages %}
+        <div class="row g-4 justify-content-center">
+            {% for plan in subscription_packages %}
+            <div class="col-md-4">
+                <div class="card border-0 shadow h-100 rounded-4 position-relative {% if plan.is_recommended %}border border-primary border-2{% endif %}" style="overflow:hidden;">
+                    {% if plan.is_recommended %}
+                    <div class="position-absolute top-0 end-0 m-0">
+                        <span class="badge rounded-0 rounded-bottom-start px-3 py-2 fw-bold"
+                              style="background: linear-gradient(135deg,#6366f1,#8b5cf6); font-size:0.76rem;">
+                            ⭐ Most Popular
+                        </span>
+                    </div>
+                    {% endif %}
+                    <div class="card-body p-4">
+                        <div class="mb-4">
+                            <span class="badge bg-{{ plan.badge_color }}-subtle text-{{ plan.badge_color }} rounded-pill fw-bold px-3 mb-2">{{ plan.get_package_type_display }}</span>
+                            <h4 class="fw-extrabold text-dark mb-1">{{ plan.name }}</h4>
+                            <p class="text-muted small mb-0">{{ plan.description|default:"Perfect for growing agencies." }}</p>
+                        </div>
+
+                        <div class="mb-4">
+                            <span class="display-5 fw-extrabold text-dark">${{ plan.monthly_price }}</span>
+                            <span class="text-muted">/month</span>
+                            {% if plan.yearly_price %}
+                            <div class="small text-muted mt-1">or ${{ plan.yearly_price }}/year
+                                {% if plan.yearly_savings > 0 %}
+                                <span class="text-success fw-bold">(Save ${{ plan.yearly_savings }})</span>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <ul class="list-unstyled mb-4">
+                            <li class="mb-2 small"><i class="fa-solid fa-check-circle text-success me-2"></i>
+                                {% if plan.max_users == -1 %}Unlimited{% else %}Up to {{ plan.max_users }}{% endif %} Customer Accounts
+                            </li>
+                            <li class="mb-2 small"><i class="fa-solid fa-check-circle text-success me-2"></i>
+                                {% if plan.max_travel_packages == -1 %}Unlimited{% else %}{{ plan.max_travel_packages }}{% endif %} Tour Packages
+                            </li>
+                            <li class="mb-2 small"><i class="fa-solid fa-check-circle text-success me-2"></i>
+                                {% if plan.max_visa_services == -1 %}Unlimited{% else %}{{ plan.max_visa_services }}{% endif %} Visa Services
+                            </li>
+                            <li class="mb-2 small"><i class="fa-solid fa-check-circle text-success me-2"></i>
+                                {% if plan.max_staff == -1 %}Unlimited{% else %}{{ plan.max_staff }}{% endif %} Staff Members
+                            </li>
+                            {% if plan.custom_domain %}<li class="mb-2 small"><i class="fa-solid fa-check-circle text-success me-2"></i>Custom Domain</li>{% endif %}
+                            {% if plan.advanced_analytics %}<li class="mb-2 small"><i class="fa-solid fa-check-circle text-success me-2"></i>Advanced Analytics</li>{% endif %}
+                            {% if plan.priority_support %}<li class="mb-2 small"><i class="fa-solid fa-check-circle text-success me-2"></i>Priority Support</li>{% endif %}
+                            {% if plan.white_label %}<li class="mb-2 small"><i class="fa-solid fa-check-circle text-success me-2"></i>White Label</li>{% endif %}
+                            <li class="mb-2 small"><i class="fa-solid fa-check-circle text-success me-2"></i>{{ plan.trial_days }}-day Free Trial</li>
+                        </ul>
+
+                        <a href="{% url 'accounts:agency_register' %}" class="btn w-100 fw-bold rounded-pill py-2
+                            {% if plan.is_recommended %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                            Get Started <i class="fa-solid fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <!-- Fallback if no subscription packages are defined yet -->
+        <div class="row g-4 justify-content-center">
+            <!-- Starter -->
+            <div class="col-md-4">
+                <div class="card border-0 shadow h-100 rounded-4 p-4">
+                    <span class="badge bg-secondary-subtle text-secondary rounded-pill fw-bold px-3 mb-3">Starter</span>
+                    <h4 class="fw-extrabold">Basic</h4>
+                    <div class="display-5 fw-extrabold text-dark mb-2">$19<span class="fs-6 text-muted fw-normal">/mo</span></div>
+                    <ul class="list-unstyled small text-muted mb-4">
+                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>Up to 100 Customers</li>
+                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>10 Tour Packages</li>
+                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>5 Visa Services</li>
+                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>14-day Free Trial</li>
+                    </ul>
+                    <a href="{% url 'accounts:agency_register' %}" class="btn btn-outline-primary rounded-pill fw-bold">Get Started</a>
+                </div>
+            </div>
+            <!-- Pro -->
+            <div class="col-md-4">
+                <div class="card border-2 border-primary shadow-lg h-100 rounded-4 p-4 position-relative">
+                    <span class="badge bg-primary rounded-pill fw-bold px-3 mb-3 position-absolute top-0 end-0 m-3">Popular</span>
+                    <span class="badge bg-primary-subtle text-primary rounded-pill fw-bold px-3 mb-3">Professional</span>
+                    <h4 class="fw-extrabold">Pro</h4>
+                    <div class="display-5 fw-extrabold text-dark mb-2">$49<span class="fs-6 text-muted fw-normal">/mo</span></div>
+                    <ul class="list-unstyled small text-muted mb-4">
+                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>Unlimited Customers</li>
+                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>Unlimited Packages</li>
+                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>Custom Domain</li>
+                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>Advanced Analytics</li>
+                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>Priority Support</li>
+                    </ul>
+                    <a href="{% url 'accounts:agency_register' %}" class="btn btn-primary rounded-pill fw-bold">Get Started</a>
+                </div>
+            </div>
+            <!-- Enterprise -->
+            <div class="col-md-4">
+                <div class="card border-0 shadow h-100 rounded-4 p-4">
+                    <span class="badge bg-dark text-white rounded-pill fw-bold px-3 mb-3">Enterprise</span>
+                    <h4 class="fw-extrabold">Business</h4>
+                    <div class="display-5 fw-extrabold text-dark mb-2">$99<span class="fs-6 text-muted fw-normal">/mo</span></div>
+                    <ul class="list-unstyled small text-muted mb-4">
+                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>Everything in Pro</li>
+                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>White Label</li>
+                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>API Access</li>
+                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>Unlimited Staff</li>
+                    </ul>
+                    <a href="{% url 'accounts:agency_register' %}" class="btn btn-outline-dark rounded-pill fw-bold">Get Started</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- CTA Banner -->
+<section class="py-5" style="background: linear-gradient(135deg,#1e1b4b 0%,#312e81 100%);">
+    <div class="container py-4 text-center text-white">
+        <h2 class="fw-extrabold display-6 mb-3">Ready to Launch Your Agency?</h2>
+        <p class="mb-4 mx-auto" style="max-width:500px; color:rgba(255,255,255,0.7);">
+            Register today and get your agency website live within minutes. Free trial included.
+        </p>
+        <a href="{% url 'accounts:agency_register' %}" class="btn btn-lg px-5 py-3 fw-bold rounded-pill shadow"
+           style="background: linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border:none;">
+            <i class="fa-solid fa-rocket me-2"></i> Register Your Agency — It's Free
+        </a>
+    </div>
+</section>
+
+{% else %}
+{# ─────────────────────────────────────────────────────────────────────────── #}
+{# AGENCY WEBSITE HOME — each agency's own branded landing page                #}
+{# ─────────────────────────────────────────────────────────────────────────── #}
+
+<!-- Agency Hero Section -->
+<section class="hero-section text-center text-white py-6">
+    <div class="container py-4">
+        <span class="badge bg-primary-subtle text-primary fw-bold px-3 py-2 rounded-pill mb-3">
+            <i class="fa-solid fa-sparkles me-1"></i> Premium Travel &amp; Visa Services
+        </span>
+        <h1 class="display-4 fw-extrabold mb-3 text-white">{{ hero.title|default:"Explore Extraordinary Destinations Worldwide" }}</h1>
+        <p class="lead mb-4 mx-auto text-secondary" style="max-width: 680px;">
+            {{ hero.subtitle|default:"Book handcrafted tour packages, luxury itineraries, and apply for visa services with complete peace of mind." }}
+        </p>
+        <div class="d-flex justify-content-center gap-3 flex-wrap mb-4">
+            <a href="{% url 'public:packages' %}" class="btn btn-primary btn-lg px-4 py-3 fw-bold rounded-pill shadow-lg">
+                <i class="fa-solid fa-compass me-2"></i> Explore Tour Packages
+            </a>
+            <a href="{% url 'public:visa_services' %}" class="btn btn-outline-light btn-lg px-4 py-3 fw-bold rounded-pill">
+                <i class="fa-solid fa-passport me-2"></i> Apply for Visa Service
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Featured Tour Packages -->
+{% if packages %}
+<section class="py-5 bg-light">
+    <div class="container py-3">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-5 gap-3">
+            <div>
+                <span class="badge bg-primary-subtle text-primary fw-bold px-3 py-1 rounded-pill mb-2">Featured Itineraries</span>
+                <h2 class="fw-extrabold m-0 text-dark">Popular Tour Packages</h2>
+            </div>
+            <a href="{% url 'public:packages' %}" class="btn btn-outline-custom rounded-pill px-4 fw-bold">View All Tours <i class="fa-solid fa-arrow-right ms-1"></i></a>
+        </div>
+        <div class="row g-4">
+            {% for pkg in packages %}
+            <div class="col-md-4">
+                <div class="package-card h-100 shadow-sm">
+                    <div class="package-img-wrapper">
+                        <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80" alt="{{ pkg.name }}">
+                        <div class="package-price-badge">${{ pkg.price }}</div>
+                    </div>
+                    <div class="p-4">
+                        <h5 class="fw-bold text-dark mb-2">{{ pkg.name }}</h5>
+                        <p class="text-muted small mb-3">{{ pkg.description|truncatewords:14 }}</p>
+                        <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                            <span class="small text-muted fw-semibold"><i class="fa-solid fa-clock me-1 text-primary"></i>{{ pkg.duration_days }} Days</span>
+                            <a href="{% url 'accounts:login' %}" class="btn btn-primary btn-sm rounded-pill px-3">Book Tour</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- Visa Assistance Callout -->
+{% if visas %}
+<section class="py-5 bg-dark text-white" style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%) !important;">
+    <div class="container py-4 text-center">
+        <span class="badge bg-warning text-dark fw-bold px-3 py-2 rounded-pill mb-3">Hassle-Free Visa Services</span>
+        <h2 class="display-6 fw-extrabold mb-3">Need Fast &amp; Reliable Visa Processing?</h2>
+        <p class="text-secondary mx-auto mb-4" style="max-width: 600px;">
+            Apply online for tourist, business, student, or work visas with document assistance and real-time application tracking.
+        </p>
+        <a href="{% url 'public:visa_services' %}" class="btn btn-accent btn-lg px-5 py-3 fw-bold rounded-pill shadow">
+            <i class="fa-solid fa-passport me-2"></i> Apply for Visa Assistance
+        </a>
+    </div>
+</section>
+{% endif %}
+
+{% endif %}
+{% endblock %}

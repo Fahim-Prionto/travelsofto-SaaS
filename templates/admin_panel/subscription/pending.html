@@ -1,0 +1,58 @@
+{% extends 'website/base.html' %}
+
+{% block title %}Payment Pending Approval - {{ PLATFORM_NAME }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-lg rounded-4 text-center p-5">
+                <div class="rounded-circle bg-warning-subtle text-warning d-flex align-items-center justify-content-center mx-auto mb-3 shadow-sm" style="width: 80px; height: 80px; font-size: 2.5rem;">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+                <h4 class="fw-bold text-dark mb-2">Subscription Payment Pending Review</h4>
+                <p class="text-muted small mb-4">
+                    Your payment submission for <strong>{{ tenant.agency_name }}</strong> has been received and is currently waiting for Super Admin approval.
+                </p>
+
+                {% if payment %}
+                    <div class="bg-light p-3 rounded-3 text-start mb-4 fs-7">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Transaction ID:</span>
+                            <code class="fw-bold text-primary">{{ payment.transaction_id }}</code>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Amount:</span>
+                            <span class="fw-bold text-success">৳{{ payment.amount }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Status:</span>
+                            <span class="badge bg-warning-subtle text-warning fw-bold">Awaiting Approval</span>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <div class="alert alert-info border-0 rounded-3 text-start small mb-4">
+                    <i class="fa-solid fa-circle-info me-1"></i> Once the Super Admin approves your payment record, your agency subscription will be activated automatically and full access will be granted.
+                </div>
+
+                <div class="d-flex justify-content-center gap-2 mb-3">
+                    <a href="{% url 'admin_panel:dashboard' %}" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
+                        <i class="fa-solid fa-arrows-rotate me-1"></i> Check Approval Status
+                    </a>
+                    <a href="{% url 'accounts:logout' %}" class="btn btn-outline-danger rounded-pill px-4 fw-semibold">
+                        <i class="fa-solid fa-right-from-bracket me-1"></i> Logout Account
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Auto-refresh page every 10 seconds to check if Super Admin approved payment
+    setTimeout(function() {
+        window.location.reload();
+    }, 10000);
+</script>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends 'admin_panel/base.html' %}
+
+{% block title %}Add New Customer - Agency Admin{% endblock %}
+{% block header_title %}Register New Agency Customer{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm p-4 mx-auto" style="max-width: 680px;">
+    <div class="d-flex align-items-center gap-3 mb-4 border-bottom pb-3">
+        <div class="stat-icon primary" style="width: 48px; height: 48px;">
+            <i class="fa-solid fa-user-plus"></i>
+        </div>
+        <div>
+            <h5 class="fw-bold m-0 text-dark">Customer Registration</h5>
+            <p class="text-muted small mb-0">Create a traveler profile for your agency database</p>
+        </div>
+    </div>
+
+    <form method="POST">
+        {% csrf_token %}
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="form-label small fw-bold text-muted">First Name</label>
+                <input type="text" name="first_name" class="form-control" placeholder="e.g. Rahul" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label small fw-bold text-muted">Last Name</label>
+                <input type="text" name="last_name" class="form-control" placeholder="e.g. Ahmed" required>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label small fw-bold text-muted">Email Address</label>
+            <input type="email" name="email" class="form-control" placeholder="customer@example.com" required>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label small fw-bold text-muted">Mobile Number</label>
+            <input type="text" name="mobile" class="form-control" placeholder="+8801700000000">
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label small fw-bold text-muted">Account Password</label>
+            <input type="password" name="password" class="form-control" placeholder="Default: 123456" value="123456">
+            <small class="text-muted fs-8">Customer can change this password upon first login.</small>
+        </div>
+
+        <div class="d-flex align-items-center justify-content-end gap-2 pt-3 border-top">
+            <a href="{% url 'admin_panel:customer_list' %}" class="btn btn-outline-secondary px-3">Cancel</a>
+            <button type="submit" class="btn btn-primary px-4 fw-bold">
+                <i class="fa-solid fa-check me-1"></i> Register Customer
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

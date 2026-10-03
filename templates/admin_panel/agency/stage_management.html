@@ -1,0 +1,233 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block header_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+  <!-- Sub-tab Filter Pills -->
+  <div class="card mb-4">
+    <div class="card-body py-3 d-flex flex-wrap gap-2 align-items-center">
+      {% for key, label in sub_tabs %}
+        <a href="?sub={{ key }}" class="btn btn-sm {% if active_sub == key %}btn-primary{% else %}btn-outline-custom{% endif %} rounded-pill">
+          {{ label }} 
+          <span class="badge {% if active_sub == key %}bg-white text-primary{% else %}bg-primary text-white{% endif %} ms-1">
+            {% if key == 'all' %}{{ candidates|length }}{% endif %}
+          </span>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Candidates Table -->
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h6 class="mb-0 fw-bold"><i class="fa-solid fa-list me-2 text-primary"></i>
+        {{ title }} — <span class="text-primary">{{ candidates|length }}</span> candidates
+        {% if active_sub != 'all' %}<span class="badge bg-primary ms-2">{{ active_sub }}</span>{% endif %}
+      </h6>
+      <a href="{% url 'admin_panel:candidate_list' %}" class="btn btn-sm btn-outline-custom">
+        <i class="fa-solid fa-arrow-left me-1"></i>All Candidates
+      </a>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table-custom w-100">
+          <thead>
+            <tr>
+              <th>Reg ID</th>
+              <th>Candidate</th>
+              <th>Passport No</th>
+              <th>Position</th>
+              <th>Company</th>
+              <th>Selection</th>
+              <th>Medical</th>
+              <th>Visa</th>
+              <th>Update Stage</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in candidates %}
+            <tr>
+              <td><span class="fw-bold text-primary small">{{ c.registration_id }}</span></td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white fw-bold" style="width:30px;height:30px;font-size:0.75rem;">
+                    {{ c.name|first|upper }}
+                  </div>
+                  <div>
+                    <div class="fw-semibold small">{{ c.name }}</div>
+                    <div class="text-muted" style="font-size:0.72rem;">{{ c.passport_number }}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="small">{{ c.passport_number }}</td>
+              <td class="small">{{ c.position.title|default:"—" }}</td>
+              <td class="small">{{ c.company.name|default:"—" }}</td>
+              <td>
+                {% if c.selection_status == 'selected' %}<span class="badge-status badge-status-active">{{ c.get_selection_status_display }}</span>
+                {% elif c.selection_status == 'rejected' %}<span class="badge-status badge-status-inactive">{{ c.get_selection_status_display }}</span>
+                {% else %}<span class="badge-status badge-status-pending">{{ c.get_selection_status_display }}</span>{% endif %}
+              </td>
+              <td>
+                {% if c.medical_status == 'fit' %}<span class="badge-status badge-status-active">Fit</span>
+                {% elif c.medical_status == 'unfit' %}<span class="badge-status badge-status-inactive">Unfit</span>
+                {% else %}<span class="badge-status badge-status-pending">{{ c.get_medical_status_display }}</span>{% endif %}
+              </td>
+              <td>
+                {% if c.visa_stamping_status == 'visa_completed' %}<span class="badge-status badge-status-active">Done</span>
+                {% else %}<span class="badge-status badge-status-info">{{ c.get_visa_stamping_status_display }}</span>{% endif %}
+              </td>
+              <td>
+                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#quickStage{{ c.id }}">
+                  <i class="fa-solid fa-pen me-1"></i>Update
+                </button>
+              </td>
+            </tr>
+
+            {% empty %}
+            <tr><td colspan="9" class="text-center py-5 text-muted">
+              <i class="fa-solid fa-inbox fa-3x mb-3 opacity-25 d-block"></i>
+              No candidates in this stage filter.
+            </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── PER-CANDIDATE STAGE MODALS (Placed outside stacking context) ────────── -->
+{% for c in candidates %}
+<div class="modal fade" id="quickStage{{ c.id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold"><i class="fa-solid fa-diagram-project me-2"></i>{{ c.name }} — Stage Update</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" action="{% url 'admin_panel:candidate_update_stage' c.id %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="row g-3">
+            {% if stage_name == 'selection' or stage_name == 'delegate' %}
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-primary">Selection Status</label>
+              <select name="selection_status" class="form-select">
+                <option value="pending" {% if c.selection_status == 'pending' %}selected{% endif %}>Pending</option>
+                <option value="selected" {% if c.selection_status == 'selected' %}selected{% endif %}>Selected</option>
+                <option value="awaiting" {% if c.selection_status == 'awaiting' %}selected{% endif %}>Awaiting</option>
+                <option value="rejected" {% if c.selection_status == 'rejected' %}selected{% endif %}>Rejected</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-primary">Delegate Approval</label>
+              <select name="delegate_status" class="form-select">
+                <option value="pending" {% if c.delegate_status == 'pending' %}selected{% endif %}>Pending</option>
+                <option value="approved" {% if c.delegate_status == 'approved' %}selected{% endif %}>Approved</option>
+              </select>
+            </div>
+            {% endif %}
+            {% if stage_name == 'medical' %}
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-success">Medical Status</label>
+              <select name="medical_status" class="form-select">
+                <option value="pending" {% if c.medical_status == 'pending' %}selected{% endif %}>Pending</option>
+                <option value="fit" {% if c.medical_status == 'fit' %}selected{% endif %}>Fit</option>
+                <option value="unfit" {% if c.medical_status == 'unfit' %}selected{% endif %}>Unfit</option>
+                <option value="expired" {% if c.medical_status == 'expired' %}selected{% endif %}>Expired</option>
+                <option value="canceled" {% if c.medical_status == 'canceled' %}selected{% endif %}>Canceled</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-success">Medical Clinic</label>
+              <input name="medical_clinic" value="{{ c.medical_clinic }}" class="form-control" placeholder="Clinic name">
+            </div>
+            {% endif %}
+            {% if stage_name == 'police' %}
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-warning">Police Clearance</label>
+              <select name="police_clearance_status" class="form-select">
+                <option value="pending" {% if c.police_clearance_status == 'pending' %}selected{% endif %}>Pending</option>
+                <option value="cleared" {% if c.police_clearance_status == 'cleared' %}selected{% endif %}>Cleared</option>
+                <option value="uncleared" {% if c.police_clearance_status == 'uncleared' %}selected{% endif %}>Uncleared</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-warning">Clearance Reference</label>
+              <input name="police_clearance_ref" value="{{ c.police_clearance_ref }}" class="form-control">
+            </div>
+            {% endif %}
+            {% if stage_name == 'visa_section' %}
+            <div class="col-md-4">
+              <label class="form-label small fw-bold" style="color:#7c3aed;">MOFA Status</label>
+              <select name="mofa_status" class="form-select">
+                <option value="mofa_pending" {% if c.mofa_status == 'mofa_pending' %}selected{% endif %}>Mofa Pending</option>
+                <option value="enjaz_pending" {% if c.mofa_status == 'enjaz_pending' %}selected{% endif %}>Enjaz Pending</option>
+                <option value="mofa_cleared" {% if c.mofa_status == 'mofa_cleared' %}selected{% endif %}>Mofa Cleared</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold" style="color:#7c3aed;">Finger Status</label>
+              <select name="finger_status" class="form-select">
+                <option value="finger_pending" {% if c.finger_status == 'finger_pending' %}selected{% endif %}>Finger Pending</option>
+                <option value="finger_completed" {% if c.finger_status == 'finger_completed' %}selected{% endif %}>Finger Completed</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold" style="color:#7c3aed;">Visa Stamping</label>
+              <select name="visa_stamping_status" class="form-select">
+                <option value="visa_pending" {% if c.visa_stamping_status == 'visa_pending' %}selected{% endif %}>Visa Pending</option>
+                <option value="visa_completed" {% if c.visa_stamping_status == 'visa_completed' %}selected{% endif %}>Visa Completed</option>
+              </select>
+            </div>
+            {% endif %}
+            {% if stage_name == 'manpower' %}
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-info">Training Status</label>
+              <select name="training_status" class="form-select">
+                <option value="training_pending" {% if c.training_status == 'training_pending' %}selected{% endif %}>Training Pending</option>
+                <option value="training_completed" {% if c.training_status == 'training_completed' %}selected{% endif %}>Training Completed</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-info">Manpower Status</label>
+              <select name="manpower_status" class="form-select">
+                <option value="manpower_pending" {% if c.manpower_status == 'manpower_pending' %}selected{% endif %}>Manpower Approval</option>
+                <option value="manpower_completed" {% if c.manpower_status == 'manpower_completed' %}selected{% endif %}>Manpower Completed</option>
+              </select>
+            </div>
+            {% endif %}
+            {% if stage_name == 'flight' %}
+            <div class="col-md-4">
+              <label class="form-label small fw-bold text-danger">Ticket Status</label>
+              <select name="ticket_status" class="form-select">
+                <option value="ticket_issue" {% if c.ticket_status == 'ticket_issue' %}selected{% endif %}>Ticket Issue</option>
+                <option value="ticket_pending" {% if c.ticket_status == 'ticket_pending' %}selected{% endif %}>Ticket Pending</option>
+                <option value="ticket_completed" {% if c.ticket_status == 'ticket_completed' %}selected{% endif %}>Ticket Completed</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold text-danger">Airline</label>
+              <input name="airline" value="{{ c.airline }}" class="form-control">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold text-danger">NOC Status</label>
+              <select name="noc_status" class="form-select">
+                <option value="noc_pending" {% if c.noc_status == 'noc_pending' %}selected{% endif %}>NOC Pending</option>
+                <option value="noc_completed" {% if c.noc_status == 'noc_completed' %}selected{% endif %}>NOC Completed</option>
+              </select>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save me-1"></i>Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

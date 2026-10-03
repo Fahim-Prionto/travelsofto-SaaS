@@ -1,0 +1,233 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}Visa Lot Management{% endblock %}
+{% block header_title %}Visa Lot Management{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+  <!-- Stats Row -->
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6">
+      <div class="card text-center py-3">
+        <div class="h3 fw-bold text-primary mb-0">{{ visa_lots|length }}</div>
+        <div class="small text-muted">Total Visa Lots</div>
+      </div>
+    </div>
+    <div class="col-sm-6">
+      <div class="card text-center py-3">
+        <div class="h3 fw-bold text-success mb-0">
+          {% if visa_lots %}{{ visa_lots|length }}{% else %}0{% endif %}
+        </div>
+        <div class="small text-muted">Active Visa Lots</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Visa Lots Table Card -->
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h6 class="mb-0 fw-bold">
+        <i class="fa-solid fa-passport me-2 text-primary"></i>Visa Lots ({{ visa_lots|length }})
+      </h6>
+      <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addLotModal">
+        <i class="fa-solid fa-plus me-1"></i>Add Visa
+      </button>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table-custom w-100">
+          <thead>
+            <tr>
+              <th>Lot #</th>
+              <th>Title</th>
+              <th>Type</th>
+              <th>Country</th>
+              <th>Quota</th>
+              <th>Assigned</th>
+              <th>Remaining</th>
+              <th>Price</th>
+              <th>Processing</th>
+              <th>Website</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for lot in visa_lots %}
+            <tr>
+              <td class="fw-bold text-primary">{{ lot.lot_number }}</td>
+              <td>
+                <div class="fw-semibold">{{ lot.title }}</div>
+                {% if lot.sponsor_name %}<div class="small text-muted">{{ lot.sponsor_name }}</div>{% endif %}
+              </td>
+              <td>
+                <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-2 py-1 small">
+                  {{ lot.get_visa_type_display }}
+                </span>
+              </td>
+              <td>{{ lot.country }}</td>
+              <td><span class="badge bg-primary fs-7">{{ lot.quota }}</span></td>
+              <td><span class="badge bg-info text-dark fs-7">{{ lot.assigned_count }}</span></td>
+              <td>
+                <span class="badge {% if lot.remaining_visas > 0 %}bg-success{% else %}bg-danger{% endif %} fs-7">
+                  {{ lot.remaining_visas }} remaining
+                </span>
+              </td>
+              <td>
+                {% if lot.price %}
+                  <span class="text-success fw-semibold">৳{{ lot.price }}</span>
+                {% else %}
+                  <span class="text-muted small">—</span>
+                {% endif %}
+              </td>
+              <td class="small">{{ lot.processing_time|default:"—" }}</td>
+              <td>
+                {% if lot.show_on_website %}
+                  <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1 small">
+                    <i class="fa-solid fa-globe me-1"></i>Visible
+                  </span>
+                {% else %}
+                  <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-2 py-1 small">Hidden</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="badge-status {% if lot.is_active %}badge-status-active{% else %}badge-status-inactive{% endif %}">
+                  {% if lot.is_active %}Active{% else %}Closed{% endif %}
+                </span>
+              </td>
+              <td>
+                <div class="d-flex gap-1 align-items-center">
+                  <form method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="toggle_lot">
+                    <input type="hidden" name="lot_id" value="{{ lot.id }}">
+                    <button type="submit" class="btn btn-sm {% if lot.is_active %}btn-outline-secondary{% else %}btn-outline-success{% endif %} py-1 px-2 small fw-semibold">
+                      {% if lot.is_active %}Close{% else %}Activate{% endif %}
+                    </button>
+                  </form>
+                  <form method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete Visa Lot &quot;{{ lot.title }}&quot;?');">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="delete_lot">
+                    <input type="hidden" name="lot_id" value="{{ lot.id }}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2 small" title="Delete Visa Lot">
+                      <i class="fa-solid fa-trash"></i> Delete
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="10" class="text-center py-5 text-muted">
+                <i class="fa-solid fa-passport fa-2x mb-3 d-block text-muted opacity-50"></i>
+                No Visa Lots yet. Click <strong>+ Add Visa</strong> to get started.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Add Visa Lot Modal ─────────────────────────────────────────────────── -->
+<div class="modal fade" id="addLotModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold"><i class="fa-solid fa-passport me-2"></i>Add Visa Lot</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="add_lot">
+        <div class="modal-body row g-3">
+
+          <!-- Row 1: Title + Visa Type -->
+          <div class="col-md-8">
+            <label class="form-label small fw-semibold">Visa Title <span class="text-muted fw-normal">(optional)</span></label>
+            <input name="title" class="form-control" placeholder="e.g. Saudi Arabia Work Visa – Lot A">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold">Visa Type <span class="text-muted fw-normal">(optional)</span></label>
+            <select name="visa_type" class="form-select">
+              <option value="work">Work Visa</option>
+              <option value="tourist">Tourist Visa</option>
+              <option value="business">Business Visa</option>
+              <option value="student">Student Visa</option>
+              <option value="domestic">Domestic Worker Visa</option>
+              <option value="transit">Transit Visa</option>
+              <option value="family">Family Visa</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <!-- Row 2: Country + Quota -->
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Country <span class="text-muted fw-normal">(optional)</span></label>
+            <input name="country" class="form-control" placeholder="e.g. Saudi Arabia" value="Saudi Arabia">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Quota (Number of Visas) <span class="text-muted fw-normal">(optional)</span></label>
+            <input type="number" name="quota" class="form-control" placeholder="e.g. 10" min="1" value="10">
+          </div>
+
+          <!-- Row 3: Price + Processing Time -->
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Visa Fee / Price (BDT) <span class="text-muted fw-normal">(optional)</span></label>
+            <input type="number" name="price" class="form-control" placeholder="e.g. 50000.00" min="0" step="0.01">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Processing Time <span class="text-muted fw-normal">(optional)</span></label>
+            <input name="processing_time" class="form-control" placeholder="e.g. 7-10 business days">
+          </div>
+
+          <!-- Row 4: Sponsor Name + Sponsor ID -->
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Sponsor Name <span class="text-muted fw-normal">(optional)</span></label>
+            <input name="sponsor_name" class="form-control" placeholder="e.g. Al-Falah Trading LLC">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Sponsor ID <span class="text-muted fw-normal">(optional)</span></label>
+            <input name="sponsor_id" class="form-control" placeholder="e.g. SA-001234">
+          </div>
+
+          <!-- Row 5: Description -->
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Description <span class="text-muted fw-normal">(optional)</span></label>
+            <textarea name="description" class="form-control" rows="3" placeholder="Short description of the visa lot, eligibility, perks, etc."></textarea>
+          </div>
+
+          <!-- Row 6: Requirements -->
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Required Documents <span class="text-muted fw-normal">(optional)</span></label>
+            <textarea name="requirements" class="form-control" rows="3" placeholder="List required documents, one per line: Passport, Medical report, Police clearance..."></textarea>
+          </div>
+
+          <!-- Row 7: Image + Show on website -->
+          <div class="col-md-8">
+            <label class="form-label small fw-semibold">Featured Image <span class="text-muted fw-normal">(optional)</span></label>
+            <input type="file" name="featured_image" class="form-control" accept="image/*">
+          </div>
+          <div class="col-md-4 d-flex align-items-end">
+            <div class="form-check form-switch ms-1 mb-2">
+              <input class="form-check-input" type="checkbox" name="show_on_website" id="showOnWebsite" checked>
+              <label class="form-check-label fw-semibold small" for="showOnWebsite">
+                <i class="fa-solid fa-globe me-1 text-primary"></i>Show on Website
+              </label>
+              <div class="text-muted" style="font-size:0.75rem;">Auto-publish to your agency portal</div>
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fa-solid fa-plus me-1"></i>Add Visa Lot
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

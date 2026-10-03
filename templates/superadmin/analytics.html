@@ -1,0 +1,69 @@
+{% extends 'superadmin/base.html' %}
+
+{% block title %}Platform Analytics - Super Admin{% endblock %}
+{% block header_title %}SaaS Growth & System Analytics{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="fw-bold m-0 text-dark">SaaS Subscription Share</h5>
+                    <p class="text-muted small mb-0">Distribution of active tenant plan subscriptions</p>
+                </div>
+                <span class="badge bg-primary-subtle text-primary fw-bold">Live Breakdown</span>
+            </div>
+            <div style="height: 260px;">
+                <canvas id="packageChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="fw-bold m-0 text-dark">New Agency Registrations</h5>
+                    <p class="text-muted small mb-0">Monthly onboarding rate of travel agency admins</p>
+                </div>
+                <span class="badge bg-success-subtle text-success fw-bold">+28% Growth</span>
+            </div>
+            <div style="height: 260px;">
+                <canvas id="tenantGrowthChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const pkgCtx = document.getElementById('packageChart');
+    if (pkgCtx && window.initViserChart) {
+        window.initViserChart(pkgCtx, 'doughnut', {
+            labels: ['Starter Plan', 'Professional Plan', 'Enterprise Plan'],
+            datasets: [{
+                data: [45, 120, 35],
+                backgroundColor: ['#0ea5e9', '#4f46e5', '#8b5cf6'],
+                borderWidth: 0
+            }]
+        });
+    }
+
+    const growthCtx = document.getElementById('tenantGrowthChart');
+    if (growthCtx && window.initViserChart) {
+        window.initViserChart(growthCtx, 'bar', {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
+            datasets: [{
+                label: 'Agencies Registered',
+                data: [5, 12, 18, 24, 31, 42, 55, 68],
+                backgroundColor: '#4f46e5',
+                borderRadius: 6
+            }]
+        });
+    }
+});
+</script>
+{% endblock %}

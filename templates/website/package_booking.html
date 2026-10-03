@@ -1,0 +1,100 @@
+{% extends 'website/base.html' %}
+
+{% block title %}Book {{ package.name }} - {{ tenant.agency_name|default:"Agency" }}{% endblock %}
+
+{% block content %}
+<div class="bg-dark text-white py-4 mb-4" style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);">
+    <div class="container py-2 text-center">
+        <span class="badge bg-primary-subtle text-primary fw-bold px-3 py-1.5 rounded-pill mb-2">Reservation Checkout</span>
+        <h2 class="fw-extrabold m-0 display-6">Book Package: {{ package.name }}</h2>
+    </div>
+</div>
+
+<div class="container mb-5" style="max-width: 860px;">
+    <div class="card border-0 shadow-sm p-4 p-md-5">
+        <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-4">
+            <div>
+                <h5 class="fw-bold text-dark m-0">{{ package.name }}</h5>
+                <p class="text-muted small mb-0"><i class="fa-solid fa-clock me-1 text-primary"></i>{{ package.duration_days }} Days Tour Package</p>
+            </div>
+            <div class="text-end">
+                <span class="text-muted small d-block">Unit Price</span>
+                <span class="fw-extrabold fs-4 text-success" id="unitPriceSpan" data-price="{{ package.effective_price }}">৳{{ package.effective_price|floatformat:2 }}</span>
+            </div>
+        </div>
+
+        <form method="POST">
+            {% csrf_token %}
+
+            <!-- Logged-in Customer Info -->
+            <div class="card border p-3 mb-4 bg-light">
+                <h6 class="fw-bold mb-3 text-dark"><i class="fa-solid fa-user-check me-2 text-primary"></i>Customer Account Information</h6>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <small class="text-muted d-block">Full Name</small>
+                        <strong class="text-dark">{{ user.first_name }} {{ user.last_name }}</strong>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted d-block">Email Address</small>
+                        <strong class="text-dark">{{ user.email }}</strong>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted d-block">Mobile Number</small>
+                        <strong class="text-dark">{{ user.mobile|default:"Not Provided" }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Booking Options -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold small text-muted">Number of Travelers *</label>
+                    <input type="number" name="number_of_travelers" id="travelersInput" class="form-control form-control-lg" value="1" min="1" max="{{ package.available_seats }}" required>
+                    <small class="text-muted mt-1 d-block"><i class="fa-solid fa-info-circle me-1"></i>Max available seats: {{ package.available_seats }}</small>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold small text-muted">Travel Date *</label>
+                    <input type="date" name="travel_date" class="form-control form-control-lg" value="{{ package.travel_date|date:'Y-m-d' }}" required>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-bold small text-muted">Special Requests / Notes (Optional)</label>
+                <textarea name="special_requests" class="form-control" rows="3" placeholder="Dietary requests, hotel room preferences, or extra luggage requirements..."></textarea>
+            </div>
+
+            <!-- Price Breakdown Box -->
+            <div class="card border p-3 mb-4 bg-light">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-muted small">Estimated Total Booking Price</span>
+                        <h4 class="fw-extrabold text-primary m-0" id="totalPriceHeading">৳{{ package.effective_price|floatformat:2 }}</h4>
+                    </div>
+                    <div>
+                        <button type="submit" class="btn btn-primary btn-lg fw-bold px-4">
+                            <i class="fa-solid fa-check me-2"></i> Confirm Booking
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const unitPrice = parseFloat(document.getElementById('unitPriceSpan').getAttribute('data-price')) || 0;
+    const travelersInput = document.getElementById('travelersInput');
+    const totalPriceHeading = document.getElementById('totalPriceHeading');
+
+    function updatePrice() {
+        const count = parseInt(travelersInput.value) || 1;
+        const total = unitPrice * count;
+        totalPriceHeading.textContent = '৳' + total.toFixed(2);
+    }
+
+    travelersInput.addEventListener('input', updatePrice);
+    travelersInput.addEventListener('change', updatePrice);
+});
+</script>
+{% endblock %}

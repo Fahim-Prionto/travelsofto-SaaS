@@ -1,0 +1,72 @@
+{% extends 'superadmin/base.html' %}
+
+{% block title %}Live Support Chat - {{ ticket.ticket_code }}{% endblock %}
+{% block header_title %}Live Chat Support: {{ ticket.tenant.agency_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0 py-2">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold m-0 text-dark">Live Support Room #{{ ticket.ticket_code }}</h4>
+            <p class="text-muted small mb-0">Agency: <strong>{{ ticket.tenant.agency_name }}</strong> | Subject: {{ ticket.subject }}</p>
+        </div>
+        <a href="{% url 'superadmin:support_tickets' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+            <i class="fa-solid fa-arrow-left me-1"></i> Back to Support List
+        </a>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-header bg-light border-0 p-3 px-4 d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style="width:36px; height:36px;">
+                    <i class="fa-solid fa-building"></i>
+                </div>
+                <div>
+                    <div class="fw-bold text-dark">{{ ticket.tenant.agency_name }}</div>
+                    <small class="text-muted">{{ ticket.tenant.email }}</small>
+                </div>
+            </div>
+            <span class="badge bg-primary-subtle text-primary px-3 py-1.5 rounded-pill fw-bold">
+                Status: {{ ticket.get_status_display }}
+            </span>
+        </div>
+
+        <!-- Chat History Message List -->
+        <div class="card-body p-4 bg-light-subtle" style="max-height: 480px; overflow-y: auto;">
+            {% for msg in chat_messages %}
+                <div class="d-flex mb-3 {% if msg.sender_type == 'super_admin' %}justify-content-end{% else %}justify-content-start{% endif %}">
+                    <div class="card border-0 shadow-sm rounded-3 p-3 {% if msg.sender_type == 'super_admin' %}bg-primary text-white{% else %}bg-white text-dark border{% endif %}" style="max-width: 75%;">
+                        <div class="d-flex justify-content-between align-items-center gap-3 mb-1">
+                            <span class="fw-bold small {% if msg.sender_type == 'super_admin' %}text-white-50{% else %}text-muted{% endif %}">
+                                {{ msg.sender_name }} ({% if msg.sender_type == 'super_admin' %}Super Admin / Support{% else %}Agency Admin{% endif %})
+                            </span>
+                            <small class="fs-8 {% if msg.sender_type == 'super_admin' %}text-white-50{% else %}text-muted{% endif %}">
+                                {{ msg.created_at|date:"H:i, M d" }}
+                            </small>
+                        </div>
+                        <p class="mb-0 fs-6" style="white-space: pre-wrap;">{{ msg.message }}</p>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="text-center text-muted py-5">
+                    <i class="fa-solid fa-comments fs-1 mb-2 text-secondary"></i>
+                    <p class="mb-0">No messages in this chat room yet. Send a response below.</p>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Chat Reply Input Form -->
+        <div class="card-footer bg-white border-top p-3">
+            <form method="POST" action="{% url 'superadmin:support_chat' ticket.id %}">
+                {% csrf_token %}
+                <div class="input-group">
+                    <input type="text" name="message" class="form-control rounded-start-3 py-2.5" placeholder="Type your live support response..." required autocomplete="off">
+                    <button type="submit" class="btn btn-primary rounded-end-3 px-4 fw-bold">
+                        <i class="fa-solid fa-paper-plane me-1"></i> Send Reply
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

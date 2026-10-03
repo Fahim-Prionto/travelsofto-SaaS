@@ -1,0 +1,67 @@
+{% extends 'superadmin/base.html' %}
+
+{% block title %}Onboard New Travel Agency - {{ PLATFORM_NAME }}{% endblock %}
+{% block header_title %}Create Travel Agency Tenant Account{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0 py-2">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold m-0 text-dark">Add New Agency Tenant</h4>
+            <p class="text-muted small mb-0">Create agency profile, assign subscription plan, and provision database</p>
+        </div>
+        <a href="{% url 'superadmin:tenant_list' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+            <i class="fa-solid fa-arrow-left me-1"></i> Back to Agencies
+        </a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
+                    <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-building-circle-check text-primary me-2"></i> Agency & Admin Information</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" action="{% url 'superadmin:tenant_create' %}">
+                        {% csrf_token %}
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small text-muted">Agency Name</label>
+                                <input type="text" name="agency_name" class="form-control rounded-3" placeholder="e.g. Skyline Travels Ltd" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small text-muted">Owner / Administrator Name</label>
+                                <input type="text" name="owner_name" class="form-control rounded-3" placeholder="e.g. John Doe" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small text-muted">Primary Admin Email</label>
+                                <input type="email" name="email" class="form-control rounded-3" placeholder="admin@skylinetravels.com" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small text-muted">Initial Password</label>
+                                <input type="password" name="password" class="form-control rounded-3" required minlength="6" placeholder="Set admin password">
+                            </div>
+                            <div class="col-12 mb-2">
+                                <label class="form-label fw-semibold small text-muted">Assign SaaS Package Plan</label>
+                                <select name="package_id" class="form-select rounded-3 py-2" required>
+                                    {% for pkg in packages %}
+                                        <option value="{{ pkg.id }}">
+                                            {{ pkg.name }} — ৳{{ pkg.monthly_price }}/month ({% if pkg.max_users == -1 %}Unlimited Users{% else %}{{ pkg.max_users }} Users{% endif %})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 text-end">
+                            <button type="submit" class="btn btn-primary btn-lg rounded-3 px-5 fw-bold shadow-sm">
+                                <i class="fa-solid fa-plus-circle me-2"></i> Create & Provision Agency
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

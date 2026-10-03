@@ -1,0 +1,128 @@
+{% extends 'superadmin/base.html' %}
+
+{% block title %}Edit {{ package.name }} Plan - {{ PLATFORM_NAME }}{% endblock %}
+{% block header_title %}Edit SaaS Plan: {{ package.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0 py-2">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold m-0 text-dark">Configure Plan Limits & Pricing</h4>
+            <p class="text-muted small mb-0">Changes made here automatically update feature permissions across all subscribed agencies</p>
+        </div>
+        <a href="{% url 'superadmin:package_list' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+            <i class="fa-solid fa-arrow-left me-1"></i> Back to Plans
+        </a>
+    </div>
+
+    <form method="POST" action="{% url 'superadmin:package_edit' package.pk %}">
+        {% csrf_token %}
+        <div class="row g-4">
+            <!-- Basic Details & Pricing Card -->
+            <div class="col-lg-6">
+                <div class="card border-0 shadow-sm rounded-4 h-100">
+                    <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
+                        <h5 class="fw-bold text-dark mb-0">
+                            <i class="fa-solid fa-tag text-primary me-2"></i> Plan Details & Currency (TK / USD)
+                        </h5>
+                        <p class="text-muted small mb-0">Basic information and subscription pricing</p>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small text-muted">Plan Name</label>
+                            <input type="text" name="name" class="form-control rounded-3" value="{{ package.name }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small text-muted">Description</label>
+                            <textarea name="description" class="form-control rounded-3" rows="2">{{ package.description }}</textarea>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small text-muted">Monthly Price (TK / ৳)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light fw-bold text-primary">৳</span>
+                                    <input type="number" step="0.01" name="monthly_price" class="form-control" value="{{ package.monthly_price }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small text-muted">Yearly Price (TK / ৳)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light fw-bold text-success">৳</span>
+                                    <input type="number" step="0.01" name="yearly_price" class="form-control" value="{{ package.yearly_price }}" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small text-muted">Trial Days</label>
+                                <input type="number" name="trial_days" class="form-control rounded-3" value="{{ package.trial_days }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small text-muted">Display Priority</label>
+                                <input type="number" name="sort_order" class="form-control rounded-3" value="{{ package.sort_order|default:0 }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feature Limits & Access Control Card -->
+            <div class="col-lg-6">
+                <div class="card border-0 shadow-sm rounded-4 h-100">
+                    <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
+                        <h5 class="fw-bold text-dark mb-0">
+                            <i class="fa-solid fa-sliders text-success me-2"></i> Agency Access Limits
+                        </h5>
+                        <p class="text-muted small mb-0">Set <span class="badge bg-light text-dark border">-1</span> for Unlimited access</p>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-3 mb-4">
+                            <div class="col-6">
+                                <label class="form-label fw-semibold small text-muted">Max Customers</label>
+                                <input type="number" name="max_users" class="form-control rounded-3" value="{{ package.max_users }}" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-semibold small text-muted">Max Tour Packages</label>
+                                <input type="number" name="max_travel_packages" class="form-control rounded-3" value="{{ package.max_travel_packages }}" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-semibold small text-muted">Max Visa Services</label>
+                                <input type="number" name="max_visa_services" class="form-control rounded-3" value="{{ package.max_visa_services }}" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-semibold small text-muted">Max Staff Members</label>
+                                <input type="number" name="max_staff" class="form-control rounded-3" value="{{ package.max_staff }}" required>
+                            </div>
+                        </div>
+
+                        <h6 class="fw-bold text-dark mb-3">Feature Access Permissions</h6>
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" name="custom_domain" id="customDomainSwitch" {% if package.custom_domain %}checked{% endif %}>
+                            <label class="form-check-label fw-semibold small text-dark" for="customDomainSwitch">Custom Domain Support</label>
+                        </div>
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" name="advanced_analytics" id="analyticsSwitch" {% if package.advanced_analytics %}checked{% endif %}>
+                            <label class="form-check-label fw-semibold small text-dark" for="analyticsSwitch">Advanced Analytics & Charting</label>
+                        </div>
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" name="is_recommended" id="recommendedSwitch" {% if package.is_recommended %}checked{% endif %}>
+                            <label class="form-check-label fw-semibold small text-dark" for="recommendedSwitch">Mark as "Most Popular" Plan</label>
+                        </div>
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" name="is_active" id="activeSwitch" {% if package.is_active %}checked{% endif %}>
+                            <label class="form-check-label fw-semibold small text-dark" for="activeSwitch">Active for New Registrations</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Save Action Button -->
+            <div class="col-12 text-end">
+                <button type="submit" class="btn btn-primary btn-lg rounded-3 px-5 shadow-sm fw-bold">
+                    <i class="fa-solid fa-floppy-disk me-2"></i> Save & Apply Changes Automatically
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

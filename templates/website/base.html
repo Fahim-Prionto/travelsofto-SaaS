@@ -1,0 +1,159 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Travel Agency SaaS Platform{% endblock %} - {{ current_tenant.agency_name|default:"Softobro Travel" }}</title>
+    <meta name="description" content="{% block meta_description %}Softobro Travel — the all-in-one SaaS platform for travel agencies. Launch your own branded travel & visa booking website.{% endblock %}">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome 6 Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <!-- Platform Theme CSS -->
+    <link href="{% static 'css/theme.css' %}" rel="stylesheet">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <nav class="navbar navbar-expand-lg sticky-top bg-white border-bottom shadow-sm py-3">
+        <div class="container">
+            <a class="navbar-brand fw-extrabold fs-3 d-flex align-items-center gap-2 text-dark" href="/">
+                {% if current_tenant and current_tenant.logo %}
+                    <img src="{{ current_tenant.logo.url }}" alt="{{ current_tenant.agency_name }}" style="max-height:32px;" class="rounded">
+                {% else %}
+                    <i class="fa-solid fa-plane-departure text-primary"></i>
+                {% endif %}
+                <span>{{ current_tenant.agency_name|default:"Softobro Travel" }}</span>
+            </a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#publicNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="publicNav">
+                {% if current_tenant %}
+                <!-- Agency-specific website nav: show tour & visa links -->
+                <ul class="navbar-nav mx-auto mb-2 mb-lg-0 gap-2 fw-semibold">
+                    <li class="nav-item"><a class="nav-link px-3" href="/">Home</a></li>
+                    <li class="nav-item"><a class="nav-link px-3" href="{% url 'public:packages' %}">Tour Packages</a></li>
+                    <li class="nav-item"><a class="nav-link px-3" href="{% url 'public:visa_services' %}">Visa Services</a></li>
+                    <li class="nav-item"><a class="nav-link px-3" href="{% url 'public:about' %}">About Us</a></li>
+                    <li class="nav-item"><a class="nav-link px-3" href="{% url 'public:contact' %}">Contact</a></li>
+                </ul>
+                {% else %}
+                <!-- Main Softobro Travel platform nav: subscription-focused -->
+                <ul class="navbar-nav mx-auto mb-2 mb-lg-0 gap-2 fw-semibold">
+                    <li class="nav-item"><a class="nav-link px-3" href="/">Home</a></li>
+                    <li class="nav-item"><a class="nav-link px-3" href="#pricing">Pricing</a></li>
+                    <li class="nav-item"><a class="nav-link px-3" href="#features">Features</a></li>
+                    <li class="nav-item"><a class="nav-link px-3" href="{% url 'public:about' %}">About</a></li>
+                    <li class="nav-item"><a class="nav-link px-3" href="{% url 'public:contact' %}">Contact</a></li>
+                </ul>
+                {% endif %}
+
+                <div class="d-flex align-items-center gap-2">
+                    {% if request.user.is_authenticated %}
+                        {% if request.user.is_super_admin %}
+                            <a href="{% url 'superadmin:dashboard' %}" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
+                                <i class="fa-solid fa-shield-halved me-1"></i> Super Admin Console
+                            </a>
+                        {% elif request.user.is_tenant_admin or request.user.is_tenant_staff %}
+                            <a href="{% url 'admin_panel:dashboard' %}" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
+                                <i class="fa-solid fa-chart-pie me-1"></i> Agency Dashboard
+                            </a>
+                        {% else %}
+                            <a href="{% url 'public:customer_dashboard' %}" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
+                                <i class="fa-solid fa-user me-1"></i> My Portal
+                            </a>
+                        {% endif %}
+                    {% elif current_tenant %}
+                        {# Agency website: only show customer sign-in, no Register Agency #}
+                        <a href="{% url 'accounts:login' %}" class="btn btn-outline-custom rounded-pill px-4">
+                            <i class="fa-solid fa-right-to-bracket me-1"></i> Sign In
+                        </a>
+                    {% else %}
+                        {# Main platform: show both Sign In and Register Agency #}
+                        <a href="{% url 'accounts:login' %}" class="btn btn-outline-custom rounded-pill px-4">Sign In</a>
+                        <a href="{% url 'accounts:agency_register' %}" class="btn btn-primary rounded-pill px-4">Register Agency</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main>
+        {% if messages %}
+            <div class="container mt-3">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show rounded-3 shadow-sm" role="alert">
+                        <i class="fa-solid fa-circle-info me-2"></i> {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white pt-5 pb-4 mt-5">
+        <div class="container">
+            <div class="row g-4 mb-4">
+                <div class="col-lg-4">
+                    <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-plane-departure text-primary"></i> {{ current_tenant.agency_name|default:"Softobro Travel" }}
+                    </h5>
+                    {% if current_tenant %}
+                        <p class="text-secondary small">Your trusted partner for effortless tour bookings, luxury travel experiences, and rapid visa application processing worldwide.</p>
+                    {% else %}
+                        <p class="text-secondary small">The all-in-one SaaS platform for travel agencies. Launch your branded travel &amp; visa booking website in minutes.</p>
+                    {% endif %}
+                </div>
+                <div class="col-6 col-lg-2">
+                    <h6 class="fw-bold text-light mb-3">Quick Links</h6>
+                    <ul class="list-unstyled text-secondary small">
+                        <li><a href="/" class="text-secondary">Home</a></li>
+                        {% if current_tenant %}
+                            <li><a href="{% url 'public:packages' %}" class="text-secondary">Tour Packages</a></li>
+                            <li><a href="{% url 'public:visa_services' %}" class="text-secondary">Visa Services</a></li>
+                        {% else %}
+                            <li><a href="#pricing" class="text-secondary">Pricing Plans</a></li>
+                            <li><a href="#features" class="text-secondary">Features</a></li>
+                        {% endif %}
+                        <li><a href="{% url 'public:about' %}" class="text-secondary">About Us</a></li>
+                    </ul>
+                </div>
+                <div class="col-6 col-lg-2">
+                    <h6 class="fw-bold text-light mb-3">Platform</h6>
+                    <ul class="list-unstyled text-secondary small">
+                        <li><a href="{% url 'accounts:agency_register' %}" class="text-secondary">Agency Signup</a></li>
+                        <li><a href="{% url 'accounts:login' %}" class="text-secondary">Agency Login</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-4">
+                    <h6 class="fw-bold text-light mb-3">Contact Us</h6>
+                    <p class="text-secondary small mb-1"><i class="fa-solid fa-envelope me-2 text-primary"></i> support@softobro.com</p>
+                    <p class="text-secondary small mb-1"><i class="fa-solid fa-phone me-2 text-primary"></i> +880 1700-000000</p>
+                    <p class="text-secondary small"><i class="fa-solid fa-location-dot me-2 text-primary"></i> Dhaka, Bangladesh</p>
+                </div>
+            </div>
+            <hr class="border-secondary opacity-25">
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center text-secondary small">
+                <p class="mb-0">&copy; 2026 {{ current_tenant.agency_name|default:"Softobro Travel" }}. All rights reserved.</p>
+                <p class="mb-0 mt-2 mt-sm-0">Powered by <strong class="text-primary">Softobro Travel SaaS</strong></p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5.3 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'js/app.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,106 @@
+{% extends 'admin_panel/base.html' %}
+
+{% block title %}Add Staff Member - Agency Admin{% endblock %}
+{% block header_title %}Add New Staff Member{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm p-4">
+            <div class="mb-4">
+                <h5 class="fw-bold text-dark mb-1">
+                    <i class="fa-solid fa-user-plus me-2 text-primary"></i>Create Staff Account
+                </h5>
+                <p class="text-muted small mb-0">
+                    Staff members can log in to the agency panel and help manage bookings, visa applications, and customers.
+                </p>
+            </div>
+
+            <form method="post" novalidate>
+                {% csrf_token %}
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold text-dark" for="first_name">First Name</label>
+                        <input type="text" class="form-control rounded-3" id="first_name" name="first_name"
+                               placeholder="e.g. John" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold text-dark" for="last_name">Last Name</label>
+                        <input type="text" class="form-control rounded-3" id="last_name" name="last_name"
+                               placeholder="e.g. Doe">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold text-dark" for="email">
+                        Email Address <span class="text-danger">*</span>
+                    </label>
+                    <input type="email" class="form-control rounded-3" id="email" name="email"
+                           placeholder="staff@youragency.com" required>
+                    <div class="form-text">This will be used as the staff login username.</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold text-dark" for="mobile">Mobile Number</label>
+                    <input type="text" class="form-control rounded-3" id="mobile" name="mobile"
+                           placeholder="+880 17XX XXX XXX">
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold text-dark" for="password">
+                        Password <span class="text-danger">*</span>
+                    </label>
+                    <div class="input-group">
+                        <input type="password" class="form-control rounded-start-3" id="password" name="password"
+                               placeholder="Set a secure password" required>
+                        <button class="btn btn-outline-secondary rounded-end-3" type="button" id="togglePassword"
+                                onclick="togglePwd()">
+                            <i class="fa-solid fa-eye" id="eyeIcon"></i>
+                        </button>
+                    </div>
+                    <div class="form-text">Leave blank to use the default temporary password: <code>StaffPass@123</code></div>
+                </div>
+
+                <!-- Role Notice -->
+                <div class="alert alert-info border-0 rounded-3 d-flex gap-3 align-items-start mb-4" style="background: rgba(99,102,241,0.08);">
+                    <i class="fa-solid fa-circle-info text-primary mt-1"></i>
+                    <div>
+                        <strong class="d-block text-dark">Staff Role Assigned</strong>
+                        <small class="text-muted">
+                            This account will be created with the <strong>Tenant Staff</strong> role,
+                            scoped exclusively to your agency. The staff member will be able to log in
+                            to the agency admin panel and manage day-to-day operations.
+                        </small>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-3">
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">
+                        <i class="fa-solid fa-user-plus me-2"></i> Create Staff Account
+                    </button>
+                    <a href="{% url 'admin_panel:staff_list' %}" class="btn btn-outline-secondary rounded-pill px-4">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function togglePwd() {
+    const pwd = document.getElementById('password');
+    const icon = document.getElementById('eyeIcon');
+    if (pwd.type === 'password') {
+        pwd.type = 'text';
+        icon.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+        pwd.type = 'password';
+        icon.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+}
+</script>
+{% endblock %}

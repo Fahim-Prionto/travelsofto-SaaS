@@ -1,0 +1,97 @@
+{% extends 'admin_panel/base.html' %}
+
+{% block title %}My SaaS Subscription & Billing - Agency Admin{% endblock %}
+{% block header_title %}Subscription Plan & Billing Overview{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Active Plan Summary Card -->
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm p-4 h-100 rounded-4">
+            <div class="d-flex align-items-center gap-3 mb-4 border-bottom pb-3">
+                <div class="stat-icon bg-primary text-white rounded-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px; font-size: 1.5rem;">
+                    <i class="fa-solid fa-box-archive"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold m-0 text-dark">Current Subscription</h5>
+                    {% if subscription.is_active %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1 mt-1">
+                            <i class="fa-solid fa-circle-check me-1"></i> Active
+                        </span>
+                    {% elif subscription.status == 'expired' or not subscription.is_active %}
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3 py-1 mt-1">
+                            <i class="fa-solid fa-circle-exclamation me-1"></i> Expired
+                        </span>
+                    {% else %}
+                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-3 py-1 mt-1">
+                            {{ subscription.get_status_display }}
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="bg-light p-3.5 rounded-3 mb-4 border">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small fw-semibold">Package Name:</span>
+                    <span class="fw-bold text-dark fs-6">{{ subscription.package.name|default:"Standard SaaS Package" }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small fw-semibold">Billing Rate:</span>
+                    <span class="fw-bold text-success">৳{{ subscription.package.monthly_price|default:"500.00" }} / mo</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small fw-semibold">Start Date:</span>
+                    <span class="fw-semibold text-dark small">{{ subscription.start_date|date:"M d, Y"|default:"Active" }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted small fw-semibold">Renewal / Expiry:</span>
+                    <span class="fw-bold text-primary small">{{ subscription.end_date|date:"M d, Y"|default:"Active" }}</span>
+                </div>
+            </div>
+
+            <a href="{% url 'admin_panel:subscription_checkout' %}" class="btn btn-outline-primary w-100 rounded-3 py-2.5 fw-bold">
+                <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Upgrade / Renew Plan
+            </a>
+        </div>
+    </div>
+
+    <!-- SaaS Payment History -->
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm p-4 h-100 rounded-4">
+            <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-receipt text-primary me-2"></i>SaaS Payment Receipts</h5>
+            <div class="table-responsive rounded-3 border">
+                <table class="table table-custom align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Transaction ID</th>
+                            <th>Amount</th>
+                            <th>Method</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in payments %}
+                            <tr>
+                                <td><code class="text-primary fw-bold">{{ p.transaction_id }}</code></td>
+                                <td><span class="fw-bold text-dark">৳{{ p.amount }}</span></td>
+                                <td><span class="badge bg-light text-dark border">{{ p.payment_method }}</span></td>
+                                <td>
+                                    <span class="badge-status badge-status-{% if p.status == 'paid' %}active{% else %}pending{% endif %}">
+                                        {{ p.get_status_display }}
+                                    </span>
+                                </td>
+                                <td><small class="text-muted">{{ p.created_at|date:"M d, Y" }}</small></td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">No payment records found.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

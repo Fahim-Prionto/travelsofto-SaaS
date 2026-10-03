@@ -1,0 +1,130 @@
+{% extends 'admin_panel/base.html' %}
+
+{% block header_title %}Flight Schedules{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold text-dark mb-1">Flight Trip Schedules</h3>
+            <p class="text-muted small mb-0">Set departure/arrival dates, cabin class, seats, and fare</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'admin_panel:airline_list' %}" class="btn btn-outline-primary btn-sm rounded-pill px-3">Airlines</a>
+            <a href="{% url 'admin_panel:flight_route_list' %}" class="btn btn-outline-primary btn-sm rounded-pill px-3">Routes</a>
+            <button class="btn btn-success btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#addFlightScheduleModal">
+                <i class="fa-solid fa-plus me-1"></i> Add Schedule
+            </button>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-3">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-3">Flight & Route</th>
+                        <th>Class</th>
+                        <th>Departure</th>
+                        <th>Arrival</th>
+                        <th>Seats</th>
+                        <th>Baggage</th>
+                        <th>Fare</th>
+                        <th class="text-end pe-3">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sch in schedules %}
+                    <tr>
+                        <td class="ps-3">
+                            <div class="fw-bold text-dark">{{ sch.route.airline.code }}{{ sch.route.flight_number }}</div>
+                            <small class="text-muted">{{ sch.route.from_city }} → {{ sch.route.to_city }}</small>
+                        </td>
+                        <td><span class="badge bg-primary text-uppercase">{{ sch.get_cabin_class_display }}</span></td>
+                        <td><i class="fa-solid fa-plane-departure text-primary me-1"></i> {{ sch.departure_datetime|date:"d M Y, h:i A" }}</td>
+                        <td><i class="fa-solid fa-plane-arrival text-success me-1"></i> {{ sch.arrival_datetime|date:"d M Y, h:i A" }}</td>
+                        <td>
+                            <span class="fw-bold text-success">{{ sch.available_seats }}</span> / {{ sch.total_seats }}
+                        </td>
+                        <td>{{ sch.baggage_allowance|default:"23kg" }}</td>
+                        <td class="fw-bold text-dark">${{ sch.price }}</td>
+                        <td class="text-end pe-3">
+                            <a href="{% url 'admin_panel:flight_schedule_delete' sch.pk %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete schedule?')">
+                                <i class="fa-solid fa-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4 text-muted">No flight schedules added yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="addFlightScheduleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="post" action="{% url 'admin_panel:flight_schedule_list' %}" class="modal-content rounded-4 border-0">
+            {% csrf_token %}
+            <div class="modal-header border-0 pb-0">
+                <h5 class="fw-bold">Add Flight Schedule</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Flight Route *</label>
+                    <select name="route_id" class="form-select" required>
+                        <option value="">-- Select Flight Route --</option>
+                        {% for r in routes %}
+                            <option value="{{ r.pk }}">{{ r.airline.code }}{{ r.flight_number }}: {{ r.from_city }} → {{ r.to_city }} ({{ r.airline.name }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label fw-semibold">Departure Datetime *</label>
+                        <input type="datetime-local" name="departure_datetime" class="form-control" required>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-semibold">Arrival Datetime *</label>
+                        <input type="datetime-local" name="arrival_datetime" class="form-control" required>
+                    </div>
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label fw-semibold">Cabin Class</label>
+                        <select name="cabin_class" class="form-select">
+                            <option value="economy">Economy</option>
+                            <option value="premium_economy">Premium Economy</option>
+                            <option value="business">Business</option>
+                            <option value="first">First Class</option>
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-semibold">Total Seats</label>
+                        <input type="number" name="total_seats" class="form-control" value="150" min="1">
+                    </div>
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label fw-semibold">Ticket Price ($) *</label>
+                        <input type="number" step="0.01" name="price" class="form-control" required placeholder="450.00">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-semibold">Baggage Allowance</label>
+                        <input type="text" name="baggage_allowance" class="form-control" value="23kg" placeholder="e.g. 30kg">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary px-4">Save Schedule</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

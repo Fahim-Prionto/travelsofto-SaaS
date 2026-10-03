@@ -1,0 +1,68 @@
+{% extends 'admin_panel/base.html' %}
+
+{% block title %}Visa Services - Agency Admin{% endblock %}
+{% block header_title %}Visa Services Management{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm p-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h5 class="fw-extrabold m-0 text-dark">Offered Visa Services</h5>
+            <p class="text-muted small mb-0">Configure tourist, student, business, and work visa application offerings</p>
+        </div>
+        <div>
+            <a href="{% url 'admin_panel:visa_service_create' %}" class="btn btn-primary btn-sm rounded-pill px-3">
+                <i class="fa-solid fa-plus me-1"></i> Add Visa Service
+            </a>
+        </div>
+    </div>
+
+    <div class="table-responsive rounded-3 border">
+        <table class="table table-custom align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Visa Service Name</th>
+                    <th>Visa Category Type</th>
+                    <th>Processing Time</th>
+                    <th>Government / Service Fee</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for service in services %}
+                    <tr>
+                        <td>
+                            <div class="fw-bold text-dark fs-6">{{ service.name }}</div>
+                            <small class="text-muted">{{ service.country_name|default:"Global Destination" }}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-2.5 py-1">
+                                <i class="fa-solid fa-passport me-1"></i>{{ service.get_visa_type_display }}
+                            </span>
+                        </td>
+                        <td><span class="fw-semibold text-dark"><i class="fa-solid fa-clock me-1 text-warning"></i>{{ service.processing_time }}</span></td>
+                        <td><span class="text-success fw-extrabold fs-6">${{ service.price }}</span></td>
+                        <td>
+                            <span class="badge-status badge-status-active">
+                                Active
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-custom" title="Edit Service"><i class="fa-solid fa-pen-to-square"></i></button>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-5">
+                            <i class="fa-solid fa-passport fs-1 mb-2 text-secondary"></i>
+                            <p class="mb-1 fw-semibold">No visa services configured yet.</p>
+                            <a href="{% url 'admin_panel:visa_service_create' %}" class="btn btn-sm btn-primary rounded-pill mt-2">Add Tourist / Work Visa</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

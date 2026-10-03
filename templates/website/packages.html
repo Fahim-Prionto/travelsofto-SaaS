@@ -1,0 +1,506 @@
+{% extends 'website/base.html' %}
+
+{% block title %}Tour Packages & Itineraries{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ── Hero ──────────────────────────────────────────────────── */
+    .pkg-hero {
+        background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #1e1b4b 100%);
+        padding: 90px 0 70px;
+        position: relative;
+        overflow: hidden;
+    }
+    .pkg-hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        pointer-events: none;
+    }
+    .pkg-hero .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(99,102,241,.18);
+        color: #a5b4fc;
+        border: 1px solid rgba(99,102,241,.35);
+        border-radius: 50px;
+        padding: 6px 18px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        margin-bottom: 20px;
+    }
+    .pkg-hero h1 {
+        font-size: clamp(2rem, 5vw, 3.2rem);
+        font-weight: 800;
+        color: #fff;
+        line-height: 1.15;
+        margin-bottom: 14px;
+    }
+    .pkg-hero p {
+        color: rgba(255,255,255,.6);
+        font-size: 1.05rem;
+        max-width: 540px;
+        margin: 0 auto;
+    }
+    .pkg-hero .hero-stats {
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+        margin-top: 44px;
+    }
+    .pkg-hero .hero-stats .stat-item {
+        text-align: center;
+    }
+    .pkg-hero .hero-stats .stat-num {
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: #fff;
+        line-height: 1;
+    }
+    .pkg-hero .hero-stats .stat-label {
+        font-size: 0.75rem;
+        color: rgba(255,255,255,.5);
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        margin-top: 4px;
+    }
+
+    /* ── Filter Bar ─────────────────────────────────────────────── */
+    .filter-bar {
+        background: #fff;
+        border-bottom: 1px solid #e5e7eb;
+        padding: 18px 0;
+        position: sticky;
+        top: 70px;
+        z-index: 99;
+    }
+    .filter-bar .filter-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 20px;
+        border-radius: 50px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1.5px solid #e5e7eb;
+        background: #fff;
+        color: #6b7280;
+        transition: all .2s;
+    }
+    .filter-bar .filter-pill:hover,
+    .filter-bar .filter-pill.active {
+        background: #4f46e5;
+        border-color: #4f46e5;
+        color: #fff;
+    }
+
+    /* ── Package Grid ───────────────────────────────────────────── */
+    .packages-section {
+        background: #f8fafc;
+        padding: 60px 0 80px;
+    }
+
+    /* ── Cards ──────────────────────────────────────────────────── */
+    .pkg-card {
+        background: #fff;
+        border-radius: 20px;
+        overflow: hidden;
+        border: none;
+        box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 20px rgba(0,0,0,.06);
+        transition: transform .28s ease, box-shadow .28s ease;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        position: relative;
+    }
+    .pkg-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 12px 40px rgba(79,70,229,.15), 0 2px 8px rgba(0,0,0,.08);
+    }
+
+    /* Image wrapper */
+    .pkg-card .card-img-wrap {
+        position: relative;
+        height: 230px;
+        overflow: hidden;
+    }
+    .pkg-card .card-img-wrap img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform .45s ease;
+    }
+    .pkg-card:hover .card-img-wrap img {
+        transform: scale(1.07);
+    }
+    /* gradient overlay */
+    .pkg-card .card-img-wrap::after {
+        content: '';
+        position: absolute;
+        bottom: 0; left: 0; right: 0;
+        height: 60%;
+        background: linear-gradient(to top, rgba(0,0,0,.55), transparent);
+        pointer-events: none;
+    }
+
+    /* Price badge */
+    .pkg-card .price-tag {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        background: #4f46e5;
+        color: #fff;
+        font-size: 0.9rem;
+        font-weight: 800;
+        padding: 6px 14px;
+        border-radius: 50px;
+        z-index: 5;
+        letter-spacing: .02em;
+        box-shadow: 0 4px 12px rgba(79,70,229,.4);
+    }
+    .pkg-card .price-tag.has-discount {
+        background: linear-gradient(135deg, #059669, #10b981);
+        box-shadow: 0 4px 12px rgba(5,150,105,.4);
+    }
+
+    /* Featured badge */
+    .pkg-card .featured-badge {
+        position: absolute;
+        top: 14px;
+        left: 14px;
+        background: linear-gradient(135deg, #f59e0b, #f97316);
+        color: #fff;
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 4px 12px;
+        border-radius: 50px;
+        z-index: 5;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+    }
+
+    /* Card bottom overlay info (destination/duration) */
+    .pkg-card .card-overlay-info {
+        position: absolute;
+        bottom: 12px;
+        left: 16px;
+        z-index: 5;
+        color: #fff;
+    }
+    .pkg-card .card-overlay-info .destination-name {
+        font-size: 0.8rem;
+        font-weight: 600;
+        opacity: .85;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    /* Card body */
+    .pkg-card .card-body {
+        padding: 22px 22px 18px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    .pkg-card .transit-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 12px;
+    }
+    .pkg-card .transit-badge {
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 3px 10px;
+        border-radius: 50px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .transit-badge.flight { background: #ede9fe; color: #5b21b6; }
+    .transit-badge.bus    { background: #d1fae5; color: #065f46; }
+
+    .pkg-card .pkg-name {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: #111827;
+        margin-bottom: 8px;
+        line-height: 1.3;
+    }
+    .pkg-card .pkg-desc {
+        font-size: 0.85rem;
+        color: #6b7280;
+        line-height: 1.6;
+        flex-grow: 1;
+        margin-bottom: 16px;
+    }
+
+    /* Meta info row */
+    .pkg-card .meta-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-size: 0.8rem;
+        color: #6b7280;
+        font-weight: 600;
+        margin-bottom: 16px;
+    }
+    .pkg-card .meta-row .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .pkg-card .meta-row .meta-item i {
+        color: #4f46e5;
+        font-size: 0.78rem;
+    }
+
+    /* Action row */
+    .pkg-card .card-footer-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 14px;
+        border-top: 1px solid #f3f4f6;
+        margin-top: auto;
+    }
+    .pkg-card .seats-info {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #9ca3af;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .pkg-card .seats-info.low { color: #ef4444; }
+    .pkg-card .seats-info i { font-size: 0.72rem; }
+
+    .pkg-card .btn-book {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: linear-gradient(135deg, #4f46e5, #6d28d9);
+        color: #fff;
+        font-size: 0.82rem;
+        font-weight: 700;
+        padding: 8px 20px;
+        border-radius: 50px;
+        text-decoration: none;
+        border: none;
+        transition: all .2s;
+        box-shadow: 0 4px 14px rgba(79,70,229,.3);
+    }
+    .pkg-card .btn-book:hover {
+        background: linear-gradient(135deg, #4338ca, #5b21b6);
+        color: #fff;
+        box-shadow: 0 6px 20px rgba(79,70,229,.4);
+        transform: translateY(-1px);
+    }
+    .pkg-card .btn-book i { font-size: 0.72rem; }
+
+    /* ── Empty State ─────────────────────────────────────────────── */
+    .empty-state {
+        text-align: center;
+        padding: 80px 20px;
+    }
+    .empty-state .empty-icon {
+        width: 90px;
+        height: 90px;
+        background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 24px;
+        font-size: 2rem;
+        color: #7c3aed;
+    }
+    .empty-state h4 {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: #111827;
+        margin-bottom: 10px;
+    }
+    .empty-state p {
+        color: #6b7280;
+        max-width: 340px;
+        margin: 0 auto;
+    }
+
+    /* ── Section header ──────────────────────────────────────────── */
+    .section-header {
+        margin-bottom: 40px;
+    }
+    .section-header .count-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #ede9fe;
+        color: #5b21b6;
+        font-size: 0.8rem;
+        font-weight: 700;
+        padding: 5px 14px;
+        border-radius: 50px;
+        margin-bottom: 12px;
+    }
+    .section-header h2 {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: #111827;
+        margin-bottom: 6px;
+    }
+    .section-header p {
+        color: #6b7280;
+        font-size: 0.95rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ══ HERO ════════════════════════════════════════════════════════ -->
+<section class="pkg-hero text-center">
+    <div class="container position-relative">
+        <div class="hero-badge">
+            <i class="fa-solid fa-earth-asia"></i> Explore the Globe
+        </div>
+        <h1>Tour Packages<br>&amp; Itineraries</h1>
+        <p>Handpicked vacations, connected transit tickets, and guided travel experiences crafted just for you.</p>
+
+        <div class="hero-stats">
+            <div class="stat-item">
+                <div class="stat-num">{{ packages|length }}+</div>
+                <div class="stat-label">Active Tours</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-num">100%</div>
+                <div class="stat-label">Verified</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-num">24/7</div>
+                <div class="stat-label">Support</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══ PACKAGES GRID ═══════════════════════════════════════════════ -->
+<section class="packages-section">
+    <div class="container">
+
+        {% if packages %}
+        <div class="section-header">
+            <span class="count-badge"><i class="fa-solid fa-layer-group"></i> All Packages</span>
+            <h2>Choose Your Perfect Trip</h2>
+            <p>Browse our curated selection of tour packages below.</p>
+        </div>
+
+        <div class="row g-4">
+            {% for pkg in packages %}
+            <div class="col-sm-6 col-lg-4">
+                <div class="pkg-card">
+
+                    <!-- Image -->
+                    <div class="card-img-wrap">
+                        {% if pkg.featured_image %}
+                            <img src="{{ pkg.featured_image.url }}" alt="{{ pkg.name }}">
+                        {% else %}
+                            <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=700&q=80"
+                                 alt="{{ pkg.name }}">
+                        {% endif %}
+
+                        <!-- Price tag -->
+                        <span class="price-tag {% if pkg.discounted_price %}has-discount{% endif %}">
+                            ৳{{ pkg.effective_price|floatformat:0 }}
+                        </span>
+
+                        <!-- Featured -->
+                        {% if pkg.is_featured %}
+                        <span class="featured-badge"><i class="fa-solid fa-star me-1"></i>Featured</span>
+                        {% endif %}
+
+                        <!-- Destination overlay -->
+                        {% if pkg.destination_name %}
+                        <div class="card-overlay-info">
+                            <span class="destination-name">
+                                <i class="fa-solid fa-location-dot"></i> {{ pkg.destination_name }}
+                            </span>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Body -->
+                    <div class="card-body">
+                        <!-- Transit badges -->
+                        {% if pkg.connected_flight_schedule or pkg.connected_bus_schedule %}
+                        <div class="transit-badges">
+                            {% if pkg.connected_flight_schedule %}
+                            <span class="transit-badge flight"><i class="fa-solid fa-plane"></i> Flight</span>
+                            {% endif %}
+                            {% if pkg.connected_bus_schedule %}
+                            <span class="transit-badge bus"><i class="fa-solid fa-bus"></i> Bus</span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <h3 class="pkg-name">{{ pkg.name }}</h3>
+                        <p class="pkg-desc">{{ pkg.short_description|default:pkg.description|truncatewords:16 }}</p>
+
+                        <!-- Meta -->
+                        <div class="meta-row">
+                            <span class="meta-item">
+                                <i class="fa-solid fa-calendar-days"></i>
+                                {{ pkg.duration_days }} Day{{ pkg.duration_days|pluralize }}
+                            </span>
+                            {% if pkg.travel_date %}
+                            <span class="meta-item">
+                                <i class="fa-solid fa-plane-departure"></i>
+                                {{ pkg.travel_date|date:"M d" }}
+                            </span>
+                            {% endif %}
+                            <span class="meta-item">
+                                <i class="fa-solid fa-mountain-sun"></i>
+                                {{ pkg.get_difficulty_display }}
+                            </span>
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="card-footer-row">
+                            <span class="seats-info {% if pkg.available_seats < 5 %}low{% endif %}">
+                                <i class="fa-solid fa-users"></i>
+                                {% if pkg.available_seats < 5 %}
+                                    Only {{ pkg.available_seats }} left!
+                                {% else %}
+                                    {{ pkg.available_seats }} seats
+                                {% endif %}
+                            </span>
+                            <a href="{% url 'public:package_detail' slug=pkg.slug %}" class="btn-book">
+                                View &amp; Book <i class="fa-solid fa-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% else %}
+        <!-- Empty state -->
+        <div class="empty-state">
+            <div class="empty-icon"><i class="fa-solid fa-compass"></i></div>
+            <h4>No Active Tour Packages</h4>
+            <p>We're preparing some amazing itineraries. Please check back soon!</p>
+        </div>
+        {% endif %}
+
+    </div>
+</section>
+
+{% endblock %}

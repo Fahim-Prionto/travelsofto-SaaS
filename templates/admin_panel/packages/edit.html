@@ -1,0 +1,178 @@
+{% extends 'admin_panel/base.html' %}
+
+{% block title %}Edit Tour Package - Agency Admin{% endblock %}
+{% block header_title %}Edit Tour Package{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm p-4 mx-auto" style="max-width: 860px;">
+    <div class="d-flex align-items-center justify-content-between mb-4 border-bottom pb-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="stat-icon primary" style="width: 48px; height: 48px;">
+                <i class="fa-solid fa-pen-to-square"></i>
+            </div>
+            <div>
+                <h5 class="fw-bold m-0 text-dark">Edit Tour Package: {{ package.name }}</h5>
+                <p class="text-muted small mb-0">Modify package specifications, pricing, photo gallery, and connected tickets</p>
+            </div>
+        </div>
+        <a href="{% url 'admin_panel:package_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fa-solid fa-arrow-left me-1"></i> Back to Packages
+        </a>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div class="row g-3 mb-3">
+            <div class="col-md-8">
+                <label class="form-label small fw-bold text-muted">Package Title</label>
+                <input type="text" name="name" class="form-control" value="{{ package.name }}" required>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-bold text-muted">Publishing Status</label>
+                <select name="status" class="form-select fw-semibold">
+                    <option value="active" {% if package.status == 'active' %}selected{% endif %}>Active (Visible on public site)</option>
+                    <option value="draft" {% if package.status == 'draft' %}selected{% endif %}>Draft (Hidden)</option>
+                    <option value="inactive" {% if package.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                    <option value="sold_out" {% if package.status == 'sold_out' %}selected{% endif %}>Sold Out</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label small fw-bold text-muted">Short Overview</label>
+            <input type="text" name="short_description" class="form-control" value="{{ package.short_description }}" placeholder="Brief summary">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label small fw-bold text-muted">Detailed Itinerary & Description</label>
+            <textarea name="description" class="form-control" rows="4" required>{{ package.description }}</textarea>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-muted">Regular Price (৳)</label>
+                <input type="number" step="0.01" name="price" class="form-control" value="{{ package.price }}" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-muted">Discounted Price (৳)</label>
+                <input type="number" step="0.01" name="discounted_price" class="form-control" value="{{ package.discounted_price|default:'' }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-muted">Duration (Days)</label>
+                <input type="number" name="duration_days" class="form-control" value="{{ package.duration_days }}" min="1" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-muted">Total Seat Capacity</label>
+                <input type="number" name="total_seats" class="form-control" value="{{ package.total_seats }}" min="1" required>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-muted">Available Seats</label>
+                <input type="number" name="available_seats" class="form-control" value="{{ package.available_seats }}" min="0" required>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-bold text-muted"><i class="fa-solid fa-calendar me-1"></i> Travel Start Date</label>
+                <input type="date" name="travel_date" class="form-control" value="{{ package.travel_date|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-5">
+                <label class="form-label small fw-bold text-muted"><i class="fa-solid fa-calendar-check me-1"></i> Return Date</label>
+                <input type="date" name="return_date" class="form-control" value="{{ package.return_date|date:'Y-m-d' }}">
+            </div>
+        </div>
+
+        <!-- Transit Connections Section -->
+        <div class="card border p-3 mb-3 bg-light">
+            <h6 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-ticket me-1"></i> Connected Transit Tickets</h6>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-dark"><i class="fa-solid fa-plane-departure text-primary me-1"></i> Connect Air Ticket Schedule</label>
+                    <select name="connected_flight_schedule_id" class="form-select">
+                        <option value="">-- No Flight Connected --</option>
+                        {% for sch in flight_schedules %}
+                            <option value="{{ sch.id }}" {% if package.connected_flight_schedule_id == sch.id %}selected{% endif %}>{{ sch.route.airline.name }} ({{ sch.route.flight_number }}): {{ sch.route.from_city }} → {{ sch.route.to_city }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-dark"><i class="fa-solid fa-bus text-success me-1"></i> Connect Bus Ticket Schedule</label>
+                    <select name="connected_bus_schedule_id" class="form-select">
+                        <option value="">-- No Bus Connected --</option>
+                        {% for sch in bus_schedules %}
+                            <option value="{{ sch.id }}" {% if package.connected_bus_schedule_id == sch.id %}selected{% endif %}>{{ sch.route.operator.name }}: {{ sch.route.from_city }} → {{ sch.route.to_city }} [{{ sch.seat_class|title }}]</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Media Upload & Remove Section -->
+        <div class="card border p-3 mb-4">
+            <h6 class="fw-bold mb-3 text-dark"><i class="fa-solid fa-image me-1"></i> Package Photos & Banner Management</h6>
+            
+            <div class="row g-4 mb-3">
+                <!-- Featured Main Photo Management -->
+                <div class="col-md-6 border-end">
+                    <label class="form-label small fw-bold text-muted">Featured Main Image</label>
+                    {% if package.featured_image %}
+                        <div class="p-2 border rounded bg-light mb-2 d-flex align-items-center justify-content-between">
+                            <img src="{{ package.featured_image.url }}" class="rounded img-thumbnail" style="height: 70px; width: 100px; object-fit: cover;">
+                            <div class="form-check text-danger">
+                                <input class="form-check-input" type="checkbox" name="remove_featured_image" value="1" id="removeFeaturedCheck">
+                                <label class="form-check-input-label fw-bold small" for="removeFeaturedCheck">
+                                    <i class="fa-solid fa-trash me-1"></i> Remove Main Photo
+                                </label>
+                            </div>
+                        </div>
+                    {% endif %}
+                    <input type="file" name="featured_image" accept="image/*" class="form-control">
+                    <small class="text-muted d-block mt-1">Upload a new image to replace current main banner</small>
+                </div>
+
+                <!-- Add Extra Gallery Photos -->
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-muted">Upload Extra Gallery Photos</label>
+                    <input type="file" name="gallery_images" accept="image/*" multiple class="form-control mb-2">
+                    <small class="text-muted d-block">Select multiple files to expand package photo gallery</small>
+                </div>
+            </div>
+
+            <!-- Existing Gallery Photos Grid with Delete Option -->
+            {% if gallery_images %}
+                <div class="border-top pt-3 mt-2">
+                    <label class="form-label small fw-bold text-dark mb-2"><i class="fa-solid fa-images me-1 text-primary"></i> Current Gallery Photos ({{ gallery_images|length }})</label>
+                    <div class="row g-3">
+                        {% for img in gallery_images %}
+                            <div class="col-6 col-sm-4 col-md-3">
+                                <div class="card border h-100 p-1 position-relative bg-light text-center">
+                                    <img src="{{ img.image.url }}" class="rounded w-100 mb-2" style="height: 90px; object-fit: cover;">
+                                    <div class="d-flex align-items-center justify-content-center gap-1 mb-1">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="delete_gallery_images" value="{{ img.id }}" id="delImg{{ img.id }}">
+                                            <label class="form-check-label text-danger small fw-bold" for="delImg{{ img.id }}">
+                                                Remove
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <a href="{% url 'admin_panel:package_gallery_image_delete' pk=img.pk %}" class="btn btn-sm btn-outline-danger py-0 px-2 mt-1" style="font-size: 11px;" onclick="return confirm('Delete this gallery photo?');">
+                                        <i class="fa-solid fa-trash"></i> Delete Now
+                                    </a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="d-flex align-items-center justify-content-end gap-2 pt-3 border-top">
+            <a href="{% url 'admin_panel:package_list' %}" class="btn btn-outline-custom px-4">Cancel</a>
+            <button type="submit" class="btn btn-primary px-4 fw-bold">
+                <i class="fa-solid fa-save me-1"></i> Save Changes
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,118 @@
+{% extends 'superadmin/base.html' %}
+
+{% block title %}{{ tenant.agency_name }} Agency Details{% endblock %}
+{% block header_title %}Tenant Details: {{ tenant.agency_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold m-0 text-dark">Tenant Agency: {{ tenant.agency_name }}</h4>
+        <p class="text-muted small mb-0">Detailed view of database state, routing, and administrative logs</p>
+    </div>
+    <a href="{% url 'superadmin:tenant_list' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+        <i class="fa-solid fa-arrow-left me-1"></i> Back to Agencies
+    </a>
+</div>
+
+<div class="row g-4">
+    <!-- Agency Profile Card -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm p-4 text-center h-100 rounded-4">
+            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3 shadow-sm" style="width: 72px; height: 72px; font-size: 2rem;">
+                <i class="fa-solid fa-building-user"></i>
+            </div>
+            <h4 class="fw-bold mb-1 text-dark">{{ tenant.agency_name }}</h4>
+            <p class="text-muted small mb-3"><i class="fa-solid fa-envelope me-1"></i> {{ tenant.email }}</p>
+            <div class="mb-3">
+                <span class="badge-status badge-status-{{ tenant.status }} px-3 py-1.5 fs-7">
+                    {{ tenant.get_status_display }}
+                </span>
+            </div>
+
+            <hr class="my-3 opacity-10">
+
+            <div class="text-start space-y-2">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small fw-semibold">Agency Owner:</span>
+                    <span class="fw-bold text-dark small">{{ tenant.owner_name }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small fw-semibold">Mobile Contact:</span>
+                    <span class="fw-semibold text-dark small">{{ tenant.mobile|default:"Not specified" }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small fw-semibold">Tenant Database:</span>
+                    <code class="bg-light px-2 py-0.5 rounded text-primary fw-bold small">{{ tenant.db_name }}</code>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small fw-semibold">Domain Subdomain:</span>
+                    <a href="{{ tenant.subdomain_url }}" target="_blank" class="fw-bold small text-primary text-decoration-none">
+                        <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>{{ tenant.slug }}.softobro.com
+                    </a>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted small fw-semibold">Registered On:</span>
+                    <span class="text-dark small fw-semibold">{{ tenant.created_at|date:"M d, Y H:i" }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Details & Routing -->
+    <div class="col-lg-8">
+        <!-- Domains & Routing -->
+        <div class="card border-0 shadow-sm p-4 mb-4 rounded-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold m-0 text-dark"><i class="fa-solid fa-globe text-primary me-2"></i>Domains & Routing Configuration</h6>
+                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1">Primary Route Active</span>
+            </div>
+            <div class="table-responsive rounded-3 border">
+                <table class="table table-custom align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Domain Name</th>
+                            <th>Routing Type</th>
+                            <th>Status</th>
+                            <th>SSL Encryption</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for domain in domains %}
+                            <tr>
+                                <td><code class="text-primary fw-bold">{{ domain.domain }}</code></td>
+                                <td><span class="badge bg-light text-dark border">{{ domain.get_domain_type_display }}</span></td>
+                                <td><span class="badge-status badge-status-{{ domain.status }}">{{ domain.get_status_display }}</span></td>
+                                <td>
+                                    {% if domain.ssl_enabled %}
+                                        <span class="text-success fw-bold"><i class="fa-solid fa-shield-halved me-1"></i> SSL Active</span>
+                                    {% else %}
+                                        <span class="text-muted"><i class="fa-solid fa-lock-open me-1"></i> Pending SSL</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-muted text-center py-4">No custom domain routing records configured yet. Default subdomain routing active.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Provisioning Console Logs -->
+        <div class="card border-0 shadow-sm p-4 rounded-4">
+            <h6 class="fw-bold mb-3 text-dark"><i class="fa-solid fa-terminal text-secondary me-2"></i>Automated Provisioning Console Logs</h6>
+            <div class="bg-dark text-light p-3 rounded-3 shadow-inner" style="max-height: 280px; overflow-y: auto; font-family: 'Fira Code', monospace; font-size: 0.85rem; line-height:1.7;">
+                {% for log in logs %}
+                    <div class="mb-1 text-{% if log.level == 'error' %}danger{% elif log.level == 'success' %}success{% else %}info{% endif %}">
+                        <span class="opacity-50">[{{ log.created_at|date:"H:i:s" }}]</span> <strong class="text-uppercase">[{{ log.step }}]</strong> {{ log.message }}
+                    </div>
+                {% empty %}
+                    <div class="text-success"><i class="fa-solid fa-circle-check me-2"></i>Tenant database provisioned and initialized successfully.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

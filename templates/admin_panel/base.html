@@ -1,0 +1,471 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Agency Dashboard{% endblock %} - {{ current_tenant.name|default:"Travel Agency Admin" }}</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome 6 Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <!-- Platform Theme CSS with cache busting -->
+    <link href="{% static 'css/theme.css' %}?v={% now 'U' %}" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+    /* Clean, Modern Sidebar Layout Override */
+    #sidebar {
+        background-color: #0b1329 !important;
+        width: 260px !important;
+        min-width: 260px !important;
+        max-width: 260px !important;
+        height: 100vh !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        z-index: 1000 !important;
+        box-shadow: 2px 0 12px rgba(0, 0, 0, 0.25) !important;
+        color: #ffffff !important;
+    }
+
+    #sidebar::-webkit-scrollbar {
+        width: 4px !important;
+    }
+    #sidebar::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2) !important;
+        border-radius: 4px !important;
+    }
+
+    /* Force all sidebar text, spans, divs, and icons to white by default */
+    #sidebar div,
+    #sidebar span,
+    #sidebar i,
+    .accordion-header-sidebar,
+    .accordion-header-sidebar span,
+    .accordion-header-sidebar i {
+        color: #ffffff !important;
+    }
+
+    /* Section Category Titles */
+    #sidebar .nav-section-title {
+        color: #818cf8 !important; /* Soft indigo accent */
+        font-size: 0.70rem !important;
+        font-weight: 800 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.08em !important;
+        padding: 1.1rem 1rem 0.35rem 1rem !important;
+        margin: 0 !important;
+        display: block !important;
+    }
+
+    /* Standard Links (Dashboard, Bookings, etc.) */
+    #sidebar .nav-link {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+        padding: 9px 14px !important;
+        margin: 2px 8px !important;
+        color: #e2e8f0 !important;
+        font-size: 0.85rem !important;
+        font-weight: 500 !important;
+        border-radius: 6px !important;
+        text-decoration: none !important;
+        transition: all 0.2s ease !important;
+    }
+    #sidebar .nav-link i {
+        font-size: 0.9rem !important;
+        width: 20px !important;
+        text-align: center !important;
+        color: #818cf8 !important;
+    }
+    #sidebar .nav-link:hover {
+        color: #ffffff !important;
+        background-color: rgba(255, 255, 255, 0.08) !important;
+    }
+    #sidebar .nav-link.active {
+        color: #ffffff !important;
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+        font-weight: 700 !important;
+    }
+
+    /* Accordion Item Card */
+    .accordion-item-sidebar {
+        margin: 4px 8px !important;
+        border-radius: 6px !important;
+        background: rgba(255, 255, 255, 0.04) !important;
+        border: none !important;
+        overflow: hidden !important;
+    }
+
+    /* Accordion Header */
+    .accordion-header-sidebar {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        padding: 9px 12px !important;
+        font-size: 0.835rem !important;
+        font-weight: 600 !important;
+        color: #ffffff !important;
+        cursor: pointer !important;
+        user-select: none !important;
+        transition: background 0.2s ease !important;
+    }
+    .accordion-header-sidebar span {
+        display: flex !important;
+        align-items: center !important;
+        color: #ffffff !important;
+        font-size: 0.835rem !important;
+    }
+    .accordion-header-sidebar span i {
+        color: #a5b4fc !important;
+        width: 18px !important;
+        text-align: center !important;
+    }
+    .accordion-header-sidebar:hover {
+        background-color: rgba(255, 255, 255, 0.08) !important;
+    }
+    .accordion-header-sidebar.open {
+        background-color: rgba(79, 70, 229, 0.4) !important;
+    }
+    .accordion-header-sidebar .toggle-icon {
+        font-size: 0.725rem !important;
+        color: #cbd5e1 !important;
+        transition: transform 0.2s ease !important;
+    }
+
+    /* Accordion Body & Sublinks */
+    .accordion-body-sidebar {
+        display: none;
+        flex-direction: column !important;
+        background: rgba(0, 0, 0, 0.3) !important;
+        padding: 4px 0 !important;
+    }
+    .accordion-body-sidebar.show {
+        display: flex !important;
+    }
+
+    a.nav-sub-link,
+    a.nav-sub-link span {
+        color: #cbd5e1 !important;
+    }
+    a.nav-sub-link {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        padding: 7px 12px 7px 22px !important;
+        font-size: 0.80rem !important;
+        font-weight: 500 !important;
+        text-decoration: none !important;
+        transition: all 0.15s ease !important;
+    }
+    a.nav-sub-link i {
+        font-size: 0.80rem !important;
+        width: 16px !important;
+        text-align: center !important;
+        color: #818cf8 !important;
+    }
+    a.nav-sub-link:hover,
+    a.nav-sub-link:hover span {
+        color: #ffffff !important;
+    }
+    a.nav-sub-link:hover {
+        background-color: rgba(255, 255, 255, 0.09) !important;
+        padding-left: 26px !important;
+    }
+    a.nav-sub-link.active,
+    a.nav-sub-link.active span {
+        color: #ffffff !important;
+    }
+    a.nav-sub-link.active {
+        background-color: rgba(129, 140, 248, 0.3) !important;
+        font-weight: 700 !important;
+        border-left: 3px solid #818cf8 !important;
+    }
+
+    /* Modal Scrolling Fix for All Screen Heights */
+    .modal-dialog {
+        max-height: calc(100vh - 2rem) !important;
+    }
+    .modal-content {
+        max-height: calc(100vh - 3.5rem) !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    .modal-body {
+        max-height: calc(100vh - 220px) !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <!-- Agency Admin Sidebar -->
+    <nav id="sidebar">
+        <div class="brand d-flex align-items-center gap-2 px-3 py-3 border-bottom border-secondary border-opacity-25">
+            {% if current_tenant.logo %}
+                <img src="{{ current_tenant.logo.url }}" alt="{{ current_tenant.agency_name }}"
+                     style="width:42px;height:42px;object-fit:contain;border-radius:10px;background:#fff;padding:3px;flex-shrink:0;">
+            {% else %}
+                <div style="width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,#4f46e5,#7c3aed);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <span style="color:#fff;font-weight:800;font-size:1.1rem;letter-spacing:-1px;">
+                        {{ current_tenant.agency_name|default:"A"|slice:":1"|upper }}
+                    </span>
+                </div>
+            {% endif %}
+            <div class="min-w-0">
+                <span class="d-block text-white fw-bold text-truncate" style="font-size:0.92rem;line-height:1.2;">
+                    {{ current_tenant.agency_name|default:request.user.tenant.agency_name|default:"Agency" }}
+                </span>
+                <span class="d-block text-truncate" style="font-size:0.72rem;color:#94a3b8;">Admin Panel</span>
+            </div>
+        </div>
+
+
+
+        <!-- Dashboard -->
+        <a href="{% url 'admin_panel:dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+            <i class="fa-solid fa-chart-pie"></i><span>Dashboard</span>
+        </a>
+
+        <!-- RECRUITMENT OPERATIONS -->
+        <div class="nav-section-title mt-2">Recruitment & Manpower</div>
+
+        <a href="{% url 'admin_panel:okala_list' %}" class="nav-link {% if 'okala' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-layer-group"></i><span>Visa Lot</span>
+        </a>
+
+        <a href="{% url 'admin_panel:candidate_list' %}" class="nav-link {% if 'candidates' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-user-plus"></i><span>Registration</span>
+        </a>
+
+        <a href="{% url 'admin_panel:stage_view' 'selection' %}" class="nav-link {% if 'selection' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-ranking-star"></i><span>Selection Grading</span>
+        </a>
+
+        <a href="{% url 'admin_panel:stage_view' 'delegate' %}" class="nav-link {% if 'delegate' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-user-check"></i><span>Delegate Approval</span>
+        </a>
+
+        <a href="{% url 'admin_panel:stage_view' 'medical' %}" class="nav-link {% if 'medical' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-stethoscope"></i><span>Medical Assessment</span>
+        </a>
+
+        <a href="{% url 'admin_panel:stage_view' 'police' %}" class="nav-link {% if 'police' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-shield-halved"></i><span>Police Clearance</span>
+        </a>
+
+        <a href="{% url 'admin_panel:stage_view' 'visa_section' %}" class="nav-link {% if 'visa_section' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-passport"></i><span>Visa Section</span>
+        </a>
+
+        <a href="{% url 'admin_panel:stage_view' 'manpower' %}" class="nav-link {% if 'manpower' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-people-group"></i><span>Training & Manpower</span>
+        </a>
+
+        <a href="{% url 'admin_panel:stage_view' 'flight' %}" class="nav-link {% if 'flight' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-plane-departure"></i><span>Flight Ticket & NOC</span>
+        </a>
+
+        <!-- FINANCE & HR OPERATIONS -->
+        <div class="nav-section-title mt-2">Finance & HR Operations</div>
+
+        <a href="{% url 'admin_panel:requisitions_list' %}" class="nav-link {% if 'requisitions' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-file-invoice"></i><span>Financial Requisitions</span>
+        </a>
+
+        <a href="{% url 'admin_panel:accounts_vouchers' %}" class="nav-link {% if 'accounts' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-book-open"></i><span>Accounts & Vouchers</span>
+        </a>
+
+        <a href="{% url 'admin_panel:hr_movement_leave' %}" class="nav-link {% if 'hr-movement' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-calendar-days"></i><span>Daily Movement & Leave</span>
+        </a>
+
+        <a href="{% url 'admin_panel:office_expense_list' %}" class="nav-link {% if 'office-expenses' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-receipt"></i><span>Office Expenses</span>
+        </a>
+
+        <a href="{% url 'admin_panel:reports_hub' %}" class="nav-link {% if 'agency-reports' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-chart-bar"></i><span>Agency Reports Hub</span>
+        </a>
+
+        <!-- CORE OPERATIONS -->
+        <div class="nav-section-title mt-2">Travel & Transport Operations</div>
+        <a href="{% url 'admin_panel:booking_list' %}" class="nav-link {% if 'bookings' in request.path and not 'bus' in request.path and not 'air' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-ticket"></i><span>Tour Bookings</span>
+        </a>
+        <a href="{% url 'admin_panel:package_list' %}" class="nav-link {% if 'packages' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-compass"></i><span>Tour Packages</span>
+        </a>
+        
+        <!-- BUS TICKET SYSTEM -->
+        <a href="{% url 'admin_panel:bus_booking_list' %}" class="nav-link {% if 'bus' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-bus"></i><span>Bus Ticket System</span>
+        </a>
+
+        <!-- AIR TICKET SYSTEM -->
+        <a href="{% url 'admin_panel:air_booking_list' %}" class="nav-link {% if 'air' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-plane"></i><span>Air Ticket System</span>
+        </a>
+
+        <a href="{% url 'admin_panel:customer_list' %}" class="nav-link {% if 'customers' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-users"></i><span>Customers</span>
+        </a>
+
+        <!-- SETTINGS -->
+        <div class="nav-section-title mt-2">Settings & Admin</div>
+        <a href="{% url 'admin_panel:master_settings' %}" class="nav-link {% if 'master-settings' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-sliders"></i><span>Agency Settings</span>
+        </a>
+        <a href="{% url 'admin_panel:cms_settings' %}" class="nav-link {% if 'cms' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-paintbrush"></i><span>CMS & Branding</span>
+        </a>
+        <a href="{% url 'admin_panel:domain_settings' %}" class="nav-link {% if 'domain' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-globe"></i><span>Domain & Website</span>
+        </a>
+        {% if request.user.is_tenant_admin or request.user.is_super_admin %}
+        <a href="{% url 'admin_panel:staff_list' %}" class="nav-link {% if 'staff' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-user-tie"></i><span>Staff Management</span>
+        </a>
+        <a href="{% url 'admin_panel:ambassador_list' %}" class="nav-link {% if 'ambassador' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-user-gear"></i><span>Ambassador Roles</span>
+        </a>
+        {% endif %}
+        <a href="{% url 'admin_panel:my_subscription' %}" class="nav-link {% if 'subscription' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-box-archive"></i><span>Subscription</span>
+        </a>
+        <a href="{% url 'admin_panel:agency_support' %}" class="nav-link {% if 'support' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-headset"></i><span>Support</span>
+        </a>
+
+        <div class="mt-auto p-3 border-top border-secondary border-opacity-25">
+            <a href="/" target="_blank" class="btn btn-sm btn-outline-light w-100 mb-2">
+                <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Preview Agency Site
+            </a>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <div id="main-content">
+        <!-- Top Glass Navigation Bar -->
+        <header class="top-nav d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+                <button id="sidebarToggle" class="btn btn-sm btn-outline-custom d-lg-none">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <div>
+                    <h4 class="mb-0 fw-extrabold text-dark">{% block header_title %}Agency Management{% endblock %}</h4>
+                    <p class="text-muted small mb-0 d-none d-sm-block">Manage your agency tours, visas, customers, and bookings</p>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+                <div class="dropdown">
+                    <button class="btn btn-outline-custom btn-sm rounded-pill px-3 dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown">
+                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style="width:28px; height:28px; font-size:0.8rem;">
+                            {{ request.user.email|first|upper }}
+                        </div>
+                        <span class="fw-semibold small">{{ request.user.email }}</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3 mt-2">
+                        <li><h6 class="dropdown-header text-uppercase fs-8 text-muted">Agency Admin</h6></li>
+                        <li><a class="dropdown-item py-2" href="{% url 'accounts:logout' %}"><i class="fa-solid fa-right-from-bracket me-2 text-danger"></i> Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+
+        <!-- Flash Messages -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show rounded-3 shadow-sm" role="alert">
+                    <i class="fa-solid fa-circle-info me-2"></i> {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Bootstrap 5.3 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'js/app.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+
+    <script>
+    // ── Accordion Sidebar Toggle ──────────────────────────────
+    function toggleAccordion(header) {
+        const item = header.closest('.accordion-item-sidebar') || header.parentElement;
+        const body = item.querySelector('.accordion-body-sidebar') || header.nextElementSibling;
+        if (!body) return;
+
+        const isOpen = header.classList.contains('open');
+
+        // Close all other accordions
+        document.querySelectorAll('.accordion-header-sidebar').forEach(h => {
+            if (h !== header) {
+                h.classList.remove('open');
+                const b = (h.closest('.accordion-item-sidebar') || h.parentElement).querySelector('.accordion-body-sidebar');
+                if (b) {
+                    b.classList.remove('show');
+                    b.style.display = 'none';
+                }
+            }
+        });
+
+        if (isOpen) {
+            header.classList.remove('open');
+            body.classList.remove('show');
+            body.style.display = 'none';
+        } else {
+            header.classList.add('open');
+            body.classList.add('show');
+            body.style.display = 'flex';
+        }
+    }
+
+    // ── Mobile Sidebar Toggle ─────────────────────────────────
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.getElementById('sidebar');
+    if (sidebarToggle && sidebar) {
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('show');
+        });
+    }
+
+    // ── Modal Form Submit Cleanup ─────────────────────────────
+    document.addEventListener('submit', (e) => {
+        if (e.target.closest('.modal')) {
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.removeProperty('overflow');
+            document.body.style.removeProperty('padding-right');
+        }
+    });
+
+    // ── Auto-open active accordion on page load ───────────────
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.accordion-header-sidebar.open').forEach(header => {
+            const item = header.closest('.accordion-item-sidebar') || header.parentElement;
+            const body = item.querySelector('.accordion-body-sidebar');
+            if (body) {
+                body.classList.add('show');
+                body.style.display = 'flex';
+            }
+        });
+    });
+    </script>
+</body>
+</html>
+

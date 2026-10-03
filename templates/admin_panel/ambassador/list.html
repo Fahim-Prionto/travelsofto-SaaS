@@ -1,0 +1,68 @@
+{% extends 'admin_panel/base.html' %}
+
+{% block header_title %}Ambassador Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold text-dark mb-1">Ambassador Accounts</h3>
+            <p class="text-muted small mb-0">Ambassadors can view and perform bookings for packages, bus, and air tickets on behalf of customers</p>
+        </div>
+        <a href="{% url 'admin_panel:ambassador_create' %}" class="btn btn-primary btn-sm rounded-pill px-3">
+            <i class="fa-solid fa-user-plus me-1"></i> Add Ambassador
+        </a>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-3">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-3">Ambassador Name</th>
+                        <th>Email</th>
+                        <th>Mobile</th>
+                        <th>Status</th>
+                        <th>Joined Date</th>
+                        <th class="text-end pe-3">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for amb in ambassadors %}
+                    <tr>
+                        <td class="ps-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded-circle bg-info-subtle text-info d-flex align-items-center justify-content-center fw-bold" style="width:36px; height:36px;">
+                                    {{ amb.first_name|first|upper|default:"A" }}
+                                </div>
+                                <span class="fw-bold text-dark">{{ amb.get_full_name|default:amb.email }}</span>
+                            </div>
+                        </td>
+                        <td>{{ amb.email }}</td>
+                        <td>{{ amb.mobile|default:"N/A" }}</td>
+                        <td>
+                            <span class="badge {% if amb.is_banned %}bg-danger{% else %}bg-success{% endif %}">
+                                {% if amb.is_banned %}Suspended{% else %}Active{% endif %}
+                            </span>
+                        </td>
+                        <td>{{ amb.date_joined|date:"d M Y" }}</td>
+                        <td class="text-end pe-3">
+                            <a href="{% url 'admin_panel:ambassador_toggle_ban' amb.pk %}" class="btn btn-sm btn-outline-warning">
+                                {% if amb.is_banned %}Unban{% else %}Suspend{% endif %}
+                            </a>
+                            <a href="{% url 'admin_panel:ambassador_delete' amb.pk %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this ambassador?')">
+                                <i class="fa-solid fa-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">No ambassador accounts registered yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

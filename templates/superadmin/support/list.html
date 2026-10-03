@@ -1,0 +1,113 @@
+{% extends 'superadmin/base.html' %}
+
+{% block title %}Agency Support & Live Chat Monitoring - {{ PLATFORM_NAME }}{% endblock %}
+{% block header_title %}Agency Live Support & Ticket Monitoring{% endblock %}
+
+{% block content %}
+<!-- Stats Row -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card warning">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <span class="stat-label">Open Support Tickets</span>
+                    <div class="stat-value text-warning">{{ open_count|default:0 }}</div>
+                    <small class="text-warning fw-semibold">Requires support assistance</small>
+                </div>
+                <div class="stat-icon warning"><i class="fa-solid fa-headset"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card info">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <span class="stat-label">In Progress</span>
+                    <div class="stat-value text-info">{{ in_progress_count|default:0 }}</div>
+                    <small class="text-info fw-semibold">Being handled</small>
+                </div>
+                <div class="stat-icon info"><i class="fa-solid fa-comments"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card success">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <span class="stat-label">Resolved / Closed</span>
+                    <div class="stat-value text-success">{{ closed_count|default:0 }}</div>
+                    <small class="text-success fw-semibold">Completed support chats</small>
+                </div>
+                <div class="stat-icon success"><i class="fa-solid fa-circle-check"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Support Tickets Table -->
+<div class="card border-0 shadow-sm p-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h5 class="fw-bold m-0 text-dark">Agency Live Support Inbox & Monitoring</h5>
+            <p class="text-muted small mb-0">Monitor all support requests and live chat conversations across travel agencies</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'superadmin:support_members' %}" class="btn btn-outline-primary btn-sm rounded-3 px-3 fw-bold d-flex align-items-center gap-1">
+                <i class="fa-solid fa-user-plus"></i> Manage Support Team
+            </a>
+        </div>
+    </div>
+
+    <div class="table-responsive rounded-3 border">
+        <table class="table table-custom align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Ticket Code</th>
+                    <th>Agency Tenant</th>
+                    <th>Subject</th>
+                    <th>Assigned Supporter</th>
+                    <th>Status</th>
+                    <th>Last Updated</th>
+                    <th class="text-end">Live Chat Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ticket in tickets %}
+                    <tr>
+                        <td><code class="text-primary fw-bold">{{ ticket.ticket_code }}</code></td>
+                        <td>
+                            <div class="fw-bold text-dark">{{ ticket.tenant.agency_name }}</div>
+                            <small class="text-muted">{{ ticket.tenant.email }}</small>
+                        </td>
+                        <td><span class="fw-semibold text-dark">{{ ticket.subject }}</span></td>
+                        <td>
+                            {% if ticket.assigned_supporter %}
+                                <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-2.5 py-1">
+                                    <i class="fa-solid fa-user-shield me-1"></i> {{ ticket.assigned_supporter.get_full_name|default:ticket.assigned_supporter.email }}
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary rounded-pill px-2.5 py-1">Unassigned</span>
+                            {% endif %}
+                        </td>
+                        <td><span class="badge-status badge-status-{{ ticket.status }}">{{ ticket.get_status_display }}</span></td>
+                        <td><small class="text-muted fw-semibold">{{ ticket.updated_at|date:"M d, Y H:i" }}</small></td>
+                        <td class="text-end">
+                            <a href="{% url 'superadmin:support_chat' ticket.id %}" class="btn btn-sm btn-primary fw-bold rounded-3">
+                                <i class="fa-solid fa-comment-dots me-1"></i> Open Live Chat
+                            </a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-5">
+                            <i class="fa-solid fa-comments fs-1 mb-2 text-secondary"></i>
+                            <p class="mb-0 fw-semibold">No agency support tickets found.</p>
+                            <small>Agencies can open live support tickets directly to Super Admin & Support Members.</small>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

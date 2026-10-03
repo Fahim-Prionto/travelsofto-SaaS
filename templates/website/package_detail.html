@@ -1,0 +1,151 @@
+{% extends 'website/base.html' %}
+
+{% block title %}{{ package.name }} - Tour Package Details{% endblock %}
+
+{% block content %}
+<div class="bg-dark text-white py-4 mb-4" style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);">
+    <div class="container py-2">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2 small text-secondary">
+                <li class="breadcrumb-item"><a href="{% url 'public:home' %}" class="text-secondary">Home</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'public:packages' %}" class="text-secondary">Packages</a></li>
+                <li class="breadcrumb-item active text-white" aria-current="page">{{ package.name }}</li>
+            </ol>
+        </nav>
+        <h2 class="fw-extrabold m-0 display-6">{{ package.name }}</h2>
+    </div>
+</div>
+
+<div class="container mb-5">
+    <div class="row g-4">
+        <!-- Left Details Column -->
+        <div class="col-lg-8">
+            <!-- Hero Image Banner -->
+            <div class="rounded-3 overflow-hidden shadow-sm mb-4" style="max-height: 420px;">
+                {% if package.featured_image %}
+                    <img src="{{ package.featured_image.url }}" alt="{{ package.name }}" class="w-100 h-100 object-fit-cover">
+                {% else %}
+                    <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80" alt="{{ package.name }}" class="w-100 h-100 object-fit-cover">
+                {% endif %}
+            </div>
+
+            <!-- Gallery Images Grid (if present) -->
+            {% if images %}
+                <div class="mb-4">
+                    <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-images me-2 text-primary"></i>Photo Gallery</h5>
+                    <div class="row g-2">
+                        {% for img in images %}
+                            <div class="col-4 col-md-3">
+                                <a href="{{ img.image.url }}" target="_blank">
+                                    <img src="{{ img.image.url }}" class="img-fluid rounded border shadow-sm" style="height: 110px; width: 100%; object-fit: cover;">
+                                </a>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Package Inclusions & Badges -->
+            <div class="d-flex flex-wrap gap-2 mb-4">
+                <span class="badge bg-primary fs-6 px-3 py-2"><i class="fa-solid fa-clock me-1"></i> {{ package.duration_days }} Days / {{ package.duration_days|add:"-1" }} Nights</span>
+                <span class="badge bg-success fs-6 px-3 py-2"><i class="fa-solid fa-chair me-1"></i> {{ package.available_seats }} Seats Remaining</span>
+                {% if package.connected_flight_schedule %}
+                    <span class="badge bg-info text-dark fs-6 px-3 py-2"><i class="fa-solid fa-plane-departure me-1"></i> Flight Ticket Included</span>
+                {% endif %}
+                {% if package.connected_bus_schedule %}
+                    <span class="badge bg-warning text-dark fs-6 px-3 py-2"><i class="fa-solid fa-bus me-1"></i> Bus Transit Included</span>
+                {% endif %}
+            </div>
+
+            <!-- Connected Transit Cards -->
+            {% if package.connected_flight_schedule or package.connected_bus_schedule %}
+                <div class="card border-0 shadow-sm bg-light p-4 mb-4">
+                    <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-ticket text-primary me-2"></i>Included Transit Schedule</h5>
+                    <div class="row g-3">
+                        {% if package.connected_flight_schedule %}
+                            <div class="col-md-6">
+                                <div class="p-3 bg-white rounded border shadow-sm h-100">
+                                    <div class="d-flex align-items-center gap-2 mb-2 text-primary">
+                                        <i class="fa-solid fa-plane-departure fs-5"></i>
+                                        <h6 class="fw-bold m-0">{{ package.connected_flight_schedule.route.airline.name }}</h6>
+                                    </div>
+                                    <div class="small text-muted mb-1">Flight Number: <strong>{{ package.connected_flight_schedule.route.flight_number }}</strong></div>
+                                    <div class="fw-bold text-dark">{{ package.connected_flight_schedule.route.from_city }} → {{ package.connected_flight_schedule.route.to_city }}</div>
+                                    {% if package.connected_flight_schedule.departure_datetime %}
+                                        <div class="small text-muted mt-1">Departure: {{ package.connected_flight_schedule.departure_datetime|date:"M d, Y H:i" }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        {% if package.connected_bus_schedule %}
+                            <div class="col-md-6">
+                                <div class="p-3 bg-white rounded border shadow-sm h-100">
+                                    <div class="d-flex align-items-center gap-2 mb-2 text-success">
+                                        <i class="fa-solid fa-bus fs-5"></i>
+                                        <h6 class="fw-bold m-0">{{ package.connected_bus_schedule.route.operator.name }}</h6>
+                                    </div>
+                                    <div class="small text-muted mb-1">Seat Class: <strong>{{ package.connected_bus_schedule.seat_class|title }}</strong></div>
+                                    <div class="fw-bold text-dark">{{ package.connected_bus_schedule.route.from_city }} → {{ package.connected_bus_schedule.route.to_city }}</div>
+                                    {% if package.connected_bus_schedule.departure_time %}
+                                        <div class="small text-muted mt-1">Departure Time: {{ package.connected_bus_schedule.departure_time|time:"H:i" }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Description & Itinerary -->
+            <div class="card border-0 shadow-sm p-4 mb-4">
+                <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-circle-info text-primary me-2"></i>Tour Overview & Itinerary</h5>
+                <div class="text-secondary leading-relaxed" style="white-space: pre-line;">
+                    {{ package.description }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Booking Card Sidebar -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow p-4 sticky-top" style="top: 90px;">
+                <div class="text-center border-bottom pb-3 mb-3">
+                    <span class="text-muted small uppercase fw-bold">Package Price Per Person</span>
+                    <div class="my-2">
+                        {% if package.discounted_price %}
+                            <span class="display-6 fw-extrabold text-success">৳{{ package.discounted_price|floatformat:0 }}</span>
+                            <span class="text-muted text-decoration-line-through ms-2 fs-6">৳{{ package.price|floatformat:0 }}</span>
+                        {% else %}
+                            <span class="display-6 fw-extrabold text-dark">৳{{ package.price|floatformat:0 }}</span>
+                        {% endif %}
+                    </div>
+                    <small class="text-muted"><i class="fa-solid fa-shield-halved me-1 text-success"></i>Guaranteed Best Price & Instant Confirmation</small>
+                </div>
+
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted small">Duration</span>
+                        <span class="fw-bold small">{{ package.duration_days }} Days</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted small">Travel Date</span>
+                        <span class="fw-bold small">{{ package.travel_date|default:"Flexible / Everyday" }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted small">Seats Left</span>
+                        <span class="fw-bold small text-primary">{{ package.available_seats }} / {{ package.total_seats }}</span>
+                    </div>
+                </div>
+
+                <a href="{% url 'public:package_book' slug=package.slug %}" class="btn btn-primary btn-lg w-100 fw-bold py-3 shadow-sm rounded-3">
+                    <i class="fa-solid fa-paper-plane me-2"></i> Book Package Now
+                </a>
+                
+                <p class="text-muted text-center extra-small mt-3 mb-0">
+                    <i class="fa-solid fa-lock me-1"></i> Registered customer login required to complete booking under this agency.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

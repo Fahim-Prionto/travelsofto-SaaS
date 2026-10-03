@@ -1,0 +1,44 @@
+{% extends 'website/base.html' %}
+
+{% block title %}Contact Us - {{ current_tenant.name|default:"Softobro Travel" }}{% endblock %}
+
+{% block content %}
+<div class="bg-dark text-white py-5 mb-5" style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);">
+    <div class="container py-3 text-center">
+        <span class="badge bg-primary-subtle text-primary fw-bold px-3 py-1.5 rounded-pill mb-2">Get In Touch</span>
+        <h1 class="fw-extrabold display-5 mb-2">Contact {{ current_tenant.name|default:"Softobro Travel" }}</h1>
+        <p class="text-secondary mx-auto" style="max-width: 600px;">Have questions about tour packages or visa applications? Send us a message</p>
+    </div>
+</div>
+
+<div class="container mb-5">
+    <div class="row g-4 justify-content-center">
+        <div class="col-lg-7">
+            <form method="POST" class="card border-0 shadow-sm p-4 p-md-5">
+                {% csrf_token %}
+                <h4 class="fw-extrabold text-dark mb-4"><i class="fa-solid fa-paper-plane text-primary me-2"></i>Send Message to Agency</h4>
+                
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">Your Full Name</label>
+                        <input type="text" name="name" class="form-control" placeholder="John Smith" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">Your Email Address</label>
+                        <input type="email" name="email" class="form-control" placeholder="john@example.com" required>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label small fw-bold text-muted">Message</label>
+                    <textarea name="message" class="form-control" rows="5" placeholder="Inquire about dates, pricing, visa requirements, or custom group tours..." required></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary py-3 fw-bold rounded-3">
+                    <i class="fa-solid fa-paper-plane me-2"></i> Send Inquiry Message
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

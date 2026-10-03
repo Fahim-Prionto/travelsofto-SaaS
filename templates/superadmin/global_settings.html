@@ -1,0 +1,34 @@
+{% extends 'superadmin/base.html' %}
+{% load static %}
+
+{% block title %}Global Settings - Platform HQ{% endblock %}
+{% block header_title %}Global Settings{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom fw-bold py-3">
+                <i class="fa-solid fa-money-bill-wave text-primary me-2"></i>Platform Payment Settings
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark mb-1">bKash Number (For SaaS Subscriptions)</label>
+                        <p class="small text-muted mb-2">This number is displayed to agencies on the registration page and subscription renewal page so they know where to Send Money.</p>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-primary fw-bold">bKash</span>
+                            <input type="text" name="bkash_number" class="form-control" value="{{ bkash_number }}" placeholder="e.g. 018XXXXXXXX" required>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary fw-bold mt-2 px-4 shadow-sm">
+                        <i class="fa-solid fa-save me-2"></i>Save Settings
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

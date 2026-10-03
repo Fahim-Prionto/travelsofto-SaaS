@@ -1,0 +1,76 @@
+{% extends 'admin_panel/base.html' %}
+
+{% block title %}Customers & KYC - Agency Admin{% endblock %}
+{% block header_title %}Customer User CRM & KYC Management{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm p-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h5 class="fw-bold m-0 text-dark">Registered Agency Customers</h5>
+            <p class="text-muted small mb-0">Manage customer accounts, wallet balance, KYC verification, and ban status</p>
+        </div>
+        <a href="{% url 'admin_panel:customer_create' %}" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold d-flex align-items-center gap-1">
+            <i class="fa-solid fa-plus"></i> Add Customer Account
+        </a>
+    </div>
+
+    <div class="table-responsive rounded-3 border">
+        <table class="table table-custom align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Customer Name & Email</th>
+                    <th>Mobile Phone</th>
+                    <th>Wallet Balance</th>
+                    <th>Account Status</th>
+                    <th>Date Joined</th>
+                    <th class="text-end">Account Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for customer in customers %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded-circle bg-primary-subtle text-primary fw-bold d-flex align-items-center justify-content-center" style="width:36px; height:36px; font-size:0.9rem;">
+                                    {{ customer.full_name|first|upper|default:customer.email|first|upper }}
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-dark fs-6">{{ customer.full_name|default:"Registered Traveler" }}</div>
+                                    <small class="text-muted"><i class="fa-solid fa-envelope me-1"></i>{{ customer.email }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="fw-semibold text-dark">{{ customer.mobile|default:"Not set" }}</span></td>
+                        <td><span class="text-success fw-extrabold fs-6">${{ customer.balance|default:"0.00" }}</span></td>
+                        <td>
+                            {% if customer.is_banned %}
+                                <span class="badge-status badge-status-suspended">Banned</span>
+                            {% else %}
+                                <span class="badge-status badge-status-active">Active</span>
+                            {% endif %}
+                        </td>
+                        <td><small class="text-muted fw-semibold">{{ customer.date_joined|date:"M d, Y" }}</small></td>
+                        <td class="text-end">
+                            <a href="{% url 'admin_panel:customer_toggle_ban' customer.pk %}" class="btn btn-sm btn-outline-{% if customer.is_banned %}success{% else %}danger{% endif %} rounded-pill px-3">
+                                {% if customer.is_banned %}
+                                    <i class="fa-solid fa-user-check me-1"></i> Unban
+                                {% else %}
+                                    <i class="fa-solid fa-user-slash me-1"></i> Ban User
+                                {% endif %}
+                            </a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-5">
+                            <i class="fa-solid fa-users-slash fs-1 mb-2 text-secondary"></i>
+                            <p class="mb-0 fw-semibold">No customers registered for this travel agency yet.</p>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,274 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}Accounts & Vouchers{% endblock %}
+{% block header_title %}Accounts & Vouchers{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+
+  <!-- Tab Nav -->
+  <div class="card mb-4">
+    <div class="card-body py-3 d-flex gap-2 flex-wrap">
+      <a href="?tab=vouchers" class="btn btn-sm {% if active_tab == 'vouchers' %}btn-primary{% else %}btn-outline-custom{% endif %} rounded-pill">
+        <i class="fa-solid fa-file-invoice-dollar me-1"></i>Vouchers
+      </a>
+      <a href="?tab=accounts" class="btn btn-sm {% if active_tab == 'accounts' %}btn-primary{% else %}btn-outline-custom{% endif %} rounded-pill">
+        <i class="fa-solid fa-sitemap me-1"></i>Chart of Accounts
+      </a>
+      <div class="ms-auto d-flex gap-2">
+        {% if active_tab == 'vouchers' %}
+        <button class="btn btn-sm btn-accent" data-bs-toggle="modal" data-bs-target="#addVoucherModal">
+          <i class="fa-solid fa-plus me-1"></i>New Voucher
+        </button>
+        {% else %}
+        <button class="btn btn-sm btn-accent" data-bs-toggle="modal" data-bs-target="#addAccountModal">
+          <i class="fa-solid fa-plus me-1"></i>New Account Head
+        </button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% if active_tab == 'vouchers' %}
+  <!-- Vouchers Table -->
+  <div class="card">
+    <div class="card-header">
+      <h6 class="mb-0 fw-bold"><i class="fa-solid fa-book me-2 text-primary"></i>Voucher Ledger ({{ vouchers|length }} records)</h6>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table-custom w-100">
+          <thead><tr><th>Voucher No</th><th>Type</th><th>Account</th><th>Amount (৳)</th><th>Reference</th><th>Narration</th><th>Date</th><th class="text-end">Actions</th></tr></thead>
+          <tbody>
+            {% for v in vouchers %}
+            <tr>
+              <td class="fw-bold text-primary small">{{ v.voucher_no }}</td>
+              <td><span class="badge bg-primary bg-opacity-10 text-primary small fw-semibold">{{ v.get_voucher_type_display }}</span></td>
+              <td class="small">{{ v.account.account_name }}</td>
+              <td class="fw-bold {% if v.voucher_type in 'cr_cash,cr_cheque' %}text-success{% else %}text-danger{% endif %}">৳{{ v.amount|floatformat:2 }}</td>
+              <td class="small text-muted">{{ v.reference_no|default:"—" }}</td>
+              <td class="small text-muted">{{ v.narration|truncatechars:35|default:"—" }}</td>
+              <td class="small text-muted">{{ v.created_at|date:"d M Y" }}</td>
+              <td class="text-end">
+                <div class="d-flex gap-1 justify-content-end">
+                  <button type="button" class="btn btn-sm btn-outline-primary py-1 px-2" data-bs-toggle="modal" data-bs-target="#editVoucherModal{{ v.id }}" title="Edit Voucher">
+                    <i class="fa-solid fa-pen-to-square me-1"></i>Edit
+                  </button>
+                  <form method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to delete Voucher &quot;{{ v.voucher_no }}&quot;?');">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="delete_voucher">
+                    <input type="hidden" name="voucher_id" value="{{ v.id }}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2" title="Delete Voucher">
+                      <i class="fa-solid fa-trash me-1"></i>Delete
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="8" class="text-center py-5 text-muted">
+              <i class="fa-solid fa-book fa-3x mb-3 opacity-25 d-block"></i>No vouchers recorded yet.
+            </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  {% else %}
+  <!-- Chart of Accounts Table -->
+  <div class="card">
+    <div class="card-header">
+      <h6 class="mb-0 fw-bold"><i class="fa-solid fa-sitemap me-2 text-primary"></i>Chart of Accounts ({{ accounts|length }})</h6>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table-custom w-100">
+          <thead><tr><th>Code</th><th>Account Name</th><th>Head Group</th><th>Category</th><th>Balance (৳)</th><th>TDS Section</th><th class="text-end">Actions</th></tr></thead>
+          <tbody>
+            {% for acc in accounts %}
+            <tr>
+              <td class="fw-bold text-primary small">{{ acc.account_code }}</td>
+              <td class="fw-semibold small">{{ acc.account_name }}</td>
+              <td class="small">{{ acc.head_group.name }}</td>
+              <td><span class="badge bg-{{ acc.head_group.type_category|yesno:'success,danger,warning,info,primary' }} bg-opacity-15 text-dark small">{{ acc.head_group.get_type_category_display }}</span></td>
+              <td class="fw-bold {% if acc.current_balance >= 0 %}text-success{% else %}text-danger{% endif %}">৳{{ acc.current_balance|floatformat:2 }}</td>
+              <td class="small text-muted">{{ acc.tds_section|default:"—" }}</td>
+              <td class="text-end">
+                <div class="d-flex gap-1 justify-content-end">
+                  <button type="button" class="btn btn-sm btn-outline-primary py-1 px-2" data-bs-toggle="modal" data-bs-target="#editAccountModal{{ acc.id }}" title="Edit Account">
+                    <i class="fa-solid fa-pen-to-square me-1"></i>Edit
+                  </button>
+                  <form method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to delete account &quot;{{ acc.account_name }}&quot;?');">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="delete_account">
+                    <input type="hidden" name="account_id" value="{{ acc.id }}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2" title="Delete Account">
+                      <i class="fa-solid fa-trash me-1"></i>Delete
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-center py-5 text-muted">No accounts found.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Add Voucher Modal -->
+<div class="modal fade" id="addVoucherModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold"><i class="fa-solid fa-file-invoice-dollar me-2"></i>Record New Voucher</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="add_voucher">
+        <div class="modal-body row g-3">
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Voucher Type *</label>
+            <select name="voucher_type" class="form-select" required>
+              <option value="bv">Bank Voucher (BV)</option>
+              <option value="cash_payment">Cash Payment Voucher</option>
+              <option value="cr_cheque">Cheque Receipt (CR)</option>
+              <option value="cr_cash">Cash Receipt (CR)</option>
+              <option value="jv">Journal Voucher (JV)</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Account *</label>
+            <select name="account_id" class="form-select" required>
+              {% for a in accounts %}<option value="{{ a.id }}">{{ a.account_code }} — {{ a.account_name }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-6"><label class="form-label small fw-semibold">Amount (৳)</label><input type="number" step="0.01" name="amount" class="form-control" required placeholder="0.00"></div>
+          <div class="col-6"><label class="form-label small fw-semibold">Reference No</label><input name="reference_no" class="form-control" placeholder="Ref/Cheque no."></div>
+          <div class="col-12"><label class="form-label small fw-semibold">Narration / Details</label><textarea name="narration" class="form-control" rows="2" placeholder="Transaction details..."></textarea></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save me-1"></i>Record Voucher</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Add Account Modal -->
+<div class="modal fade" id="addAccountModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header" style="background:var(--accent);color:#fff;">
+        <h5 class="modal-title fw-bold"><i class="fa-solid fa-sitemap me-2"></i>New Account Head</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="add_account">
+        <div class="modal-body row g-3">
+          <div class="col-6"><label class="form-label small fw-semibold">Account Code *</label><input name="account_code" class="form-control" required placeholder="e.g. 1001"></div>
+          <div class="col-6"><label class="form-label small fw-semibold">Account Name *</label><input name="account_name" class="form-control" required placeholder="e.g. Cash in Hand"></div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Head Group *</label>
+            <select name="head_group_id" class="form-select" required>
+              {% for g in groups %}<option value="{{ g.id }}">{{ g.name }} ({{ g.get_type_category_display }})</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-6"><label class="form-label small fw-semibold">Opening Balance (৳)</label><input type="number" step="0.01" name="balance" class="form-control" value="0"></div>
+          <div class="col-6"><label class="form-label small fw-semibold">TDS Section</label><input name="tds_section" class="form-control" placeholder="Optional"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-accent text-white"><i class="fa-solid fa-save me-1"></i>Create Account</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Account Modals -->
+{% for acc in accounts %}
+<div class="modal fade" id="editAccountModal{{ acc.id }}" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold"><i class="fa-solid fa-pen-to-square me-2"></i>Edit Account Head</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post">{% csrf_token %}
+        <input type="hidden" name="action" value="edit_account">
+        <input type="hidden" name="account_id" value="{{ acc.id }}">
+        <div class="modal-body row g-3">
+          <div class="col-6"><label class="form-label small fw-semibold">Account Code *</label><input name="account_code" class="form-control" required value="{{ acc.account_code }}"></div>
+          <div class="col-6"><label class="form-label small fw-semibold">Account Name *</label><input name="account_name" class="form-control" required value="{{ acc.account_name }}"></div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Head Group *</label>
+            <select name="head_group_id" class="form-select" required>
+              {% for g in groups %}
+              <option value="{{ g.id }}" {% if g.id == acc.head_group_id %}selected{% endif %}>{{ g.name }} ({{ g.get_type_category_display }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-6"><label class="form-label small fw-semibold">Balance (৳)</label><input type="number" step="0.01" name="balance" class="form-control" value="{{ acc.current_balance }}"></div>
+          <div class="col-6"><label class="form-label small fw-semibold">TDS Section</label><input name="tds_section" class="form-control" value="{{ acc.tds_section }}" placeholder="Optional"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save me-1"></i>Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<!-- Edit Voucher Modals -->
+{% for v in vouchers %}
+<div class="modal fade" id="editVoucherModal{{ v.id }}" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold"><i class="fa-solid fa-pen-to-square me-2"></i>Edit Voucher {{ v.voucher_no }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post">{% csrf_token %}
+        <input type="hidden" name="action" value="edit_voucher">
+        <input type="hidden" name="voucher_id" value="{{ v.id }}">
+        <div class="modal-body row g-3">
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Voucher Type *</label>
+            <select name="voucher_type" class="form-select" required>
+              <option value="bv" {% if v.voucher_type == 'bv' %}selected{% endif %}>Bank Voucher (BV)</option>
+              <option value="cash_payment" {% if v.voucher_type == 'cash_payment' or v.voucher_type == 'cpv' %}selected{% endif %}>Cash Payment Voucher</option>
+              <option value="cr_cheque" {% if v.voucher_type == 'cr_cheque' %}selected{% endif %}>Cheque Receipt (CR)</option>
+              <option value="cr_cash" {% if v.voucher_type == 'cr_cash' %}selected{% endif %}>Cash Receipt (CR)</option>
+              <option value="jv" {% if v.voucher_type == 'jv' %}selected{% endif %}>Journal Voucher (JV)</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Account *</label>
+            <select name="account_id" class="form-select" required>
+              {% for a in accounts %}
+              <option value="{{ a.id }}" {% if a.id == v.account_id %}selected{% endif %}>{{ a.account_code }} — {{ a.account_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-6"><label class="form-label small fw-semibold">Amount (৳)</label><input type="number" step="0.01" name="amount" class="form-control" required value="{{ v.amount }}"></div>
+          <div class="col-6"><label class="form-label small fw-semibold">Reference No</label><input name="reference_no" class="form-control" value="{{ v.reference_no }}" placeholder="Ref/Cheque no."></div>
+          <div class="col-12"><label class="form-label small fw-semibold">Narration / Details</label><textarea name="narration" class="form-control" rows="2" placeholder="Transaction details...">{{ v.narration }}</textarea></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save me-1"></i>Save Voucher Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

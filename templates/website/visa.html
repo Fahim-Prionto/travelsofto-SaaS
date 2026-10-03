@@ -1,0 +1,112 @@
+{% extends 'website/base.html' %}
+
+{% block title %}Visa Services - {{ request.tenant.name|default:"Travel Agency" }}{% endblock %}
+
+{% block content %}
+<div class="bg-dark text-white py-5 mb-5" style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);">
+    <div class="container py-3 text-center">
+        <span class="badge bg-warning text-dark fw-bold px-3 py-2 rounded-pill mb-3">Expert Visa Guidance</span>
+        <h1 class="fw-extrabold display-5 mb-2">Visa Processing Services</h1>
+        <p class="text-secondary mx-auto" style="max-width:600px;">
+            Work, tourist, business, student and domestic worker visa assistance for worldwide destinations
+        </p>
+    </div>
+</div>
+
+<div class="container mb-5">
+    <div class="row g-4">
+
+        {# ── Visa Lots (added from agency admin) ────────────────────────────── #}
+        {% for lot in visa_lots %}
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100 position-relative overflow-hidden">
+                {% if lot.featured_image %}
+                <img src="{{ lot.featured_image.url }}" alt="{{ lot.title }}" class="card-img-top" style="height:180px;object-fit:cover;">
+                {% endif %}
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="stat-icon warning" style="width:44px;height:44px;flex-shrink:0;">
+                            <i class="fa-solid fa-passport"></i>
+                        </div>
+                        <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-2 py-1 small">
+                            {{ lot.get_visa_type_display }}
+                        </span>
+                    </div>
+
+                    <h5 class="fw-bold text-dark mb-1">{{ lot.title }}</h5>
+                    <p class="text-muted small mb-1">
+                        <i class="fa-solid fa-location-dot me-1"></i>{{ lot.country }}
+                    </p>
+
+                    {% if lot.processing_time %}
+                    <p class="text-muted small mb-2">
+                        <i class="fa-solid fa-clock me-1 text-warning"></i>
+                        Processing Time: <strong>{{ lot.processing_time }}</strong>
+                    </p>
+                    {% endif %}
+
+                    {% if lot.description %}
+                    <p class="text-muted small mb-3">{{ lot.description|truncatechars:120 }}</p>
+                    {% endif %}
+
+                    {% if lot.requirements %}
+                    <details class="mb-3">
+                        <summary class="small fw-semibold text-primary" style="cursor:pointer;">
+                            <i class="fa-solid fa-list-check me-1"></i>Required Documents
+                        </summary>
+                        <p class="small text-muted mt-2 mb-0" style="white-space:pre-line;">{{ lot.requirements }}</p>
+                    </details>
+                    {% endif %}
+
+                    <div class="d-flex justify-content-between align-items-center mt-auto pt-3 border-top">
+                        {% if lot.price %}
+                        <span class="h5 text-success fw-extrabold m-0">৳{{ lot.price }}</span>
+                        {% else %}
+                        <span class="small text-muted">Contact for pricing</span>
+                        {% endif %}
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-1 small">
+                            <i class="fa-solid fa-ticket me-1"></i>{{ lot.quota }} Slots
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        {# ── Fallback: VisaService objects (legacy) ─────────────────────────── #}
+        {% for service in services %}
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-4 h-100 position-relative">
+                <div class="stat-icon warning mb-3" style="width:48px;height:48px;">
+                    <i class="fa-solid fa-passport"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-1">{{ service.name }}</h5>
+                <div class="mb-3">
+                    <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-2 py-1">
+                        {{ service.get_visa_type_display }}
+                    </span>
+                </div>
+                <p class="text-muted small mb-3">
+                    <i class="fa-solid fa-clock me-1 text-warning"></i>
+                    Processing Time: <strong>{{ service.processing_time }}</strong>
+                </p>
+                <div class="d-flex justify-content-between align-items-center mt-auto pt-3 border-top">
+                    <span class="h5 text-success fw-extrabold m-0">${{ service.price }}</span>
+                    <a href="{% url 'accounts:login' %}" class="btn btn-accent btn-sm rounded-pill px-3">Apply Now</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        {# ── Empty State ─────────────────────────────────────────────────────── #}
+        {% if not visa_lots and not services %}
+        <div class="col-12 text-center py-5">
+            <i class="fa-solid fa-passport fa-3x mb-3 text-muted opacity-50"></i>
+            <h5 class="text-muted">No visa services available yet.</h5>
+            <p class="text-muted small">Please check back later or contact us directly.</p>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,212 @@
+{% extends 'superadmin/base.html' %}
+
+{% block title %}Super Admin SaaS Dashboard{% endblock %}
+{% block header_title %}Global SaaS Platform Dashboard{% endblock %}
+
+{% block content %}
+<!-- Overview Stat Cards -->
+<div class="row g-4 mb-4">
+    <!-- Total Agencies -->
+    <div class="col-6 col-xl-3">
+        <div class="stat-card primary">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <span class="stat-label">Total Agencies</span>
+                    <div class="stat-value">{{ total_tenants|default:0 }}</div>
+                    <small class="text-success fw-semibold"><i class="fa-solid fa-arrow-up me-1"></i> SaaS Tenants</small>
+                </div>
+                <div class="stat-icon primary">
+                    <i class="fa-solid fa-building-user"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Tenants -->
+    <div class="col-6 col-xl-3">
+        <div class="stat-card success">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <span class="stat-label">Active Agencies</span>
+                    <div class="stat-value text-success">{{ active_tenants|default:0 }}</div>
+                    <small class="text-muted fw-semibold">Live Subscription</small>
+                </div>
+                <div class="stat-icon success">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total SaaS Revenue -->
+    <div class="col-6 col-xl-3">
+        <div class="stat-card accent">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <span class="stat-label">Platform Revenue</span>
+                    <div class="stat-value text-purple">৳{{ total_revenue|default:"0.00" }}</div>
+                    <small class="text-muted fw-semibold">SaaS Subscriptions</small>
+                </div>
+                <div class="stat-icon accent">
+                    <i class="fa-solid fa-bangladeshi-taka-sign"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Platform Users -->
+    <div class="col-6 col-xl-3">
+        <div class="stat-card info">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <span class="stat-label">Total Platform Users</span>
+                    <div class="stat-value">{{ total_customers|default:0 }}</div>
+                    <small class="text-info fw-semibold">Across all agencies</small>
+                </div>
+                <div class="stat-icon info">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Secondary Stats Row -->
+<div class="row g-4 mb-4">
+    <div class="col-6 col-xl-3">
+        <div class="card border-0 shadow-sm p-3 h-100">
+            <div class="d-flex align-items-center gap-3">
+                <div class="stat-icon warning">
+                    <i class="fa-solid fa-clock"></i>
+                </div>
+                <div>
+                    <span class="stat-label">Trial Admins</span>
+                    <h4 class="fw-extrabold m-0 text-warning">{{ trial_tenants|default:0 }}</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-xl-3">
+        <div class="card border-0 shadow-sm p-3 h-100">
+            <div class="d-flex align-items-center gap-3">
+                <div class="stat-icon danger">
+                    <i class="fa-solid fa-ban"></i>
+                </div>
+                <div>
+                    <span class="stat-label">Suspended Admins</span>
+                    <h4 class="fw-extrabold m-0 text-danger">{{ suspended_tenants|default:0 }}</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-xl-3">
+        <div class="card border-0 shadow-sm p-3 h-100">
+            <div class="d-flex align-items-center gap-3">
+                <div class="stat-icon danger">
+                    <i class="fa-solid fa-calendar-xmark"></i>
+                </div>
+                <div>
+                    <span class="stat-label">Expired Subscriptions</span>
+                    <h4 class="fw-extrabold m-0 text-dark">{{ expired_subscriptions|default:0 }}</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-xl-3">
+        <div class="card border-0 shadow-sm p-3 h-100">
+            <div class="d-flex align-items-center gap-3">
+                <div class="stat-icon primary">
+                    <i class="fa-solid fa-globe"></i>
+                </div>
+                <div>
+                    <span class="stat-label">Active Domains</span>
+                    <h4 class="fw-extrabold m-0 text-primary">{{ active_domains|default:0 }} / {{ total_domains|default:0 }}</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts & Table Row -->
+<div class="row g-4 mb-4">
+    <!-- Chart -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h5 class="fw-bold m-0">SaaS Revenue Growth & Registrations</h5>
+                    <p class="text-muted small mb-0">Platform financial performance over the year</p>
+                </div>
+                <span class="badge bg-primary-subtle text-primary fw-bold px-3 py-2 rounded-pill"><i class="fa-solid fa-chart-line me-1"></i> Live Analytics</span>
+            </div>
+            <div style="height: 280px;">
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Tenant Table -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold m-0">Recent Agencies</h5>
+                <a href="{% url 'superadmin:tenant_list' %}" class="small fw-bold text-primary">View All</a>
+            </div>
+            {% if recent_tenants %}
+                <div class="list-group list-group-flush">
+                    {% for tenant in recent_tenants %}
+                        <div class="list-group-item px-0 py-2.5 d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="m-0 fw-bold fs-6">{{ tenant.agency_name }}</h6>
+                                <small class="text-muted">{{ tenant.email }}</small>
+                            </div>
+                            <span class="badge-status badge-status-{{ tenant.status }}">
+                                {{ tenant.get_status_display }}
+                            </span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="fa-solid fa-building-circle-exclamation fs-2 mb-2 text-secondary"></i>
+                    <p class="small mb-0">No registered agencies found yet.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const ctx = document.getElementById('revenueChart');
+    if (ctx && window.initViserChart) {
+        window.initViserChart(ctx, 'line', {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
+            datasets: [
+                {
+                    label: 'SaaS Monthly Revenue ($)',
+                    data: [1200, 1900, 3000, 4500, 6000, 8500, 11000, 14200],
+                    borderColor: '#4f46e5',
+                    backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                },
+                {
+                    label: 'New Agency Registrations',
+                    data: [2, 5, 8, 12, 18, 25, 34, 42],
+                    borderColor: '#0ea5e9',
+                    backgroundColor: 'transparent',
+                    borderDash: [5, 5],
+                    tension: 0.4
+                }
+            ]
+        });
+    }
+});
+</script>
+{% endblock %}

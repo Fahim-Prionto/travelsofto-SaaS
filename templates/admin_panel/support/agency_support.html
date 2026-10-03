@@ -1,0 +1,95 @@
+{% extends 'admin_panel/base.html' %}
+
+{% block title %}Super Admin Support Desk - Agency Admin{% endblock %}
+{% block header_title %}Super Admin Support & Live Help Desk{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Open New Support Ticket Form -->
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm p-4 rounded-4">
+            <div class="d-flex align-items-center gap-3 mb-4 border-bottom pb-3">
+                <div class="stat-icon bg-primary text-white rounded-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; font-size: 1.25rem;">
+                    <i class="fa-solid fa-headset"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold m-0 text-dark">Get Help from Super Admin</h5>
+                    <p class="text-muted small mb-0">Direct support for technical & subscription inquiries</p>
+                </div>
+            </div>
+
+            <form method="POST">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-muted">Ticket Subject</label>
+                    <input type="text" name="subject" class="form-control rounded-3" placeholder="e.g. Domain setup assistance or Billing inquiry" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-muted">Priority Level</label>
+                    <select name="priority" class="form-select rounded-3">
+                        <option value="low">Low - General Question</option>
+                        <option value="medium" selected>Medium - Normal Support Request</option>
+                        <option value="high">High - Urgent Issue</option>
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label small fw-bold text-muted">Detailed Support Message</label>
+                    <textarea name="message" class="form-control rounded-3" rows="4" placeholder="Describe the issue or support needed..." required></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 rounded-3 py-2.5 fw-bold shadow-sm">
+                    <i class="fa-solid fa-paper-plane me-1"></i> Send Ticket to Support Team
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Existing Support Tickets Table -->
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm p-4 rounded-4">
+            <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-comments text-primary me-2"></i>My Support Tickets</h5>
+            <div class="table-responsive rounded-3 border">
+                <table class="table table-custom align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Ticket ID</th>
+                            <th>Subject</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ticket in tickets %}
+                            <tr>
+                                <td><code class="text-primary fw-bold">#TK-{{ ticket.id }}</code></td>
+                                <td>
+                                    <div class="fw-bold text-dark fs-7">{{ ticket.subject }}</div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">{{ ticket.get_priority_display }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge-status badge-status-{{ ticket.status }}">
+                                        {{ ticket.get_status_display }}
+                                    </span>
+                                </td>
+                                <td><small class="text-muted">{{ ticket.created_at|date:"M d, Y" }}</small></td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">
+                                    <i class="fa-solid fa-headset fs-2 mb-2 text-secondary"></i>
+                                    <p class="small mb-0">No support tickets opened yet.</p>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

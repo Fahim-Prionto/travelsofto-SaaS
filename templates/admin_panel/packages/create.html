@@ -1,0 +1,126 @@
+{% extends 'admin_panel/base.html' %}
+
+{% block title %}Create Tour Package - Agency Admin{% endblock %}
+{% block header_title %}Create Tour Package{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm p-4 mx-auto" style="max-width: 860px;">
+    <div class="d-flex align-items-center gap-3 mb-4 border-bottom pb-3">
+        <div class="stat-icon primary" style="width: 48px; height: 48px;">
+            <i class="fa-solid fa-compass"></i>
+        </div>
+        <div>
+            <h5 class="fw-bold m-0 text-dark">New Tour Package Specification</h5>
+            <p class="text-muted small mb-0">Fill out details to publish a new package on your agency website with photos & transit tickets</p>
+        </div>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div class="row g-3 mb-3">
+            <div class="col-md-8">
+                <label class="form-label small fw-bold text-muted">Package Title</label>
+                <input type="text" name="name" class="form-control" placeholder="e.g. Dubai 5 Days Luxury Desert Safari & Flight Tour" required>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-bold text-muted">Publishing Status</label>
+                <select name="status" class="form-select fw-semibold">
+                    <option value="active">Active (Visible on public site)</option>
+                    <option value="draft">Draft (Hidden)</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label small fw-bold text-muted">Short Overview</label>
+            <input type="text" name="short_description" class="form-control" placeholder="Brief 1-line summary for cards (e.g. Includes 4-star hotel stay, safari, and flight tickets)">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label small fw-bold text-muted">Detailed Itinerary & Description</label>
+            <textarea name="description" class="form-control" rows="4" placeholder="Describe inclusions, hotel stays, day-by-day activities..." required></textarea>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-muted">Regular Price (৳)</label>
+                <input type="number" step="0.01" name="price" class="form-control" placeholder="125000.00" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-muted">Discounted Price (৳)</label>
+                <input type="number" step="0.01" name="discounted_price" class="form-control" placeholder="Optional offer price">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-muted">Duration (Days)</label>
+                <input type="number" name="duration_days" class="form-control" value="5" min="1" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-muted">Total Seat Capacity</label>
+                <input type="number" name="available_seats" class="form-control" value="25" min="1" required>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="form-label small fw-bold text-muted"><i class="fa-solid fa-calendar me-1"></i> Travel Start Date</label>
+                <input type="date" name="travel_date" class="form-control">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label small fw-bold text-muted"><i class="fa-solid fa-calendar-check me-1"></i> Return Date</label>
+                <input type="date" name="return_date" class="form-control">
+            </div>
+        </div>
+
+        <!-- Transit Connections Section -->
+        <div class="card border p-3 mb-3 bg-light">
+            <h6 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-ticket me-1"></i> Connected Transit Tickets (Optional)</h6>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-dark"><i class="fa-solid fa-plane-departure text-primary me-1"></i> Connect Air Ticket Schedule</label>
+                    <select name="connected_flight_schedule_id" class="form-select">
+                        <option value="">-- No Flight Connected --</option>
+                        {% for sch in flight_schedules %}
+                            <option value="{{ sch.id }}">{{ sch.route.airline.name }} ({{ sch.route.flight_number }}): {{ sch.route.from_city }} → {{ sch.route.to_city }} ({{ sch.departure_datetime|date:"M d, H:i" }})</option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted d-block mt-1">Select an active airline flight schedule to include in this package</small>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-dark"><i class="fa-solid fa-bus text-success me-1"></i> Connect Bus Ticket Schedule</label>
+                    <select name="connected_bus_schedule_id" class="form-select">
+                        <option value="">-- No Bus Connected --</option>
+                        {% for sch in bus_schedules %}
+                            <option value="{{ sch.id }}">{{ sch.route.operator.name }}: {{ sch.route.from_city }} → {{ sch.route.to_city }} ({{ sch.departure_time|time:"H:i" }}) [{{ sch.seat_class|title }}]</option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted d-block mt-1">Select an active bus schedule to include in this package</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Media Upload Section -->
+        <div class="card border p-3 mb-4">
+            <h6 class="fw-bold mb-3 text-dark"><i class="fa-solid fa-image me-1"></i> Package Photos & Banner</h6>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-muted">Featured Main Image</label>
+                    <input type="file" name="featured_image" accept="image/*" class="form-control">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-muted">Gallery Photos (Multiple)</label>
+                    <input type="file" name="gallery_images" accept="image/*" multiple class="form-control">
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center justify-content-end gap-2 pt-3 border-top">
+            <a href="{% url 'admin_panel:package_list' %}" class="btn btn-outline-custom px-4">Cancel</a>
+            <button type="submit" class="btn btn-primary px-4 fw-bold">
+                <i class="fa-solid fa-check me-1"></i> Save & Publish Package
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

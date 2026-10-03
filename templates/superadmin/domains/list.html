@@ -1,0 +1,121 @@
+{% extends 'superadmin/base.html' %}
+
+{% block title %}Domain Management - Super Admin{% endblock %}
+{% block header_title %}Domain & Subdomain Management{% endblock %}
+
+{% block content %}
+<!-- Stats Row -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card primary">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <span class="stat-label">Total Domains</span>
+                    <div class="stat-value">{{ total_domains }}</div>
+                    <small class="text-muted fw-semibold">All registered routes</small>
+                </div>
+                <div class="stat-icon primary"><i class="fa-solid fa-globe"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card success">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <span class="stat-label">Active Domains</span>
+                    <div class="stat-value text-success">{{ active_domains }}</div>
+                    <small class="text-success fw-semibold">Routing live traffic</small>
+                </div>
+                <div class="stat-icon success"><i class="fa-solid fa-circle-check"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card warning">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <span class="stat-label">Pending Domains</span>
+                    <div class="stat-value text-warning">{{ pending_domains }}</div>
+                    <small class="text-warning fw-semibold">Awaiting DNS verification</small>
+                </div>
+                <div class="stat-icon warning"><i class="fa-solid fa-clock"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Domains Table -->
+<div class="card border-0 shadow-sm p-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h5 class="fw-extrabold m-0 text-dark">All Tenant Domains & Subdomains</h5>
+            <p class="text-muted small mb-0">Manage routing, SSL certificates, and domain verification for each agency</p>
+        </div>
+        <form method="GET" class="d-flex gap-2">
+            <select name="status" class="form-select form-select-sm fw-semibold" onchange="this.form.submit()">
+                <option value="">All Statuses</option>
+                <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+            </select>
+        </form>
+    </div>
+
+    <div class="table-responsive rounded-3 border">
+        <table class="table table-custom align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Domain / Subdomain</th>
+                    <th>Agency Tenant</th>
+                    <th>Domain Type</th>
+                    <th>SSL Status</th>
+                    <th>Domain Status</th>
+                    <th>Created</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for domain in domains %}
+                <tr>
+                    <td>
+                        <a href="http://{{ domain.domain }}" target="_blank" class="fw-bold text-primary text-decoration-none">
+                            <i class="fa-solid fa-arrow-up-right-from-square me-1 small"></i>{{ domain.domain }}
+                        </a>
+                    </td>
+                    <td>
+                        <span class="fw-semibold text-dark">{{ domain.tenant.agency_name }}</span>
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark border rounded-pill px-2 py-1">
+                            {{ domain.get_domain_type_display }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if domain.ssl_enabled %}
+                            <span class="text-success fw-bold"><i class="fa-solid fa-shield-halved me-1"></i>SSL Active</span>
+                        {% else %}
+                            <span class="text-muted"><i class="fa-solid fa-lock-open me-1"></i>No SSL</span>
+                        {% endif %}
+                    </td>
+                    <td><span class="badge-status badge-status-{{ domain.status }}">{{ domain.get_status_display }}</span></td>
+                    <td><small class="text-muted fw-semibold">{{ domain.created_at|date:"M d, Y" }}</small></td>
+                    <td class="text-end">
+                        <a href="{% url 'superadmin:tenant_detail' domain.tenant.slug %}" class="btn btn-sm btn-outline-custom">
+                            <i class="fa-solid fa-sliders me-1"></i>Manage
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-5">
+                        <i class="fa-solid fa-globe fs-1 mb-2 text-secondary"></i>
+                        <p class="mb-0 fw-semibold">No domains registered yet.</p>
+                        <small>Domains are auto-created when agencies subscribe.</small>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

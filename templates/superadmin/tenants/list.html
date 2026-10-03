@@ -1,0 +1,100 @@
+{% extends 'superadmin/base.html' %}
+
+{% block title %}Agency Tenants - Super Admin{% endblock %}
+{% block header_title %}Subscribed Travel Agency Tenants{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm p-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h5 class="fw-bold m-0 text-dark">All Subscribed Travel Agencies</h5>
+            <p class="text-muted small mb-0">Manage tenant accounts, database status, and domain routing</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <form method="GET" class="d-flex gap-2 me-2">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                    <input type="text" name="q" value="{{ query }}" class="form-control border-start-0" placeholder="Search by name or email...">
+                    <button type="submit" class="btn btn-primary btn-sm px-3">Search</button>
+                </div>
+            </form>
+            <a href="{% url 'superadmin:tenant_create' %}" class="btn btn-success btn-sm rounded-3 px-3 fw-bold d-flex align-items-center gap-1">
+                <i class="fa-solid fa-plus"></i> Add Agency
+            </a>
+        </div>
+    </div>
+
+    <div class="table-responsive rounded-3 border">
+        <table class="table table-custom align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Agency Details</th>
+                    <th>Owner</th>
+                    <th>Subdomain</th>
+                    <th>Database Engine</th>
+                    <th>Status</th>
+                    <th>Registered</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tenant in tenants %}
+                    <tr>
+                        <td>
+                            <div class="fw-bold text-dark fs-6">{{ tenant.agency_name }}</div>
+                            <small class="text-muted"><i class="fa-solid fa-envelope me-1"></i>{{ tenant.email }}</small>
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-dark">{{ tenant.owner_name }}</div>
+                        </td>
+                        <td>
+                            <a href="{{ tenant.subdomain_url }}" target="_blank" class="text-decoration-none">
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1">
+                                    <i class="fa-solid fa-globe me-1"></i>{{ tenant.slug }}
+                                </span>
+                            </a>
+                        </td>
+                        <td>
+                            {% if tenant.db_created and tenant.db_migrated %}
+                                <span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1 border border-success-subtle">
+                                    <i class="fa-solid fa-database me-1"></i> Isolated Ready
+                                </span>
+                            {% else %}
+                                <span class="badge bg-warning-subtle text-warning rounded-pill px-2.5 py-1 border border-warning-subtle">
+                                    <i class="fa-solid fa-spinner fa-spin me-1"></i> Provisioning
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge-status badge-status-{{ tenant.status }}">
+                                {{ tenant.get_status_display }}
+                            </span>
+                        </td>
+                        <td><small class="text-muted fw-semibold">{{ tenant.created_at|date:"M d, Y" }}</small></td>
+                        <td class="text-end">
+                            <div class="d-flex justify-content-end align-items-center gap-1.5">
+                                <a href="{% url 'superadmin:tenant_support_login' tenant.slug %}" class="btn btn-sm btn-outline-primary rounded-3 px-2.5 py-1" title="Access Agency Dashboard in Support Mode">
+                                    <i class="fa-solid fa-headset me-1"></i> Support Mode
+                                </a>
+                                <a href="{% url 'superadmin:tenant_detail' tenant.slug %}" class="btn btn-sm btn-outline-secondary rounded-3 px-2 py-1" title="View Tenant Details">
+                                    <i class="fa-solid fa-sliders"></i>
+                                </a>
+                                <a href="{% url 'superadmin:tenant_delete' tenant.slug %}" class="btn btn-sm btn-outline-danger rounded-3 px-2 py-1" title="Delete Agency Account">
+                                    <i class="fa-solid fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-5">
+                            <i class="fa-solid fa-building-circle-exclamation fs-1 mb-2 text-secondary"></i>
+                            <p class="mb-0 fw-semibold">No agency tenants found matching your query.</p>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

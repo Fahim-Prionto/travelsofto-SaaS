@@ -1,0 +1,52 @@
+{% extends 'customer/base.html' %}
+
+{% block title %}My Tour Bookings - Softobro Travel{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm p-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h4 class="fw-extrabold m-0 text-dark">My Tour Bookings History</h4>
+            <p class="text-muted small mb-0">List of all tour package reservations and departure dates</p>
+        </div>
+        <a href="{% url 'public:packages' %}" class="btn btn-primary rounded-pill px-3">
+            <i class="fa-solid fa-plus me-1"></i> Book New Tour
+        </a>
+    </div>
+
+    {% if bookings %}
+        <div class="table-responsive rounded-3 border">
+            <table class="table table-custom align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Booking Ref</th>
+                        <th>Tour Package</th>
+                        <th>Travel Date</th>
+                        <th>Travelers</th>
+                        <th>Total Amount</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in bookings %}
+                        <tr>
+                            <td><code class="text-primary fw-bold">{{ b.booking_code }}</code></td>
+                            <td><span class="fw-bold text-dark">{{ b.package.name|default:"Tour Package" }}</span></td>
+                            <td><span class="fw-semibold text-dark"><i class="fa-solid fa-calendar me-1 text-muted"></i>{{ b.travel_date }}</span></td>
+                            <td><span class="badge bg-light text-dark border px-2.5 py-1"><i class="fa-solid fa-users me-1"></i>{{ b.number_of_travelers }} Person(s)</span></td>
+                            <td><span class="text-success fw-extrabold fs-6">${{ b.total_amount }}</span></td>
+                            <td><span class="badge-status badge-status-{{ b.status }}">{{ b.get_status_display }}</span></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="text-center py-5 text-muted">
+            <i class="fa-solid fa-ticket fs-1 text-secondary mb-2"></i>
+            <p class="mb-1 fw-semibold">No tour bookings history found.</p>
+            <a href="{% url 'public:packages' %}" class="btn btn-sm btn-primary rounded-pill mt-2">Explore Packages</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
