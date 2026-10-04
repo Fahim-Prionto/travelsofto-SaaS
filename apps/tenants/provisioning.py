@@ -40,12 +40,10 @@ def log_step(tenant, step: str, message: str, level: str = 'info'):
 
 
 def create_tenant_database(tenant):
-    """Create a new PostgreSQL database for the tenant."""
+    """Create a new PostgreSQL schema for the tenant inside the main database."""
     db_config = settings.DATABASES['default']
-    db_name = tenant.db_name
+    schema_name = tenant.db_name
 
-    # Connect to the main application DB instead of 'postgres' because cPanel restricts it.
-    # PostgreSQL allows CREATE DATABASE from any DB as long as the user has CREATEDB role.
     import psycopg2
     conn = psycopg2.connect(
         dbname=db_config['NAME'],
@@ -58,16 +56,13 @@ def create_tenant_database(tenant):
     cursor = conn.cursor()
 
     try:
-        cursor.execute(f'CREATE DATABASE "{db_name}";')
-        log_step(tenant, 'create_database', f'Database "{db_name}" created successfully.', 'success')
-        tenant.db_created = True
-        tenant.save(update_fields=['db_created'])
-    except psycopg2.errors.DuplicateDatabase:
-        log_step(tenant, 'create_database', f'Database "{db_name}" already exists.', 'warning')
+        # Create schema instead of a separate database to avoid cPanel privilege issues
+        cursor.execute(f'CREATE SCHEMA IF NOT EXISTS "{schema_name}";')
+        log_step(tenant, 'create_database', f'Schema "{schema_name}" created successfully.', 'success')
         tenant.db_created = True
         tenant.save(update_fields=['db_created'])
     except Exception as e:
-        log_step(tenant, 'create_database', f'Failed to create database: {e}', 'error')
+        log_step(tenant, 'create_database', f'Failed to create schema: {e}', 'error')
         raise
     finally:
         cursor.close()

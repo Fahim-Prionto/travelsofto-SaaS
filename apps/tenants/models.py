@@ -101,22 +101,21 @@ class Tenant(models.Model):
         return self.status == self.Status.ACTIVE
 
     def get_db_config(self):
-        """Return the database configuration dict for this tenant."""
+        """Return the database configuration dict for this tenant (Schema-based)."""
         main_db = settings.DATABASES['default']
         config = {
             'ENGINE': main_db['ENGINE'],
-            'NAME': self.db_name,
+            'NAME': main_db['NAME'],  # Pointing to the main database
             'USER': main_db['USER'],
             'PASSWORD': main_db['PASSWORD'],
             'HOST': main_db['HOST'],
             'PORT': main_db['PORT'],
             'ATOMIC_REQUESTS': main_db.get('ATOMIC_REQUESTS', False),
             'AUTOCOMMIT': main_db.get('AUTOCOMMIT', True),
-            'TIME_ZONE': main_db.get('TIME_ZONE', None),
-            'CONN_MAX_AGE': main_db.get('CONN_MAX_AGE', 0),
-            'CONN_HEALTH_CHECKS': main_db.get('CONN_HEALTH_CHECKS', False),
-            'OPTIONS': main_db.get('OPTIONS', {}),
             'TIME_ZONE': settings.TIME_ZONE,
+            'OPTIONS': {
+                'options': f'-c search_path={self.db_name},public'
+            }
         }
         return config
 
