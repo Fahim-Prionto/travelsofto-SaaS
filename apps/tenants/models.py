@@ -112,6 +112,8 @@ class Tenant(models.Model):
             'PORT': main_db['PORT'],
             'ATOMIC_REQUESTS': main_db.get('ATOMIC_REQUESTS', False),
             'AUTOCOMMIT': main_db.get('AUTOCOMMIT', True),
+            'CONN_MAX_AGE': main_db.get('CONN_MAX_AGE', 0),
+            'CONN_HEALTH_CHECKS': main_db.get('CONN_HEALTH_CHECKS', False),
             'TIME_ZONE': settings.TIME_ZONE,
             'OPTIONS': {
                 'options': f'-c search_path={self.db_name},public'
