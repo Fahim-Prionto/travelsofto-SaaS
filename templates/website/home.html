@@ -150,12 +150,12 @@
                         </div>
 
                         <div class="mb-4">
-                            <span class="display-5 fw-extrabold text-dark">${{ plan.monthly_price }}</span>
+                            <span class="display-5 fw-extrabold text-dark">৳{{ plan.monthly_price }}</span>
                             <span class="text-muted">/month</span>
                             {% if plan.yearly_price %}
-                            <div class="small text-muted mt-1">or ${{ plan.yearly_price }}/year
+                            <div class="small text-muted mt-1">or ৳{{ plan.yearly_price }}/year
                                 {% if plan.yearly_savings > 0 %}
-                                <span class="text-success fw-bold">(Save ${{ plan.yearly_savings }})</span>
+                                <span class="text-success fw-bold">(Save ৳{{ plan.yearly_savings }})</span>
                                 {% endif %}
                             </div>
                             {% endif %}
@@ -198,7 +198,7 @@
                 <div class="card border-0 shadow h-100 rounded-4 p-4">
                     <span class="badge bg-secondary-subtle text-secondary rounded-pill fw-bold px-3 mb-3">Starter</span>
                     <h4 class="fw-extrabold">Basic</h4>
-                    <div class="display-5 fw-extrabold text-dark mb-2">$19<span class="fs-6 text-muted fw-normal">/mo</span></div>
+                    <div class="display-5 fw-extrabold text-dark mb-2">৳19<span class="fs-6 text-muted fw-normal">/mo</span></div>
                     <ul class="list-unstyled small text-muted mb-4">
                         <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>Up to 100 Customers</li>
                         <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>10 Tour Packages</li>
@@ -214,7 +214,7 @@
                     <span class="badge bg-primary rounded-pill fw-bold px-3 mb-3 position-absolute top-0 end-0 m-3">Popular</span>
                     <span class="badge bg-primary-subtle text-primary rounded-pill fw-bold px-3 mb-3">Professional</span>
                     <h4 class="fw-extrabold">Pro</h4>
-                    <div class="display-5 fw-extrabold text-dark mb-2">$49<span class="fs-6 text-muted fw-normal">/mo</span></div>
+                    <div class="display-5 fw-extrabold text-dark mb-2">৳49<span class="fs-6 text-muted fw-normal">/mo</span></div>
                     <ul class="list-unstyled small text-muted mb-4">
                         <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>Unlimited Customers</li>
                         <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>Unlimited Packages</li>
@@ -230,7 +230,7 @@
                 <div class="card border-0 shadow h-100 rounded-4 p-4">
                     <span class="badge bg-dark text-white rounded-pill fw-bold px-3 mb-3">Enterprise</span>
                     <h4 class="fw-extrabold">Business</h4>
-                    <div class="display-5 fw-extrabold text-dark mb-2">$99<span class="fs-6 text-muted fw-normal">/mo</span></div>
+                    <div class="display-5 fw-extrabold text-dark mb-2">৳99<span class="fs-6 text-muted fw-normal">/mo</span></div>
                     <ul class="list-unstyled small text-muted mb-4">
                         <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>Everything in Pro</li>
                         <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>White Label</li>
@@ -302,7 +302,7 @@
                 <div class="package-card h-100 shadow-sm">
                     <div class="package-img-wrapper">
                         <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80" alt="{{ pkg.name }}">
-                        <div class="package-price-badge">${{ pkg.price }}</div>
+                        <div class="package-price-badge">৳{{ pkg.price }}</div>
                     </div>
                     <div class="p-4">
                         <h5 class="fw-bold text-dark mb-2">{{ pkg.name }}</h5>
