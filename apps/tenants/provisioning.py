@@ -44,10 +44,11 @@ def create_tenant_database(tenant):
     db_config = settings.DATABASES['default']
     db_name = tenant.db_name
 
-    # Connect to PostgreSQL default 'postgres' DB to create new DB
+    # Connect to the main application DB instead of 'postgres' because cPanel restricts it.
+    # PostgreSQL allows CREATE DATABASE from any DB as long as the user has CREATEDB role.
     import psycopg2
     conn = psycopg2.connect(
-        dbname='postgres',
+        dbname=db_config['NAME'],
         user=db_config['USER'],
         password=db_config['PASSWORD'],
         host=db_config['HOST'],
