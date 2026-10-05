@@ -18,6 +18,7 @@ urlpatterns = [
     path('candidates/id-card-print/', agency_views.candidate_id_card_bulk, name='candidate_id_card_bulk'),
     path('candidates/<int:pk>/update-stage/', agency_views.candidate_update_stage, name='candidate_update_stage'),
     path('candidates/<int:pk>/download/', agency_views.candidate_download, name='candidate_download'),
+    path('candidates/<int:pk>/invoice/', agency_views.candidate_invoice, name='candidate_invoice'),
 
     # Connected Stage Management Pages
     path('stages/<str:stage_name>/', agency_views.stage_view, name='stage_view'),

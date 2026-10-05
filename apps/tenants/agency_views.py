@@ -571,6 +571,38 @@ def candidate_download(request, pk):
     )
     return response
 
+
+@login_required
+def candidate_invoice(request, pk):
+    """Display and optionally save editable invoice for a candidate."""
+    get_tenant_db(request)
+    candidate = get_object_or_404(Candidate, pk=pk)
+
+    if request.method == 'POST':
+        # Save editable invoice fields back to candidate
+        invoice_title = request.POST.get('invoice_title', '').strip()
+        invoice_notes = request.POST.get('invoice_notes', '').strip()
+        total_amount_raw = request.POST.get('total_amount', '').strip()
+
+        if total_amount_raw:
+            try:
+                candidate.total_amount = Decimal(total_amount_raw)
+            except Exception:
+                pass
+
+        if invoice_notes:
+            candidate.notes = invoice_notes
+        candidate.save()
+        messages.success(request, f'Invoice for {candidate.name} saved successfully!')
+
+    payments = candidate.payments.all()
+    context = {
+        'candidate': candidate,
+        'payments': payments,
+        'invoice_number': f'INV-{candidate.registration_id}',
+    }
+    return render(request, 'admin_panel/agency/candidate_invoice.html', context)
+
 @login_required
 def candidate_id_card_bulk(request):
     """Bulk ID Card Print View."""

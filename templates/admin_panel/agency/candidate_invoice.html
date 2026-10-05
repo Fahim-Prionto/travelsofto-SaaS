@@ -1,0 +1,235 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}Invoice – {{ candidate.name }}{% endblock %}
+{% block header_title %}Candidate Invoice{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+
+  <!-- Top Toolbar -->
+  <div class="d-flex justify-content-between align-items-center mb-3 no-print">
+    <a href="{% url 'admin_panel:candidate_list' %}" class="btn btn-sm btn-outline-secondary">
+      <i class="fa-solid fa-arrow-left me-1"></i> Back to Candidates
+    </a>
+    <div class="d-flex gap-2">
+      <button class="btn btn-sm btn-success" onclick="saveInvoice()">
+        <i class="fa-solid fa-floppy-disk me-1"></i> Save Changes
+      </button>
+      <button class="btn btn-sm btn-primary" onclick="window.print()">
+        <i class="fa-solid fa-print me-1"></i> Print Invoice
+      </button>
+    </div>
+  </div>
+
+  <!-- Invoice Card -->
+  <div class="card shadow-sm" id="invoiceCard">
+    <div class="card-body p-4 p-md-5">
+
+      <!-- Invoice Header -->
+      <div class="row align-items-start mb-4">
+        <div class="col-md-7">
+          {% if request.tenant.logo %}
+            <img src="{{ request.tenant.logo.url }}" alt="Agency Logo" style="max-height:60px;" class="mb-2">
+          {% else %}
+            <div class="fw-bold fs-4 text-primary mb-1">{{ request.tenant.agency_name|default:"Your Agency" }}</div>
+          {% endif %}
+          <div class="text-muted small">{{ request.tenant.address|default:"" }}</div>
+          <div class="text-muted small">{{ request.tenant.email|default:"" }}</div>
+        </div>
+        <div class="col-md-5 text-md-end mt-3 mt-md-0">
+          <div class="fs-3 fw-bold text-primary">INVOICE</div>
+          <div class="text-muted small"># <span class="fw-semibold text-dark">{{ invoice_number }}</span></div>
+          <div class="text-muted small mt-1">Date: <span class="fw-semibold text-dark">{{ candidate.created_at|date:"d M Y" }}</span></div>
+        </div>
+      </div>
+
+      <hr>
+
+      <!-- Billed To / Candidate Info -->
+      <div class="row mb-4">
+        <div class="col-md-6">
+          <div class="small text-muted fw-semibold mb-1 text-uppercase">Billed To</div>
+          <div class="fw-bold fs-6">{{ candidate.name }}</div>
+          <div class="small text-muted">Reg ID: {{ candidate.registration_id }}</div>
+          <div class="small text-muted">Passport: {{ candidate.passport_number }}</div>
+          {% if candidate.mobile %}<div class="small text-muted">Mobile: {{ candidate.mobile }}</div>{% endif %}
+          {% if candidate.email %}<div class="small text-muted">Email: {{ candidate.email }}</div>{% endif %}
+        </div>
+        <div class="col-md-6 mt-3 mt-md-0">
+          <div class="small text-muted fw-semibold mb-1 text-uppercase">Service Details</div>
+          {% if candidate.visa_lot %}
+            <div class="fw-semibold">{{ candidate.visa_lot.title }}</div>
+            <div class="small text-muted">Country: {{ candidate.visa_lot.country }}</div>
+            <div class="small text-muted">Visa Type: {{ candidate.visa_lot.get_visa_type_display }}</div>
+            <div class="small text-muted">Lot #: {{ candidate.visa_lot.lot_number }}</div>
+          {% else %}
+            <div class="fw-semibold">Visa / Recruitment Service</div>
+          {% endif %}
+          {% if candidate.company %}
+            <div class="small text-muted mt-1">Sponsor: {{ candidate.company.name }}</div>
+          {% endif %}
+          {% if candidate.position %}
+            <div class="small text-muted">Position: {{ candidate.position.title }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Fee Breakdown Table -->
+      <div class="mb-4">
+        <div class="small text-muted fw-semibold mb-2 text-uppercase">Service Fee Summary</div>
+        <div class="table-responsive">
+          <table class="table table-bordered table-sm align-middle" id="invoiceItemsTable">
+            <thead class="table-light">
+              <tr>
+                <th>#</th>
+                <th>Description</th>
+                <th class="text-end">Amount (৳)</th>
+              </tr>
+            </thead>
+            <tbody id="invoiceItemsBody">
+              <tr>
+                <td>1</td>
+                <td>
+                  {% if candidate.visa_lot %}{{ candidate.visa_lot.title }} — {{ candidate.visa_lot.get_visa_type_display }}
+                  {% else %}Visa / Manpower Processing Fee{% endif %}
+                </td>
+                <td class="text-end fw-semibold">৳{{ candidate.total_amount|floatformat:2 }}</td>
+              </tr>
+            </tbody>
+            <tfoot class="table-light">
+              <tr>
+                <td colspan="2" class="text-end fw-bold">Total Package Fee</td>
+                <td class="text-end fw-bold text-primary">৳{{ candidate.total_amount|floatformat:2 }}</td>
+              </tr>
+              <tr>
+                <td colspan="2" class="text-end fw-semibold text-success">Total Paid</td>
+                <td class="text-end fw-semibold text-success">৳{{ candidate.paid_amount|floatformat:2 }}</td>
+              </tr>
+              <tr>
+                <td colspan="2" class="text-end fw-bold text-danger">Outstanding Due</td>
+                <td class="text-end fw-bold text-danger">৳{{ candidate.due_amount|floatformat:2 }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- Payment History -->
+      {% if payments %}
+      <div class="mb-4">
+        <div class="small text-muted fw-semibold mb-2 text-uppercase">Payment History</div>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>#</th>
+                <th>Date</th>
+                <th>Method</th>
+                <th>Reference No.</th>
+                <th class="text-end">Amount (৳)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for payment in payments %}
+              <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ payment.payment_date|date:"d M Y" }}</td>
+                <td><span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle small">{{ payment.payment_method }}</span></td>
+                <td class="small text-muted">{{ payment.reference_no|default:"—" }}</td>
+                <td class="text-end fw-semibold text-success">৳{{ payment.amount|floatformat:2 }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Editable Notes -->
+      <div class="mb-4" id="invoiceNotesSection">
+        <div class="small text-muted fw-semibold mb-1 text-uppercase">Notes / Terms</div>
+        <div id="invoiceNotesDisplay" class="border rounded p-2 bg-light small text-muted" style="min-height:48px; cursor:pointer;" onclick="editNotes()" title="Click to edit notes">
+          {% if candidate.notes %}{{ candidate.notes }}{% else %}<span class="fst-italic">Click to add notes or terms & conditions...</span>{% endif %}
+        </div>
+        <textarea id="invoiceNotesInput" name="invoice_notes" class="form-control small d-none" rows="3" placeholder="Enter notes or terms & conditions...">{{ candidate.notes|default:"" }}</textarea>
+      </div>
+
+      <!-- Editable Total Amount -->
+      <div class="no-print mb-4 p-3 bg-light rounded border">
+        <div class="small fw-semibold text-muted mb-2 text-uppercase">Edit Invoice Settings</div>
+        <div class="row g-2 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold">Total Package Fee (৳)</label>
+            <input type="number" id="totalAmountInput" class="form-control form-control-sm" min="0" step="0.01" value="{{ candidate.total_amount }}">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold">Invoice Notes</label>
+            <textarea id="notesInput" class="form-control form-control-sm" rows="2" placeholder="Add notes...">{{ candidate.notes|default:"" }}</textarea>
+          </div>
+          <div class="col-md-4 d-flex align-items-end">
+            <button class="btn btn-sm btn-success w-100" onclick="saveInvoice()">
+              <i class="fa-solid fa-floppy-disk me-1"></i> Save Invoice
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer / Signature -->
+      <hr>
+      <div class="row mt-4">
+        <div class="col-md-5 text-center">
+          <div style="border-top: 1px solid #ccc; padding-top: 4px; margin-top: 40px;" class="small text-muted">Authorized Signature</div>
+        </div>
+        <div class="col-md-2"></div>
+        <div class="col-md-5 text-center">
+          <div style="border-top: 1px solid #ccc; padding-top: 4px; margin-top: 40px;" class="small text-muted">Candidate Signature</div>
+        </div>
+      </div>
+      <div class="text-center mt-4 small text-muted fst-italic">
+        This is a computer-generated invoice by {{ request.tenant.agency_name|default:"Agency" }}.
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Hidden Save Form -->
+<form method="post" id="saveInvoiceForm" style="display:none;">
+  {% csrf_token %}
+  <input type="hidden" name="total_amount" id="formTotalAmount">
+  <input type="hidden" name="invoice_notes" id="formInvoiceNotes">
+</form>
+
+<style>
+  @media print {
+    .no-print, .sidebar, nav, .topbar, .breadcrumb { display: none !important; }
+    .card { border: none !important; box-shadow: none !important; }
+    body { background: white !important; }
+    #invoiceCard { margin: 0; }
+  }
+</style>
+
+<script>
+function saveInvoice() {
+  const total = document.getElementById('totalAmountInput').value;
+  const notes = document.getElementById('notesInput').value;
+  document.getElementById('formTotalAmount').value = total;
+  document.getElementById('formInvoiceNotes').value = notes;
+  document.getElementById('saveInvoiceForm').submit();
+}
+
+function editNotes() {
+  document.getElementById('invoiceNotesDisplay').classList.add('d-none');
+  document.getElementById('invoiceNotesInput').classList.remove('d-none');
+  document.getElementById('invoiceNotesInput').focus();
+}
+document.getElementById('invoiceNotesInput')?.addEventListener('blur', function () {
+  const val = this.value.trim();
+  const display = document.getElementById('invoiceNotesDisplay');
+  display.textContent = val || 'Click to add notes or terms & conditions...';
+  display.classList.remove('d-none');
+  this.classList.add('d-none');
+  // Also update the save form's notes
+  document.getElementById('notesInput').value = val;
+});
+</script>
+{% endblock %}

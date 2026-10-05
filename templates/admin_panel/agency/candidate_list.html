@@ -164,6 +164,9 @@
                   <button class="btn btn-sm btn-outline-custom px-2 py-1" data-bs-toggle="modal" data-bs-target="#viewModal{{ c.id }}" title="View Candidate Profile">
                     <i class="fa-solid fa-eye text-secondary"></i>
                   </button>
+                  <a href="{% url 'admin_panel:candidate_invoice' c.id %}" class="btn btn-sm btn-outline-custom px-2 py-1" title="View / Print Invoice">
+                    <i class="fa-solid fa-file-invoice text-indigo" style="color:#6366f1;"></i>
+                  </a>
                   <a href="{% url 'admin_panel:candidate_download' c.id %}" class="btn btn-sm btn-outline-custom px-2 py-1" title="Download Info & Documents as ZIP">
                     <i class="fa-solid fa-file-zipper text-warning"></i>
                   </a>
