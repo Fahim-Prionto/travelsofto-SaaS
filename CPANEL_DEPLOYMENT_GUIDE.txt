@@ -1,0 +1,389 @@
+
+================================================================================
+  SOFTOBRO TRAVEL (ViserTrip) – cPanel + PostgreSQL DEPLOYMENT GUIDE
+  Django 5 Multi-Tenant SaaS · Gunicorn · WhiteNoise · Python App
+================================================================================
+
+IMPORTANT NOTES BEFORE YOU START
+----------------------------------
+- cPanel must have "Python App" or "Setup Python App" feature enabled
+  (Requires CloudLinux / EasyApache 4 with Python support)
+- cPanel must have PostgreSQL Databases support (check in your hosting panel)
+- This app uses Multi-Tenant architecture — each agency gets its own database,
+  so your PostgreSQL user must have CREATE DATABASE privileges
+- Redis/Celery: Most shared cPanel does NOT support Redis. Use the fallback
+  in-memory cache (already configured in settings.py via USE_REDIS=False)
+- Recommended: Use a VPS or cPanel VPS plan for full control
+
+
+================================================================================
+STEP 1 — PREPARE YOUR LOCAL PROJECT FOR PRODUCTION
+================================================================================
+
+1.1 — Collect static files locally (optional, do it on server instead)
+    python manage.py collectstatic --noinput
+
+1.2 — Freeze requirements (your requirements.txt is already ready)
+    pip freeze > requirements.txt
+
+1.3 — Make sure .env is NOT committed to Git (.gitignore must include .env)
+    Check your .gitignore has:
+        .env
+        .venv/
+        __pycache__/
+        *.pyc
+        staticfiles/
+        media/
+
+1.4 — Push everything to GitHub
+    git add .
+    git commit -m "Production: prepare for cPanel deployment"
+    git push origin main
+
+
+================================================================================
+STEP 2 — SETUP POSTGRESQL DATABASE ON CPANEL
+================================================================================
+
+2.1 — Login to cPanel → Find "PostgreSQL Databases"
+
+2.2 — Create the main (super admin) database:
+    Database Name : yourusername_travel_main
+    (cPanel auto-prefixes your cPanel username, e.g. softobro_travel_main)
+
+2.3 — Create a database user:
+    Username  : yourusername_dbuser
+    Password  : <choose a strong password>
+
+2.4 — Add user to the database with ALL PRIVILEGES
+
+2.5 — IMPORTANT — Grant CREATE DATABASE privilege:
+    cPanel does NOT give CREATE DATABASE by default.
+    You MUST do this via phpPgAdmin (cPanel → phpPgAdmin):
+        - Login as your DB user
+        - Or ask your hosting provider to run:
+          ALTER USER yourusername_dbuser CREATEDB;
+
+    WHY: Your app creates a new database for each tenant agency automatically.
+
+
+================================================================================
+STEP 3 — SETUP PYTHON APP ON CPANEL
+================================================================================
+
+3.1 — Login to cPanel → "Setup Python App" (or "Python Selector")
+
+3.2 — Create New Application:
+    Python Version   : 3.11 or 3.12 (choose highest available)
+    Application Root : travel          (folder in your home directory)
+    Application URL  : yourdomain.com  (or subdomain)
+    Application Entry: passenger_wsgi.py  (we will create this)
+    Startup File     : passenger_wsgi.py
+
+3.3 — Note the virtual environment path shown on screen, e.g.:
+    /home/yourusername/virtualenv/travel/3.11/
+
+3.4 — Click "CREATE" — cPanel creates the app and virtualenv
+
+
+================================================================================
+STEP 4 — UPLOAD / CLONE YOUR PROJECT ON THE SERVER
+================================================================================
+
+4.1 — Connect via SSH (cPanel → Terminal, or use PuTTY/MobaXterm)
+
+4.2 — Go to your application root:
+    cd ~/travel
+
+4.3 — Clone from GitHub:
+    git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git .
+    (note the dot at the end to clone INTO current folder)
+
+    OR if already uploaded via File Manager, just proceed.
+
+4.4 — Activate the Python virtual environment:
+    source ~/virtualenv/travel/3.11/bin/activate
+
+    (Replace 3.11 with the version shown in your cPanel Python App)
+
+4.5 — Install dependencies:
+    pip install -r requirements.txt
+
+
+================================================================================
+STEP 5 — CREATE THE passenger_wsgi.py FILE
+================================================================================
+
+Create a file called passenger_wsgi.py in ~/travel/ with this content:
+
+-------- passenger_wsgi.py --------
+import sys, os
+
+# Add project root to path
+sys.path.insert(0, os.path.dirname(__file__))
+
+# Set Django settings module
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+
+# Import Django WSGI app
+from config.wsgi import application
+-----------------------------------
+
+This file is what Passenger (cPanel's WSGI server) uses to run your app.
+
+
+================================================================================
+STEP 6 — CREATE YOUR .env FILE ON THE SERVER
+================================================================================
+
+In ~/travel/ create a .env file:
+
+    nano ~/travel/.env
+
+Paste and fill in your values:
+
+------- .env (PRODUCTION) -------
+SECRET_KEY=your-very-long-random-secret-key-here-50-chars-minimum
+DEBUG=False
+ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com,yourusername.yourdomain.com
+
+# ── Main Database (Super Admin) ──────────────────────────────────────────────
+DB_ENGINE=django.db.backends.postgresql
+DB_NAME=yourusername_travel_main
+DB_USER=yourusername_dbuser
+DB_PASSWORD=your_db_password
+DB_HOST=localhost
+DB_PORT=5432
+
+# ── Redis (DISABLE on shared cPanel — use in-memory cache) ───────────────────
+USE_REDIS=False
+
+# ── Email (use your cPanel email or Gmail SMTP) ──────────────────────────────
+EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+EMAIL_HOST=mail.yourdomain.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=noreply@yourdomain.com
+EMAIL_HOST_PASSWORD=your_email_password
+DEFAULT_FROM_EMAIL=SoftobroTravel <noreply@yourdomain.com>
+
+# ── Cloudinary (for media uploads — recommended for cPanel) ──────────────────
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+
+# ── Platform Settings ─────────────────────────────────────────────────────────
+SITE_URL=https://yourdomain.com
+PLATFORM_NAME=SoftobroTravel
+BASE_DOMAIN=yourdomain.com
+SUPERADMIN_URL_PREFIX=superadmin
+---------------------------------
+
+HOW TO GENERATE A SECRET KEY:
+    python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+
+
+================================================================================
+STEP 7 — RUN DJANGO SETUP COMMANDS
+================================================================================
+
+With virtualenv activated, run from ~/travel/:
+
+7.1 — Run database migrations (creates all tables in main DB):
+    python manage.py migrate
+
+7.2 — Collect static files:
+    python manage.py collectstatic --noinput
+
+7.3 — Create your Super Admin account:
+    python manage.py createsuperuser
+
+7.4 — (Optional) Load any initial data:
+    python manage.py loaddata initial_data.json
+
+
+================================================================================
+STEP 8 — CONFIGURE .htaccess FOR STATIC & MEDIA FILES
+================================================================================
+
+Create ~/travel/.htaccess:
+
+-------- .htaccess --------
+PassengerEnabled On
+PassengerAppRoot /home/softobro/travel.softobro.com/travelsofto-SaaS
+PassengerBaseURI /
+
+# Serve static files directly
+RewriteEngine On
+RewriteRule ^staticfiles/(.*)$ /home/softobro/travel.softobro.com/travelsofto-SaaS/staticfiles/$1 [L]
+RewriteRule ^media/(.*)$ /home/softobro/travel.softobro.com/travelsofto-SaaS/media/$1 [L]
+---------------------------
+
+Also add to your cPanel Python App settings:
+    Static files URL  : /static/
+    Static files Path : staticfiles
+    (There may be a "Static Files" section in the Python App editor)
+
+
+================================================================================
+STEP 9 — DOMAIN & MULTI-TENANT SUBDOMAIN SETUP
+================================================================================
+
+Your app uses subdomain-based multi-tenancy (each agency gets agency.yourdomain.com)
+
+9.1 — Add a WILDCARD subdomain in cPanel:
+    cPanel → Subdomains
+    Subdomain : *
+    Domain    : yourdomain.com
+    Document Root: public_html  (or wherever your main app runs)
+
+9.2 — Set ALLOWED_HOSTS in .env to include wildcard:
+    ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com,.yourdomain.com
+
+9.3 — Set BASE_DOMAIN in .env:
+    BASE_DOMAIN=yourdomain.com
+
+9.4 — Update Django CORS settings — Edit config/settings.py or add to .env:
+    The app auto-generates tenant URLs like: agencyslug.yourdomain.com
+
+
+================================================================================
+STEP 10 — RESTART YOUR PYTHON APP
+================================================================================
+
+10.1 — In cPanel → Setup Python App → click "Restart" button
+
+10.2 — Or via SSH:
+    touch ~/travel/tmp/restart.txt
+    (Passenger restarts when this file is touched)
+
+10.3 — Check your site is running at https://yourdomain.com
+
+
+================================================================================
+STEP 11 — TROUBLESHOOTING
+================================================================================
+
+ISSUE: 500 Internal Server Error
+    → Check ~/travel/logs/ or cPanel Error Logs
+    → Make sure DEBUG=False and ALLOWED_HOSTS is correct
+    → Run: python manage.py check --deploy
+
+ISSUE: Static files not loading (CSS/JS missing)
+    → Run: python manage.py collectstatic --noinput
+    → Check .htaccess is correct
+    → Check WhiteNoise is in MIDDLEWARE (it is already configured)
+
+ISSUE: Database connection refused
+    → Check DB_HOST=localhost and DB_PORT=5432 in .env
+    → Verify the DB user has correct privileges in phpPgAdmin
+    → Test: python manage.py dbshell
+
+ISSUE: Tenant databases not created
+    → The DB user must have CREATEDB privilege
+    → Run via phpPgAdmin: ALTER USER yourusername_dbuser CREATEDB;
+
+ISSUE: ModuleNotFoundError
+    → Make sure virtualenv is activated when installing requirements
+    → Re-run: pip install -r requirements.txt
+
+ISSUE: Media files not uploading/showing
+    → Use Cloudinary (already supported) - set CLOUDINARY_* vars in .env
+    → Or make sure media/ folder is writable: chmod 755 media/
+
+
+================================================================================
+STEP 12 — GITHUB ACTIONS AUTO-DEPLOY (OPTIONAL)
+================================================================================
+
+To auto-deploy when you push to GitHub, create:
+    .github/workflows/deploy.yml
+
+-------- deploy.yml --------
+name: Deploy to cPanel
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.CPANEL_HOST }}
+          username: ${{ secrets.CPANEL_USER }}
+          password: ${{ secrets.CPANEL_PASS }}
+          script: |
+            cd ~/travel
+            source ~/virtualenv/travel/3.11/bin/activate
+            git pull origin main
+            pip install -r requirements.txt
+            python manage.py migrate --noinput
+            python manage.py collectstatic --noinput
+            touch tmp/restart.txt
+----------------------------
+
+Add these GitHub Secrets in your repo Settings → Secrets:
+    CPANEL_HOST  = your server IP or hostname
+    CPANEL_USER  = your cPanel username
+    CPANEL_PASS  = your cPanel password (or use SSH key instead)
+
+
+================================================================================
+QUICK REFERENCE — COMMANDS CHEAT SHEET
+================================================================================
+
+    # Activate venv
+    source ~/virtualenv/travel/3.11/bin/activate
+
+    # Install packages
+    pip install -r requirements.txt
+
+    # Database migrations
+    python manage.py migrate
+
+    # Collect static files
+    python manage.py collectstatic --noinput
+
+    # Create superuser
+    python manage.py createsuperuser
+
+    # Check production config
+    python manage.py check --deploy
+
+    # Restart app (Passenger)
+    touch ~/travel/tmp/restart.txt
+
+    # View logs
+    tail -f ~/logs/yourdomain.com.error.log
+
+    # Pull latest code
+    git pull origin main
+
+
+================================================================================
+SUMMARY — WHAT YOU NEED ON CPANEL
+================================================================================
+
+    [✓] Python 3.11+ support (CloudLinux / Python Selector)
+    [✓] PostgreSQL Databases feature
+    [✓] CREATEDB privilege for your DB user (via phpPgAdmin)
+    [✓] SSH access (highly recommended)
+    [✓] Wildcard subdomain (*.yourdomain.com) for multi-tenant support
+    [✓] Enough disk space for media files (or use Cloudinary)
+
+RECOMMENDED HOSTING PROVIDERS with all above support:
+    - Hostinger VPS (cheap, full control)
+    - NameHero (cPanel with PostgreSQL + Python)
+    - A2 Hosting (Python + PostgreSQL cPanel)
+    - Cloudways (managed Django hosting — easiest option)
+
+
+================================================================================
+END OF GUIDE
+Created for: SoftobroTravel Multi-Tenant SaaS
+Framework  : Django 5 + PostgreSQL + WhiteNoise + Gunicorn/Passenger
+================================================================================
