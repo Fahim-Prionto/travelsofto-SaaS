@@ -6,6 +6,7 @@ Super Admin Dashboard & Management Views for ViserTrip SaaS Platform.
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
+from django.conf import settings
 from django.db.models import Sum, Count
 from django.http import JsonResponse
 from django.utils import timezone
@@ -156,6 +157,44 @@ def tenant_delete(request, slug):
         return redirect('superadmin:tenant_list')
 
     return render(request, 'superadmin/tenants/delete_confirm.html', {'tenant': tenant})
+
+
+@login_required
+@user_passes_test(superadmin_required)
+def tenant_approve(request, slug):
+    """Approve a pending agency tenant so they can log in."""
+    tenant = get_object_or_404(Tenant, slug=slug)
+
+    if tenant.status in (Tenant.Status.ACTIVE, Tenant.Status.TRIAL):
+        messages.info(request, f'Agency "{tenant.agency_name}" is already active.')
+        return redirect('superadmin:tenant_list')
+
+    tenant.status = Tenant.Status.ACTIVE
+    tenant.save(update_fields=['status'])
+
+    # Notify the agency owner
+    try:
+        from django.core.mail import send_mail
+        send_mail(
+            subject='Your Agency Account Has Been Approved! 🎉',
+            message=f"""Hello {tenant.owner_name},
+
+Great news! Your travel agency "{tenant.agency_name}" has been reviewed and approved by our team.
+
+You can now log in to your admin panel at:
+{tenant.admin_url}
+
+Best regards,
+The Platform Team""",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[tenant.email],
+            fail_silently=True,
+        )
+    except Exception:
+        pass
+
+    messages.success(request, f'✅ Agency "{tenant.agency_name}" has been approved and is now active!')
+    return redirect('superadmin:tenant_list')
 
 
 @login_required

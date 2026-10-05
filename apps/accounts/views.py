@@ -34,6 +34,18 @@ def user_login(request):
                 messages.error(request, 'Your account has been deactivated or banned. Please contact support.')
                 return render(request, 'auth/login.html')
 
+            # Block tenant admins/staff if their agency is not yet approved
+            if user.is_tenant_admin or user.is_tenant_staff:
+                from apps.tenants.models import Tenant
+                tenant_obj = Tenant.objects.filter(slug=user.tenant_id).first()
+                if tenant_obj and tenant_obj.status not in ('active', 'trial'):
+                    messages.warning(
+                        request,
+                        f'Your agency "{tenant_obj.agency_name}" is pending approval by the platform admin. '
+                        'You will receive an email once your account is approved and ready to use.'
+                    )
+                    return render(request, 'auth/login.html')
+
             login(request, user)
             messages.success(request, f'Welcome back, {user.full_name}!')
 
@@ -83,12 +95,12 @@ def agency_register(request):
         except SubscriptionPackage.DoesNotExist:
             package = packages.first()
 
-        # Step 1: Create Tenant Record
+        # Step 1: Create Tenant Record (pending approval)
         tenant = Tenant.objects.create(
             agency_name=agency_name,
             owner_name=owner_name,
             email=email,
-            status=Tenant.Status.ACTIVE,
+            status=Tenant.Status.PENDING,
         )
 
         # Step 2: Create Trial Subscription
@@ -118,7 +130,12 @@ def agency_register(request):
         # Step 4: Provision Tenant Database
         provision_tenant(tenant, admin_email=email, admin_password=password)
 
-        messages.success(request, f'Congratulations! Your travel agency "{agency_name}" has been registered successfully. You can now log in.')
+        messages.success(
+            request,
+            f'Your travel agency "{agency_name}" has been registered successfully! '
+            'Our team will review and approve your account shortly. '
+            'You\'ll be able to log in once approved.'
+        )
         return redirect('accounts:login')
 
     return render(request, 'auth/agency_register.html', {

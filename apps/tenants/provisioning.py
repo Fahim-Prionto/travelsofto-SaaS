@@ -225,8 +225,8 @@ def provision_tenant(tenant, admin_email: str, admin_password: str):
         # Step 6: Seed default CMS
         seed_default_cms(tenant, db_alias)
 
-        # Step 7: Activate tenant
-        tenant.status = 'active'
+        # Step 7: Provisioned – awaiting admin approval
+        tenant.status = 'pending'
         tenant.provisioning_completed_at = timezone.now()
         tenant.save(update_fields=['status', 'provisioning_completed_at'])
 

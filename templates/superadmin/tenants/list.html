@@ -73,6 +73,11 @@
                         <td><small class="text-muted fw-semibold">{{ tenant.created_at|date:"M d, Y" }}</small></td>
                         <td class="text-end">
                             <div class="d-flex justify-content-end align-items-center gap-1.5">
+                                {% if tenant.status == 'pending' or tenant.status == 'inactive' %}
+                                <a href="{% url 'superadmin:tenant_approve' tenant.slug %}" class="btn btn-sm btn-success rounded-3 px-2 py-1 fw-bold" title="Approve Agency – Allow Login" onclick="return confirm('Approve agency {{ tenant.agency_name }} and grant login access?')">
+                                    <i class="fa-solid fa-circle-check me-1"></i> Approve
+                                </a>
+                                {% endif %}
                                 <a href="{% url 'superadmin:tenant_support_login' tenant.slug %}" class="btn btn-sm btn-outline-primary rounded-3 px-2.5 py-1" title="Access Agency Dashboard in Support Mode">
                                     <i class="fa-solid fa-headset me-1"></i> Support Mode
                                 </a>
