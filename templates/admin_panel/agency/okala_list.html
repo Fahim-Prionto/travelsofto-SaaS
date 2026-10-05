@@ -96,6 +96,9 @@
               </td>
               <td>
                 <div class="d-flex gap-1 align-items-center">
+                  <button type="button" class="btn btn-sm btn-outline-primary py-1 px-2 small fw-semibold" data-bs-toggle="modal" data-bs-target="#editLotModal{{ lot.id }}" title="Edit Visa Lot">
+                    <i class="fa-solid fa-pen-to-square"></i> Edit
+                  </button>
                   <form method="post" style="display:inline;">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="toggle_lot">
@@ -230,4 +233,105 @@
     </div>
   </div>
 </div>
+
+{% for lot in visa_lots %}
+<!-- ── Edit Visa Lot Modal ─────────────────────────────────────────────────── -->
+<div class="modal fade" id="editLotModal{{ lot.id }}" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold"><i class="fa-solid fa-pen-to-square me-2"></i>Edit Visa Lot ({{ lot.lot_number }})</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="edit_lot">
+        <input type="hidden" name="lot_id" value="{{ lot.id }}">
+        <div class="modal-body row g-3">
+          <!-- Row 1: Title + Visa Type -->
+          <div class="col-md-8">
+            <label class="form-label small fw-semibold">Visa Title</label>
+            <input name="title" class="form-control" value="{{ lot.title }}">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold">Visa Type</label>
+            <select name="visa_type" class="form-select">
+              <option value="work" {% if lot.visa_type == 'work' %}selected{% endif %}>Work Visa</option>
+              <option value="tourist" {% if lot.visa_type == 'tourist' %}selected{% endif %}>Tourist Visa</option>
+              <option value="business" {% if lot.visa_type == 'business' %}selected{% endif %}>Business Visa</option>
+              <option value="student" {% if lot.visa_type == 'student' %}selected{% endif %}>Student Visa</option>
+              <option value="domestic" {% if lot.visa_type == 'domestic' %}selected{% endif %}>Domestic Worker Visa</option>
+              <option value="transit" {% if lot.visa_type == 'transit' %}selected{% endif %}>Transit Visa</option>
+              <option value="family" {% if lot.visa_type == 'family' %}selected{% endif %}>Family Visa</option>
+              <option value="other" {% if lot.visa_type == 'other' %}selected{% endif %}>Other</option>
+            </select>
+          </div>
+
+          <!-- Row 2: Country + Quota -->
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Country</label>
+            <input name="country" class="form-control" value="{{ lot.country }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Quota (Number of Visas)</label>
+            <input type="number" name="quota" class="form-control" min="1" value="{{ lot.quota }}">
+          </div>
+
+          <!-- Row 3: Price + Processing Time -->
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Visa Fee / Price (BDT)</label>
+            <input type="number" name="price" class="form-control" min="0" step="0.01" value="{{ lot.price|default:'' }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Processing Time</label>
+            <input name="processing_time" class="form-control" value="{{ lot.processing_time|default:'' }}">
+          </div>
+
+          <!-- Row 4: Sponsor Name + Sponsor ID -->
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Sponsor Name</label>
+            <input name="sponsor_name" class="form-control" value="{{ lot.sponsor_name|default:'' }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Sponsor ID</label>
+            <input name="sponsor_id" class="form-control" value="{{ lot.sponsor_id|default:'' }}">
+          </div>
+
+          <!-- Row 5: Description -->
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Description</label>
+            <textarea name="description" class="form-control" rows="3">{{ lot.description|default:'' }}</textarea>
+          </div>
+
+          <!-- Row 6: Requirements -->
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Required Documents</label>
+            <textarea name="requirements" class="form-control" rows="3">{{ lot.requirements|default:'' }}</textarea>
+          </div>
+
+          <!-- Row 7: Image + Show on website -->
+          <div class="col-md-8">
+            <label class="form-label small fw-semibold">Featured Image <span class="text-muted fw-normal">(leave blank to keep current)</span></label>
+            <input type="file" name="featured_image" class="form-control" accept="image/*">
+          </div>
+          <div class="col-md-4 d-flex align-items-end">
+            <div class="form-check form-switch ms-1 mb-2">
+              <input class="form-check-input" type="checkbox" name="show_on_website" id="editShowOnWebsite{{ lot.id }}" {% if lot.show_on_website %}checked{% endif %}>
+              <label class="form-check-label fw-semibold small" for="editShowOnWebsite{{ lot.id }}">
+                <i class="fa-solid fa-globe me-1 text-primary"></i>Show on Website
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fa-solid fa-save me-1"></i>Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
 {% endblock %}

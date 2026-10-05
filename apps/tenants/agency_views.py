@@ -851,6 +851,30 @@ def okala_list(request):
                 status_label = 'Active' if lot.is_active else 'Closed'
                 messages.success(request, f'Visa Lot "{lot.title}" is now {status_label}.')
 
+        elif action == 'edit_lot':
+            lot_id = request.POST.get('lot_id')
+            lot = VisaLot.objects.filter(pk=lot_id).first()
+            if lot:
+                lot.title = request.POST.get('title', '').strip() or 'Visa Lot'
+                lot.country = request.POST.get('country', 'Saudi Arabia').strip()
+                quota = request.POST.get('quota', '1')
+                lot.quota = int(quota) if quota.isdigit() else 1
+                lot.visa_type = request.POST.get('visa_type', 'work')
+                price_raw = request.POST.get('price', '').strip()
+                lot.price = Decimal(price_raw) if price_raw else None
+                lot.processing_time = request.POST.get('processing_time', '').strip()
+                lot.description = request.POST.get('description', '').strip()
+                lot.requirements = request.POST.get('requirements', '').strip()
+                lot.sponsor_name = request.POST.get('sponsor_name', '').strip()
+                lot.sponsor_id = request.POST.get('sponsor_id', '').strip()
+                lot.show_on_website = request.POST.get('show_on_website') == 'on'
+
+                if 'featured_image' in request.FILES:
+                    lot.featured_image = request.FILES['featured_image']
+                
+                lot.save()
+                messages.success(request, f'Visa Lot "{lot.title}" ({lot.lot_number}) updated successfully!')
+
         elif action == 'delete_lot':
             lot_id = request.POST.get('lot_id')
             lot = VisaLot.objects.filter(pk=lot_id).first()
