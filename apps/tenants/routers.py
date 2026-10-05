@@ -31,6 +31,24 @@ MAIN_DB_APPS = {
     'sites',
 }
 
+# These models are inside the 'tenants' app but must route to their isolated tenant DB
+TENANT_SPECIFIC_MODELS = {
+    'agencyagent',
+    'agencycompany',
+    'agencyposition',
+    'selectiongrade',
+    'visalot',
+    'candidate',
+    'candidatepayment',
+    'candidatedocument',
+    'requisition',
+    'accountheadgroup',
+    'chartofaccount',
+    'accountvoucher',
+    'dailymovement',
+    'leavesubmission',
+    'officeexpense',
+}
 
 def set_tenant_db(db_alias: str | None):
     """Set the current tenant database alias for this thread."""
@@ -46,18 +64,24 @@ class TenantDatabaseRouter:
     """
     Routes database queries to the appropriate database.
 
-    - Models in MAIN_DB_APPS → always 'default'
+    - Models in MAIN_DB_APPS (excluding TENANT_SPECIFIC_MODELS) → always 'default'
     - All other models → tenant_db (if set) or 'default'
     """
 
     def db_for_read(self, model, **hints):
         if model._meta.app_label in MAIN_DB_APPS:
+            if model._meta.app_label == 'tenants' and model._meta.model_name in TENANT_SPECIFIC_MODELS:
+                tenant_db = get_tenant_db()
+                return tenant_db or 'default'
             return 'default'
         tenant_db = get_tenant_db()
         return tenant_db or 'default'
 
     def db_for_write(self, model, **hints):
         if model._meta.app_label in MAIN_DB_APPS:
+            if model._meta.app_label == 'tenants' and model._meta.model_name in TENANT_SPECIFIC_MODELS:
+                tenant_db = get_tenant_db()
+                return tenant_db or 'default'
             return 'default'
         tenant_db = get_tenant_db()
         return tenant_db or 'default'
@@ -68,6 +92,10 @@ class TenantDatabaseRouter:
 
     def allow_migrate(self, db, app_label, model_name=None, **hints):
         if db == 'default':
+            if app_label == 'tenants' and model_name in TENANT_SPECIFIC_MODELS:
+                return False
             return True
         else:
+            if app_label == 'tenants' and model_name in TENANT_SPECIFIC_MODELS:
+                return True
             return app_label not in MAIN_DB_APPS
