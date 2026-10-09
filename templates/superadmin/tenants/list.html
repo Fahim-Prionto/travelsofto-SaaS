@@ -42,7 +42,10 @@
                     <tr>
                         <td>
                             <div class="fw-bold text-dark fs-6">{{ tenant.agency_name }}</div>
-                            <small class="text-muted"><i class="fa-solid fa-envelope me-1"></i>{{ tenant.email }}</small>
+                            <small class="text-muted d-block"><i class="fa-solid fa-envelope me-1"></i>{{ tenant.email }}</small>
+                            {% if tenant.mobile %}
+                            <small class="text-muted d-block"><i class="fa-solid fa-phone me-1"></i>{{ tenant.mobile }}</small>
+                            {% endif %}
                         </td>
                         <td>
                             <div class="fw-semibold text-dark">{{ tenant.owner_name }}</div>

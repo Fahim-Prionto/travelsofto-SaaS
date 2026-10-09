@@ -143,6 +143,26 @@ class Tenant(models.Model):
 
         super().save(*args, **kwargs)
 
+    def delete(self, *args, **kwargs):
+        """Override delete to ensure PostgreSQL schema is completely dropped."""
+        schema_name = self.db_name
+        from django.db import connection
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(f'DROP SCHEMA IF EXISTS "{schema_name}" CASCADE;')
+                logger.info(f'Dropped PostgreSQL schema: {schema_name}')
+        except Exception as e:
+            logger.error(f'Failed to drop PostgreSQL schema {schema_name}: {e}')
+
+        # Also cleanly remove from dynamically loaded DATABASES if applicable
+        db_alias = f'tenant_{self.slug}'
+        if hasattr(settings, 'DATABASES') and db_alias in settings.DATABASES:
+            del settings.DATABASES[db_alias]
+
+        super().delete(*args, **kwargs)
 
 class TenantDomain(models.Model):
     """
