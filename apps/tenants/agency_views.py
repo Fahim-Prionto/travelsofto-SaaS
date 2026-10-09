@@ -67,25 +67,25 @@ def get_tenant_db(request):
 
 
 # ── HELPER: Seed Default Settings Data if Empty ──────────────────────────────
-def ensure_default_settings():
+def ensure_default_settings(db='default'):
     """Ensure basic positions, grades, account heads, and agents exist for new agency tenant."""
-    if not AgencyPosition.objects.exists():
+    if not AgencyPosition.objects.using(db).exists():
         positions = ['Electrician', 'Driver', 'Mason', 'Plumber', 'Construction Worker', 'Welder', 'Cook', 'Maid', 'General Worker']
         for p in positions:
-            AgencyPosition.objects.create(title=p)
+            AgencyPosition.objects.using(db).create(title=p)
 
-    if not SelectionGrade.objects.exists():
+    if not SelectionGrade.objects.using(db).exists():
         grades = ['Grade A (Primary)', 'Grade B (Secondary)', 'Grade C (Standard)', 'VVIP Selection']
         for g in grades:
-            SelectionGrade.objects.create(grade_name=g)
+            SelectionGrade.objects.using(db).create(grade_name=g)
 
-    if not AgencyAgent.objects.exists():
-        AgencyAgent.objects.create(name='Global Overseas Agency', phone='+8801700000000', email='agent@globaloverseas.com')
+    if not AgencyAgent.objects.using(db).exists():
+        AgencyAgent.objects.using(db).create(name='Global Overseas Agency', phone='+8801700000000', email='agent@globaloverseas.com')
 
-    if not AgencyCompany.objects.exists():
-        AgencyCompany.objects.create(name='Al-Falah General Trading LLC', country='Saudi Arabia', contact_person='Ahmed Al-Mansoor')
+    if not AgencyCompany.objects.using(db).exists():
+        AgencyCompany.objects.using(db).create(name='Al-Falah General Trading LLC', country='Saudi Arabia', contact_person='Ahmed Al-Mansoor')
 
-    if not AccountHeadGroup.objects.exists():
+    if not AccountHeadGroup.objects.using(db).exists():
         groups = [
             ('Current Assets', 'asset'), ('Fixed Assets', 'asset'),
             ('Accounts Payable', 'liability'), ('Current Liabilities', 'liability'),
@@ -94,35 +94,35 @@ def ensure_default_settings():
             ('Office Operational Expense', 'expense'), ('Owner Equity', 'equity')
         ]
         for name, cat in groups:
-            AccountHeadGroup.objects.create(name=name, type_category=cat)
+            AccountHeadGroup.objects.using(db).create(name=name, type_category=cat)
 
-    if not ChartOfAccount.objects.exists() and AccountHeadGroup.objects.exists():
-        asset_grp = AccountHeadGroup.objects.filter(type_category='asset').first()
-        income_grp = AccountHeadGroup.objects.filter(type_category='income').first()
-        exp_grp = AccountHeadGroup.objects.filter(type_category='expense').first()
+    if not ChartOfAccount.objects.using(db).exists() and AccountHeadGroup.objects.using(db).exists():
+        asset_grp = AccountHeadGroup.objects.using(db).filter(type_category='asset').first()
+        income_grp = AccountHeadGroup.objects.using(db).filter(type_category='income').first()
+        exp_grp = AccountHeadGroup.objects.using(db).filter(type_category='expense').first()
 
         if asset_grp:
-            ChartOfAccount.objects.create(account_name='Cash in Hand', account_code='1001', head_group=asset_grp, current_balance=50000.00)
-            ChartOfAccount.objects.create(account_name='Islami Bank Bangladesh', account_code='1002', head_group=asset_grp, current_balance=250000.00)
+            ChartOfAccount.objects.using(db).create(account_name='Cash in Hand', account_code='1001', head_group=asset_grp, current_balance=50000.00)
+            ChartOfAccount.objects.using(db).create(account_name='Islami Bank Bangladesh', account_code='1002', head_group=asset_grp, current_balance=250000.00)
         if income_grp:
-            ChartOfAccount.objects.create(account_name='Visa Processing Revenue', account_code='4001', head_group=income_grp)
+            ChartOfAccount.objects.using(db).create(account_name='Visa Processing Revenue', account_code='4001', head_group=income_grp)
         if exp_grp:
-            ChartOfAccount.objects.create(account_name='Medical & PC Expenses', account_code='5001', head_group=exp_grp)
+            ChartOfAccount.objects.using(db).create(account_name='Medical & PC Expenses', account_code='5001', head_group=exp_grp)
 
 
 # ── 1. CANDIDATE REGISTRATION & LIST ─────────────────────────────────────────
 @login_required
 def candidate_list(request):
     """Candidate master list with multi-filter and search."""
-    get_tenant_db(request)
-    ensure_default_settings()
+    db = get_tenant_db(request)
+    ensure_default_settings(db)
 
     query = request.GET.get('q', '').strip()
     sel_status = request.GET.get('selection_status', '')
     med_status = request.GET.get('medical_status', '')
     visa_status = request.GET.get('visa_status', '')
 
-    candidates = Candidate.objects.all()
+    candidates = Candidate.objects.using(db).all()
 
     if query:
         candidates = candidates.filter(
@@ -138,14 +138,14 @@ def candidate_list(request):
     if visa_status:
         candidates = candidates.filter(visa_stamping_status=visa_status)
 
-    agents = AgencyAgent.objects.filter(is_active=True)
-    positions = AgencyPosition.objects.filter(is_active=True)
-    companies = AgencyCompany.objects.filter(is_active=True)
-    grades = SelectionGrade.objects.all()
-    visa_lots = VisaLot.objects.filter(is_active=True)
+    agents = AgencyAgent.objects.using(db).filter(is_active=True)
+    positions = AgencyPosition.objects.using(db).filter(is_active=True)
+    companies = AgencyCompany.objects.using(db).filter(is_active=True)
+    grades = SelectionGrade.objects.using(db).all()
+    visa_lots = VisaLot.objects.using(db).filter(is_active=True)
 
     # Compute total financial metrics across candidates
-    totals = Candidate.objects.aggregate(
+    totals = Candidate.objects.using(db).aggregate(
         total_value=Sum('total_amount'),
         total_paid=Sum('paid_amount'),
         total_due=Sum('due_amount')
@@ -159,16 +159,16 @@ def candidate_list(request):
         'companies': companies,
         'grades': grades,
         'visa_lots': visa_lots,
-        'total_candidates': Candidate.objects.count(),
-        'selected_count': Candidate.objects.filter(selection_status='selected').count(),
-        'medical_fit_count': Candidate.objects.filter(medical_status='fit').count(),
-        'visa_completed_count': Candidate.objects.filter(visa_stamping_status='visa_completed').count(),
+        'total_candidates': Candidate.objects.using(db).count(),
+        'selected_count': Candidate.objects.using(db).filter(selection_status='selected').count(),
+        'medical_fit_count': Candidate.objects.using(db).filter(medical_status='fit').count(),
+        'visa_completed_count': Candidate.objects.using(db).filter(visa_stamping_status='visa_completed').count(),
         'total_package_value': totals['total_value'] or Decimal('0.00'),
         'total_collected': totals['total_paid'] or Decimal('0.00'),
         'total_due': totals['total_due'] or Decimal('0.00'),
-        'accounts': ChartOfAccount.objects.all(),
+        'accounts': ChartOfAccount.objects.using(db).all(),
         'next_cr_serial': AccountVoucher.get_next_serial('cr_cash'),
-        'existing_vouchers': AccountVoucher.objects.all(),
+        'existing_vouchers': AccountVoucher.objects.using(db).all(),
     }
     return render(request, 'admin_panel/agency/candidate_list.html', context)
 
@@ -176,7 +176,8 @@ def candidate_list(request):
 @login_required
 def candidate_create(request):
     """Register a new candidate."""
-    ensure_default_settings()
+    db = get_tenant_db(request)
+    ensure_default_settings(db)
 
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
@@ -202,15 +203,15 @@ def candidate_create(request):
         payment_method = request.POST.get('payment_method', 'Cash')
         payment_ref = request.POST.get('reference_no', '').strip()
 
-        agent = AgencyAgent.objects.filter(pk=agent_id).first() if agent_id else None
-        position = AgencyPosition.objects.filter(pk=position_id).first() if position_id else None
-        company = AgencyCompany.objects.filter(pk=company_id).first() if company_id else None
-        grade = SelectionGrade.objects.filter(pk=grade_id).first() if grade_id else None
-        visa_lot = VisaLot.objects.filter(pk=visa_lot_id).first() if visa_lot_id else None
+        agent = AgencyAgent.objects.using(db).filter(pk=agent_id).first() if agent_id else None
+        position = AgencyPosition.objects.using(db).filter(pk=position_id).first() if position_id else None
+        company = AgencyCompany.objects.using(db).filter(pk=company_id).first() if company_id else None
+        grade = SelectionGrade.objects.using(db).filter(pk=grade_id).first() if grade_id else None
+        visa_lot = VisaLot.objects.using(db).filter(pk=visa_lot_id).first() if visa_lot_id else None
 
         applicable_sectors = request.POST.getlist('applicable_sectors')
 
-        if Candidate.objects.filter(passport_number=passport_number).exists():
+        if Candidate.objects.using(db).filter(passport_number=passport_number).exists():
             messages.error(request, f'A candidate with passport number "{passport_number}" already exists.')
             return redirect('admin_panel:candidate_list')
 
@@ -222,7 +223,7 @@ def candidate_create(request):
         if not total_amt and visa_lot and visa_lot.price:
             total_amt = Decimal(str(visa_lot.price))
 
-        cand = Candidate.objects.create(
+        cand = Candidate.objects.using(db).create(
             name=name,
             passport_number=passport_number,
             passport_expiry=passport_expiry,
@@ -267,7 +268,7 @@ def candidate_create(request):
         for field_key, sector_code, default_title in sector_file_keys:
             if field_key in request.FILES:
                 file_obj = request.FILES[field_key]
-                CandidateDocument.objects.create(
+                CandidateDocument.objects.using(db).create(
                     candidate=cand,
                     sector=sector_code,
                     title=f"{cand.name} - {default_title}",
@@ -280,7 +281,7 @@ def candidate_create(request):
         voucher_no_val = request.POST.get('voucher_no', '').strip()
         init_paid = Decimal(initial_payment_val) if initial_payment_val else Decimal('0.00')
         if init_paid > 0:
-            pay = CandidatePayment.objects.create(
+            pay = CandidatePayment.objects.using(db).create(
                 candidate=cand,
                 amount=init_paid,
                 payment_date=payment_date_val,
@@ -288,11 +289,11 @@ def candidate_create(request):
                 reference_no=payment_ref,
                 notes='Initial payment at candidate registration'
             )
-            acc = ChartOfAccount.objects.filter(pk=account_id).first() if account_id else (ChartOfAccount.objects.filter(account_name__icontains='Cash').first() or ChartOfAccount.objects.first())
+            acc = ChartOfAccount.objects.using(db).filter(pk=account_id).first() if account_id else (ChartOfAccount.objects.using(db).filter(account_name__icontains='Cash').first() or ChartOfAccount.objects.using(db).first())
             if acc:
                 v = None
                 if voucher_no_val:
-                    v = AccountVoucher.objects.filter(voucher_no=voucher_no_val).first()
+                    v = AccountVoucher.objects.using(db).filter(voucher_no=voucher_no_val).first()
                 if not v:
                     v_type = 'cr_cheque' if payment_method == 'Cheque' else 'cr_cash'
                     v_kwargs = {
@@ -305,11 +306,11 @@ def candidate_create(request):
                     }
                     if voucher_no_val:
                         v_kwargs['voucher_no'] = voucher_no_val
-                    v = AccountVoucher.objects.create(**v_kwargs)
+                    v = AccountVoucher.objects.using(db).create(**v_kwargs)
                 pay.voucher = v
-                pay.save(update_fields=['voucher'])
+                pay.save(using=db, update_fields=['voucher'])
                 acc.current_balance += init_paid
-                acc.save()
+                acc.save(using=db)
 
         messages.success(request, f'Candidate "{name}" registered successfully with Registration ID {cand.registration_id}!')
         return redirect('admin_panel:candidate_list')
@@ -358,7 +359,8 @@ def candidate_delete_document(request, doc_pk):
 @login_required
 def candidate_add_payment(request, pk):
     """Record a new payment installment for a candidate."""
-    candidate = get_object_or_404(Candidate, pk=pk)
+    db = get_tenant_db(request)
+    candidate = get_object_or_404(Candidate.objects.using(db), pk=pk)
 
     if request.method == 'POST':
         amount_str = request.POST.get('amount', '0').strip()
@@ -375,7 +377,7 @@ def candidate_add_payment(request, pk):
             amt = Decimal('0.00')
 
         if amt > 0:
-            pay = CandidatePayment.objects.create(
+            pay = CandidatePayment.objects.using(db).create(
                 candidate=candidate,
                 amount=amt,
                 payment_date=payment_date_val,
@@ -383,11 +385,11 @@ def candidate_add_payment(request, pk):
                 reference_no=reference_no,
                 notes=notes,
             )
-            acc = ChartOfAccount.objects.filter(pk=account_id).first() if account_id else (ChartOfAccount.objects.filter(account_name__icontains='Cash').first() or ChartOfAccount.objects.first())
+            acc = ChartOfAccount.objects.using(db).filter(pk=account_id).first() if account_id else (ChartOfAccount.objects.using(db).filter(account_name__icontains='Cash').first() or ChartOfAccount.objects.using(db).first())
             if acc:
                 v = None
                 if voucher_no_val:
-                    v = AccountVoucher.objects.filter(voucher_no=voucher_no_val).first()
+                    v = AccountVoucher.objects.using(db).filter(voucher_no=voucher_no_val).first()
                 if not v:
                     v_type = 'cr_cheque' if payment_method == 'Cheque' else 'cr_cash'
                     v_kwargs = {
@@ -400,11 +402,11 @@ def candidate_add_payment(request, pk):
                     }
                     if voucher_no_val:
                         v_kwargs['voucher_no'] = voucher_no_val
-                    v = AccountVoucher.objects.create(**v_kwargs)
+                    v = AccountVoucher.objects.using(db).create(**v_kwargs)
                 pay.voucher = v
-                pay.save(update_fields=['voucher'])
+                pay.save(using=db, update_fields=['voucher'])
                 acc.current_balance += amt
-                acc.save()
+                acc.save(using=db)
             messages.success(request, f'Payment of ৳{amt:,.2f} recorded on {payment_date_val} for {candidate.name}!')
         else:
             messages.error(request, 'Please enter a valid payment amount greater than zero.')
@@ -415,7 +417,8 @@ def candidate_add_payment(request, pk):
 @login_required
 def candidate_edit(request, pk):
     """Edit candidate details."""
-    candidate = get_object_or_404(Candidate, pk=pk)
+    db = get_tenant_db(request)
+    candidate = get_object_or_404(Candidate.objects.using(db), pk=pk)
 
     if request.method == 'POST':
         candidate.name = request.POST.get('name', '').strip()
@@ -435,10 +438,10 @@ def candidate_edit(request, pk):
         company_id = request.POST.get('company')
         grade_id = request.POST.get('selection_grade')
 
-        candidate.agent = AgencyAgent.objects.filter(pk=agent_id).first() if agent_id else None
-        candidate.position = AgencyPosition.objects.filter(pk=position_id).first() if position_id else None
-        candidate.company = AgencyCompany.objects.filter(pk=company_id).first() if company_id else None
-        candidate.selection_grade = SelectionGrade.objects.filter(pk=grade_id).first() if grade_id else None
+        candidate.agent = AgencyAgent.objects.using(db).filter(pk=agent_id).first() if agent_id else None
+        candidate.position = AgencyPosition.objects.using(db).filter(pk=position_id).first() if position_id else None
+        candidate.company = AgencyCompany.objects.using(db).filter(pk=company_id).first() if company_id else None
+        candidate.selection_grade = SelectionGrade.objects.using(db).filter(pk=grade_id).first() if grade_id else None
 
         if 'applicable_sectors' in request.POST:
             candidate.applicable_sectors = request.POST.getlist('applicable_sectors')
@@ -446,7 +449,7 @@ def candidate_edit(request, pk):
         if 'photo' in request.FILES:
             candidate.photo = request.FILES['photo']
 
-        candidate.save()
+        candidate.save(using=db)
         messages.success(request, f'Candidate "{candidate.name}" updated successfully!')
         return redirect('admin_panel:candidate_list')
 
@@ -456,7 +459,8 @@ def candidate_edit(request, pk):
 @login_required
 def candidate_delete(request, pk):
     """Delete a candidate."""
-    candidate = get_object_or_404(Candidate, pk=pk)
+    db = get_tenant_db(request)
+    candidate = get_object_or_404(Candidate.objects.using(db), pk=pk)
     name = candidate.name
     reg_id = candidate.registration_id
     candidate.delete()
@@ -606,17 +610,18 @@ def candidate_invoice(request, pk):
 @login_required
 def candidate_id_card_bulk(request):
     """Bulk ID Card Print View."""
+    db = get_tenant_db(request)
     cand_ids = request.GET.getlist('ids')
     if cand_ids:
-        candidates = Candidate.objects.filter(id__in=cand_ids)
+        candidates = Candidate.objects.using(db).filter(id__in=cand_ids)
     else:
-        candidates = Candidate.objects.all()[:12]
+        candidates = Candidate.objects.using(db).all()[:12]
 
     # Mark as printed
     for c in candidates:
         if not c.id_card_printed:
             c.id_card_printed = True
-            c.save()
+            c.save(using=db)
 
     return render(request, 'admin_panel/agency/id_card_bulk.html', {'candidates': candidates})
 
@@ -704,10 +709,11 @@ def stage_view(request, stage_name):
     Universal view to display filtered candidate stages:
     - selection, delegate, medical, police, visa_section, manpower, flight
     """
-    ensure_default_settings()
+    db = get_tenant_db(request)
+    ensure_default_settings(db)
 
     active_sub = request.GET.get('sub', 'all')
-    candidates = Candidate.objects.all()
+    candidates = Candidate.objects.using(db).all()
 
     title = "Stage Management"
     sub_tabs = []
