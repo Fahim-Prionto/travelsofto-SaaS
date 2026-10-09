@@ -58,6 +58,18 @@ def create_tenant_database(tenant):
     try:
         # Create schema instead of a separate database to avoid cPanel privilege issues
         cursor.execute(f'CREATE SCHEMA IF NOT EXISTS "{schema_name}";')
+        
+        # Explicitly create the django_migrations table in this schema so it shadows the public one.
+        # This prevents Django from checking public.django_migrations and skipping migrations for this tenant.
+        cursor.execute(f'''
+            CREATE TABLE IF NOT EXISTS "{schema_name}"."django_migrations" (
+                id bigserial primary key,
+                app character varying(255) not null,
+                name character varying(255) not null,
+                applied timestamp with time zone not null
+            );
+        ''')
+        
         log_step(tenant, 'create_database', f'Schema "{schema_name}" created successfully.', 'success')
         tenant.db_created = True
         tenant.save(update_fields=['db_created'])

@@ -94,6 +94,10 @@ class TenantDatabaseRouter:
         if db == 'default':
             if app_label == 'tenants' and model_name in TENANT_SPECIFIC_MODELS:
                 return False
+            # Prevent tenant apps from migrating to the default database (public schema)
+            tenant_apps = {'travel_packages', 'visa', 'bookings', 'payments', 'destinations', 'cms', 'support', 'coupons', 'notifications', 'kyc', 'bus', 'analytics', 'reviews'}
+            if app_label in tenant_apps:
+                return False
             return True
         else:
             if app_label == 'tenants' and model_name in TENANT_SPECIFIC_MODELS:
