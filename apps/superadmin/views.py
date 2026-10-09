@@ -102,6 +102,7 @@ def tenant_create(request):
         agency_name = request.POST.get('agency_name', '').strip()
         owner_name = request.POST.get('owner_name', '').strip()
         email = request.POST.get('email', '').strip()
+        mobile = request.POST.get('mobile', '').strip()
         password = request.POST.get('password', '').strip()
         package_id = request.POST.get('package_id')
 
@@ -119,6 +120,7 @@ def tenant_create(request):
             agency_name=agency_name,
             owner_name=owner_name,
             email=email,
+            mobile=mobile,
             status=Tenant.Status.ACTIVE,
         )
 
