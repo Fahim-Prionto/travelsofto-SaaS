@@ -729,123 +729,131 @@ def stage_view(request, stage_name):
     ensure_default_settings(db)
 
     active_sub = request.GET.get('sub', 'all')
-    candidates = Candidate.objects.using(db).all()
+    
+    try:
+        candidates_qs = Candidate.objects.using(db).all()
+        title = "Stage Management"
+        sub_tabs = []
 
-    title = "Stage Management"
-    sub_tabs = []
+        if stage_name == 'selection':
+            title = "Selection Grading (Primary)"
+            sub_tabs = [
+                ('all', 'All Candidates'),
+                ('pending', 'Pending'),
+                ('selected', 'Selected'),
+                ('awaiting', 'Awaiting'),
+                ('rejected', 'Rejected')
+            ]
+            if active_sub != 'all':
+                candidates_qs = candidates_qs.filter(selection_status=active_sub)
 
-    if stage_name == 'selection':
-        title = "Selection Grading (Primary)"
-        sub_tabs = [
-            ('all', 'All Candidates'),
-            ('pending', 'Pending'),
-            ('selected', 'Selected'),
-            ('awaiting', 'Awaiting'),
-            ('rejected', 'Rejected')
-        ]
-        if active_sub != 'all':
-            candidates = candidates.filter(selection_status=active_sub)
+        elif stage_name == 'delegate':
+            title = "Delegate Approval"
+            sub_tabs = [
+                ('all', 'All'),
+                ('pending', 'Pending'),
+                ('approved', 'Approved')
+            ]
+            if active_sub != 'all':
+                candidates_qs = candidates_qs.filter(delegate_status=active_sub)
 
-    elif stage_name == 'delegate':
-        title = "Delegate Approval"
-        sub_tabs = [
-            ('all', 'All'),
-            ('pending', 'Pending'),
-            ('approved', 'Approved')
-        ]
-        if active_sub != 'all':
-            candidates = candidates.filter(delegate_status=active_sub)
+        elif stage_name == 'medical':
+            title = "Medical Assessment"
+            sub_tabs = [
+                ('all', 'All'),
+                ('pending', 'Pending'),
+                ('fit', 'Fit'),
+                ('unfit', 'Unfit'),
+                ('expired', 'Expired'),
+                ('canceled', 'Canceled')
+            ]
+            if active_sub != 'all':
+                candidates_qs = candidates_qs.filter(medical_status=active_sub)
 
-    elif stage_name == 'medical':
-        title = "Medical Assessment"
-        sub_tabs = [
-            ('all', 'All'),
-            ('pending', 'Pending'),
-            ('fit', 'Fit'),
-            ('unfit', 'Unfit'),
-            ('expired', 'Expired'),
-            ('canceled', 'Canceled')
-        ]
-        if active_sub != 'all':
-            candidates = candidates.filter(medical_status=active_sub)
+        elif stage_name == 'police':
+            title = "Police Clearance"
+            sub_tabs = [
+                ('all', 'All'),
+                ('pending', 'Pending'),
+                ('cleared', 'Cleared'),
+                ('uncleared', 'Uncleared')
+            ]
+            if active_sub != 'all':
+                candidates_qs = candidates_qs.filter(police_clearance_status=active_sub)
 
-    elif stage_name == 'police':
-        title = "Police Clearance"
-        sub_tabs = [
-            ('all', 'All'),
-            ('pending', 'Pending'),
-            ('cleared', 'Cleared'),
-            ('uncleared', 'Uncleared')
-        ]
-        if active_sub != 'all':
-            candidates = candidates.filter(police_clearance_status=active_sub)
+        elif stage_name == 'visa_section':
+            title = "Visa Section Operations"
+            sub_tabs = [
+                ('all', 'All'),
+                ('mofa_pending', 'Mofa Pending'),
+                ('enjaz_pending', 'Enjaz/Money Trans. Pending'),
+                ('mofa_cleared', 'Mofa Cleared'),
+                ('finger_pending', 'Finger Pending'),
+                ('finger_completed', 'Finger Completed'),
+                ('visa_pending', 'Visa Pending'),
+                ('visa_completed', 'Visa Completed')
+            ]
+            if active_sub == 'mofa_pending':
+                candidates_qs = candidates_qs.filter(mofa_status='mofa_pending')
+            elif active_sub == 'mofa_cleared':
+                candidates_qs = candidates_qs.filter(mofa_status='mofa_cleared')
+            elif active_sub == 'enjaz_pending':
+                candidates_qs = candidates_qs.filter(enjaz_status='enjaz_pending')
+            elif active_sub == 'finger_pending':
+                candidates_qs = candidates_qs.filter(finger_status='finger_pending')
+            elif active_sub == 'finger_completed':
+                candidates_qs = candidates_qs.filter(finger_status='finger_completed')
+            elif active_sub == 'visa_pending':
+                candidates_qs = candidates_qs.filter(visa_stamping_status='visa_pending')
+            elif active_sub == 'visa_completed':
+                candidates_qs = candidates_qs.filter(visa_stamping_status='visa_completed')
 
-    elif stage_name == 'visa_section':
-        title = "Visa Section Operations"
-        sub_tabs = [
-            ('all', 'All'),
-            ('mofa_pending', 'Mofa Pending'),
-            ('enjaz_pending', 'Enjaz/Money Trans. Pending'),
-            ('mofa_cleared', 'Mofa Cleared'),
-            ('finger_pending', 'Finger Pending'),
-            ('finger_completed', 'Finger Completed'),
-            ('visa_pending', 'Visa Pending'),
-            ('visa_completed', 'Visa Completed')
-        ]
-        if active_sub == 'mofa_pending':
-            candidates = candidates.filter(mofa_status='mofa_pending')
-        elif active_sub == 'mofa_cleared':
-            candidates = candidates.filter(mofa_status='mofa_cleared')
-        elif active_sub == 'enjaz_pending':
-            candidates = candidates.filter(enjaz_status='enjaz_pending')
-        elif active_sub == 'finger_pending':
-            candidates = candidates.filter(finger_status='finger_pending')
-        elif active_sub == 'finger_completed':
-            candidates = candidates.filter(finger_status='finger_completed')
-        elif active_sub == 'visa_pending':
-            candidates = candidates.filter(visa_stamping_status='visa_pending')
-        elif active_sub == 'visa_completed':
-            candidates = candidates.filter(visa_stamping_status='visa_completed')
+        elif stage_name == 'manpower':
+            title = "Manpower Assessment"
+            sub_tabs = [
+                ('all', 'All'),
+                ('training_pending', 'Training Pending'),
+                ('training_completed', 'Training Completed'),
+                ('manpower_pending', 'Manpower Approval'),
+                ('manpower_completed', 'Manpower Completed')
+            ]
+            if active_sub == 'training_pending':
+                candidates_qs = candidates_qs.filter(training_status='training_pending')
+            elif active_sub == 'training_completed':
+                candidates_qs = candidates_qs.filter(training_status='training_completed')
+            elif active_sub == 'manpower_pending':
+                candidates_qs = candidates_qs.filter(manpower_status='manpower_pending')
+            elif active_sub == 'manpower_completed':
+                candidates_qs = candidates_qs.filter(manpower_status='manpower_completed')
 
-    elif stage_name == 'manpower':
-        title = "Manpower Assessment"
-        sub_tabs = [
-            ('all', 'All'),
-            ('training_pending', 'Training Pending'),
-            ('training_completed', 'Training Completed'),
-            ('manpower_pending', 'Manpower Approval'),
-            ('manpower_completed', 'Manpower Completed')
-        ]
-        if active_sub == 'training_pending':
-            candidates = candidates.filter(training_status='training_pending')
-        elif active_sub == 'training_completed':
-            candidates = candidates.filter(training_status='training_completed')
-        elif active_sub == 'manpower_pending':
-            candidates = candidates.filter(manpower_status='manpower_pending')
-        elif active_sub == 'manpower_completed':
-            candidates = candidates.filter(manpower_status='manpower_completed')
-
-    elif stage_name == 'flight':
-        title = "Flight Management & NOC"
-        sub_tabs = [
-            ('all', 'All'),
-            ('agency', 'Travel Agency List'),
-            ('ticket_issue', 'Ticket Issue'),
-            ('ticket_pending', 'Ticket Pending'),
-            ('ticket_completed', 'Ticket Completed'),
-            ('noc_pending', 'NOC Approval'),
-            ('noc_completed', 'NOC Completed')
-        ]
-        if active_sub == 'ticket_issue':
-            candidates = candidates.filter(ticket_status='ticket_issue')
-        elif active_sub == 'ticket_pending':
-            candidates = candidates.filter(ticket_status='ticket_pending')
-        elif active_sub == 'ticket_completed':
-            candidates = candidates.filter(ticket_status='ticket_completed')
-        elif active_sub == 'noc_pending':
-            candidates = candidates.filter(noc_status='noc_pending')
-        elif active_sub == 'noc_completed':
-            candidates = candidates.filter(noc_status='noc_completed')
+        elif stage_name == 'flight':
+            title = "Flight Management & NOC"
+            sub_tabs = [
+                ('all', 'All'),
+                ('agency', 'Travel Agency List'),
+                ('ticket_issue', 'Ticket Issue'),
+                ('ticket_pending', 'Ticket Pending'),
+                ('ticket_completed', 'Ticket Completed'),
+                ('noc_pending', 'NOC Approval'),
+                ('noc_completed', 'NOC Completed')
+            ]
+            if active_sub == 'ticket_issue':
+                candidates_qs = candidates_qs.filter(ticket_status='ticket_issue')
+            elif active_sub == 'ticket_pending':
+                candidates_qs = candidates_qs.filter(ticket_status='ticket_pending')
+            elif active_sub == 'ticket_completed':
+                candidates_qs = candidates_qs.filter(ticket_status='ticket_completed')
+            elif active_sub == 'noc_pending':
+                candidates_qs = candidates_qs.filter(noc_status='noc_pending')
+            elif active_sub == 'noc_completed':
+                candidates_qs = candidates_qs.filter(noc_status='noc_completed')
+            
+        candidates = list(candidates_qs)
+    except Exception:
+        candidates = []
+        if 'title' not in locals():
+            title = "Stage Management"
+            sub_tabs = []
 
     context = {
         'stage_name': stage_name,
