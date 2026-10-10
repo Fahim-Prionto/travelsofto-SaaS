@@ -209,6 +209,8 @@ def tenant_delete(request, slug):
                     # 8. Delete Admin User record
                     if admin_user_id:
                         safe_delete("DELETE FROM accounts_user WHERE id = %s", [admin_user_id])
+                    # 9. Drop isolated PostgreSQL schema completely
+                    safe_delete(f'DROP SCHEMA IF EXISTS "{tenant.db_name}" CASCADE;', [])
                 
                 messages.success(request, f'🗑️ Agency "{agency_name}" deleted successfully.')
             except Exception as force_e:
