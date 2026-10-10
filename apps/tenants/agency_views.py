@@ -69,45 +69,48 @@ def get_tenant_db(request):
 # ── HELPER: Seed Default Settings Data if Empty ──────────────────────────────
 def ensure_default_settings(db='default'):
     """Ensure basic positions, grades, account heads, and agents exist for new agency tenant."""
-    if not AgencyPosition.objects.using(db).exists():
-        positions = ['Electrician', 'Driver', 'Mason', 'Plumber', 'Construction Worker', 'Welder', 'Cook', 'Maid', 'General Worker']
-        for p in positions:
-            AgencyPosition.objects.using(db).create(title=p)
+    try:
+        if not AgencyPosition.objects.using(db).exists():
+            positions = ['Electrician', 'Driver', 'Mason', 'Plumber', 'Construction Worker', 'Welder', 'Cook', 'Maid', 'General Worker']
+            for p in positions:
+                AgencyPosition.objects.using(db).create(title=p)
 
-    if not SelectionGrade.objects.using(db).exists():
-        grades = ['Grade A (Primary)', 'Grade B (Secondary)', 'Grade C (Standard)', 'VVIP Selection']
-        for g in grades:
-            SelectionGrade.objects.using(db).create(grade_name=g)
+        if not SelectionGrade.objects.using(db).exists():
+            grades = ['Grade A (Primary)', 'Grade B (Secondary)', 'Grade C (Standard)', 'VVIP Selection']
+            for g in grades:
+                SelectionGrade.objects.using(db).create(grade_name=g)
 
-    if not AgencyAgent.objects.using(db).exists():
-        AgencyAgent.objects.using(db).create(name='Global Overseas Agency', phone='+8801700000000', email='agent@globaloverseas.com')
+        if not AgencyAgent.objects.using(db).exists():
+            AgencyAgent.objects.using(db).create(name='Global Overseas Agency', phone='+8801700000000', email='agent@globaloverseas.com')
 
-    if not AgencyCompany.objects.using(db).exists():
-        AgencyCompany.objects.using(db).create(name='Al-Falah General Trading LLC', country='Saudi Arabia', contact_person='Ahmed Al-Mansoor')
+        if not AgencyCompany.objects.using(db).exists():
+            AgencyCompany.objects.using(db).create(name='Al-Falah General Trading LLC', country='Saudi Arabia', contact_person='Ahmed Al-Mansoor')
 
-    if not AccountHeadGroup.objects.using(db).exists():
-        groups = [
-            ('Current Assets', 'asset'), ('Fixed Assets', 'asset'),
-            ('Accounts Payable', 'liability'), ('Current Liabilities', 'liability'),
-            ('Agency Service Revenue', 'income'), ('Commission Income', 'income'),
-            ('Visa & Document Expense', 'expense'), ('Flight Ticket Expense', 'expense'),
-            ('Office Operational Expense', 'expense'), ('Owner Equity', 'equity')
-        ]
-        for name, cat in groups:
-            AccountHeadGroup.objects.using(db).create(name=name, type_category=cat)
+        if not AccountHeadGroup.objects.using(db).exists():
+            groups = [
+                ('Current Assets', 'asset'), ('Fixed Assets', 'asset'),
+                ('Accounts Payable', 'liability'), ('Current Liabilities', 'liability'),
+                ('Agency Service Revenue', 'income'), ('Commission Income', 'income'),
+                ('Visa & Document Expense', 'expense'), ('Flight Ticket Expense', 'expense'),
+                ('Office Operational Expense', 'expense'), ('Owner Equity', 'equity')
+            ]
+            for name, cat in groups:
+                AccountHeadGroup.objects.using(db).create(name=name, type_category=cat)
 
-    if not ChartOfAccount.objects.using(db).exists() and AccountHeadGroup.objects.using(db).exists():
-        asset_grp = AccountHeadGroup.objects.using(db).filter(type_category='asset').first()
-        income_grp = AccountHeadGroup.objects.using(db).filter(type_category='income').first()
-        exp_grp = AccountHeadGroup.objects.using(db).filter(type_category='expense').first()
+        if not ChartOfAccount.objects.using(db).exists() and AccountHeadGroup.objects.using(db).exists():
+            asset_grp = AccountHeadGroup.objects.using(db).filter(type_category='asset').first()
+            income_grp = AccountHeadGroup.objects.using(db).filter(type_category='income').first()
+            exp_grp = AccountHeadGroup.objects.using(db).filter(type_category='expense').first()
 
-        if asset_grp:
-            ChartOfAccount.objects.using(db).create(account_name='Cash in Hand', account_code='1001', head_group=asset_grp, current_balance=50000.00)
-            ChartOfAccount.objects.using(db).create(account_name='Islami Bank Bangladesh', account_code='1002', head_group=asset_grp, current_balance=250000.00)
-        if income_grp:
-            ChartOfAccount.objects.using(db).create(account_name='Visa Processing Revenue', account_code='4001', head_group=income_grp)
-        if exp_grp:
-            ChartOfAccount.objects.using(db).create(account_name='Medical & PC Expenses', account_code='5001', head_group=exp_grp)
+            if asset_grp:
+                ChartOfAccount.objects.using(db).create(account_name='Cash in Hand', account_code='1001', head_group=asset_grp, current_balance=50000.00)
+                ChartOfAccount.objects.using(db).create(account_name='Islami Bank Bangladesh', account_code='1002', head_group=asset_grp, current_balance=250000.00)
+            if income_grp:
+                ChartOfAccount.objects.using(db).create(account_name='Visa Processing Revenue', account_code='4001', head_group=income_grp)
+            if exp_grp:
+                ChartOfAccount.objects.using(db).create(account_name='Medical & PC Expenses', account_code='5001', head_group=exp_grp)
+    except Exception:
+        pass
 
 
 # ── 1. CANDIDATE REGISTRATION & LIST ─────────────────────────────────────────
@@ -924,7 +927,11 @@ def okala_list(request):
 
         return redirect('admin_panel:okala_list')
 
-    visa_lots = VisaLot.objects.using(db).all()
+    try:
+        visa_lots = list(VisaLot.objects.using(db).all())
+    except Exception:
+        visa_lots = []
+    
     return render(request, 'admin_panel/agency/okala_list.html', {'visa_lots': visa_lots})
 
 
@@ -934,14 +941,19 @@ def requisitions_list(request):
     """Payment, Receipt, and Contra Requisitions view."""
     db = get_tenant_db(request)
     req_type = request.GET.get('type', 'all')
-    requisitions = Requisition.objects.using(db).all()
-
-    if req_type == 'payment':
-        requisitions = requisitions.filter(category__startswith='payment')
-    elif req_type == 'receipt':
-        requisitions = requisitions.filter(category__startswith='receipt')
-    elif req_type == 'contra':
-        requisitions = requisitions.filter(category='contra')
+    
+    try:
+        requisitions_qs = Requisition.objects.using(db).all()
+        if req_type == 'payment':
+            requisitions = list(requisitions_qs.filter(category__startswith='payment'))
+        elif req_type == 'receipt':
+            requisitions = list(requisitions_qs.filter(category__startswith='receipt'))
+        elif req_type == 'contra':
+            requisitions = list(requisitions_qs.filter(category='contra'))
+        else:
+            requisitions = list(requisitions_qs)
+    except Exception:
+        requisitions = []
 
     if request.method == 'POST':
         category = request.POST.get('category')
@@ -976,9 +988,15 @@ def accounts_vouchers(request):
     ensure_default_settings(db)
 
     active_tab = request.GET.get('tab', 'vouchers')
-    vouchers = AccountVoucher.objects.using(db).all()
-    accounts = ChartOfAccount.objects.using(db).all()
-    groups = AccountHeadGroup.objects.using(db).all()
+    
+    try:
+        vouchers = list(AccountVoucher.objects.using(db).all())
+        accounts = list(ChartOfAccount.objects.using(db).all())
+        groups = list(AccountHeadGroup.objects.using(db).all())
+    except Exception:
+        vouchers = []
+        accounts = []
+        groups = []
 
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -1125,8 +1143,12 @@ def accounts_vouchers(request):
 def hr_movement_leave(request):
     """Daily Movement log and Leave submissions."""
     db = get_tenant_db(request)
-    movements = DailyMovement.objects.using(db).all()
-    leaves = LeaveSubmission.objects.using(db).all()
+    try:
+        movements = list(DailyMovement.objects.using(db).all())
+        leaves = list(LeaveSubmission.objects.using(db).all())
+    except Exception:
+        movements = []
+        leaves = []
 
     if request.method == 'POST':
         action = request.POST.get('action')
