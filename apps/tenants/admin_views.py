@@ -105,12 +105,8 @@ def dashboard(request):
 
     tenant_id = getattr(request.user, 'tenant_id', None)
 
-    # Candidate Financial Metrics
-    cand_financials = Candidate.objects.filter(tenant_id=tenant_id).aggregate(
-        total_val=Sum('total_amount'),
-        total_paid=Sum('paid_amount'),
-        total_due=Sum('due_amount')
-    ) if hasattr(Candidate, 'tenant_id') else Candidate.objects.aggregate(
+    # Candidate Financial Metrics (always use tenant db alias)
+    cand_financials = Candidate.objects.using(db).aggregate(
         total_val=Sum('total_amount'),
         total_paid=Sum('paid_amount'),
         total_due=Sum('due_amount')
@@ -119,22 +115,21 @@ def dashboard(request):
     total_candidate_due = cand_financials['total_due'] or Decimal('0.00')
     total_candidate_package_val = cand_financials['total_val'] or Decimal('0.00')
 
-    # Visa Lot Quota Stats
-    active_lots = VisaLot.objects.filter(tenant_id=tenant_id, is_active=True) if hasattr(VisaLot, 'tenant_id') else VisaLot.objects.filter(is_active=True)
+    # Visa Lot Quota Stats (always use tenant db alias)
+    active_lots = VisaLot.objects.using(db).filter(is_active=True)
     total_remaining_visas = sum(lot.remaining_visas for lot in active_lots)
     total_visa_quota = active_lots.aggregate(total=Sum('quota'))['total'] or 0
 
     recent_bookings = Booking.objects.using(db).order_by('-booked_at')[:5]
     recent_visa_apps = VisaApplication.objects.using(db).order_by('-submitted_at')[:5]
 
-    # Office Expense Metrics
-    from django.db.models import Sum as ESum
-    expense_qs = OfficeExpense.objects.filter(tenant_id=tenant_id) if hasattr(OfficeExpense, 'tenant_id') else OfficeExpense.objects.all()
-    total_office_expense = expense_qs.aggregate(total=ESum('amount'))['total'] or Decimal('0.00')
+    # Office Expense Metrics (always use tenant db alias)
+    expense_qs = OfficeExpense.objects.using(db).all()
+    total_office_expense = expense_qs.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
     month_office_expense = expense_qs.filter(
         expense_date__year=timezone.now().year,
         expense_date__month=timezone.now().month,
-    ).aggregate(total=ESum('amount'))['total'] or Decimal('0.00')
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
     recent_expenses = expense_qs.order_by('-expense_date')[:5]
 
     # Package Bookings Financial Metrics
