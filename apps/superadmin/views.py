@@ -182,26 +182,33 @@ def tenant_delete(request, slug):
             
             try:
                 with connection.cursor() as cursor:
-                    # 1. Delete dependent SaaS payments (FK to subscription & tenant)
-                    cursor.execute("DELETE FROM subscriptions_saaspayment WHERE tenant_id = %s", [tenant.id])
+                    def safe_delete(query, params):
+                        try:
+                            with transaction.atomic():
+                                cursor.execute(query, params)
+                        except Exception as sqle:
+                            logging.warning(f"Ignored cleanup error on '{query}': {sqle}")
+
+                    # 1. Delete dependent SaaS payments
+                    safe_delete("DELETE FROM subscriptions_saaspayment WHERE tenant_id = %s", [tenant.id])
                     # 2. Delete tenant subscriptions
-                    cursor.execute("DELETE FROM subscriptions_subscription WHERE tenant_id = %s", [tenant.id])
+                    safe_delete("DELETE FROM subscriptions_subscription WHERE tenant_id = %s", [tenant.id])
                     # 3. Delete tenant domains
-                    cursor.execute("DELETE FROM tenants_tenantdomain WHERE tenant_id = %s", [tenant.id])
-                    # 4. Delete tenant support tickets & messages if any
-                    cursor.execute("DELETE FROM support_agencysupportmessage WHERE ticket_id IN (SELECT id FROM support_agencysupportticket WHERE tenant_id = %s)", [tenant.id])
-                    cursor.execute("DELETE FROM support_agencysupportticket WHERE tenant_id = %s", [tenant.id])
-                    # 5. Unlink admin_user from tenant to prevent FK error when deleting User
+                    safe_delete("DELETE FROM tenants_tenantdomain WHERE tenant_id = %s", [tenant.id])
+                    # 4. Delete tenant support tickets & messages if support tables exist
+                    safe_delete("DELETE FROM support_agencysupportmessage WHERE ticket_id IN (SELECT id FROM support_agencysupportticket WHERE tenant_id = %s)", [tenant.id])
+                    safe_delete("DELETE FROM support_agencysupportticket WHERE tenant_id = %s", [tenant.id])
+                    # 5. Unlink admin_user from tenant
                     admin_user_id = tenant.admin_user_id
                     if admin_user_id:
-                        cursor.execute("UPDATE tenants_tenant SET admin_user_id = NULL WHERE id = %s", [tenant.id])
-                    # 6. Delete Tenant record
+                        safe_delete("UPDATE tenants_tenant SET admin_user_id = NULL WHERE id = %s", [tenant.id])
+                    # 6. Delete Tenant record itself
                     cursor.execute("DELETE FROM tenants_tenant WHERE id = %s", [tenant.id])
                     # 7. Delete Admin User record
                     if admin_user_id:
-                        cursor.execute("DELETE FROM accounts_user WHERE id = %s", [admin_user_id])
+                        safe_delete("DELETE FROM accounts_user WHERE id = %s", [admin_user_id])
                 
-                messages.success(request, f'⚠️ Agency "{agency_name}" force-deleted successfully.')
+                messages.success(request, f'🗑️ Agency "{agency_name}" deleted successfully.')
             except Exception as force_e:
                 messages.error(request, f"Critical error during force delete: {str(force_e)}")
                 
