@@ -198,13 +198,15 @@ def tenant_delete(request, slug):
                     # 4. Delete tenant support tickets & messages if support tables exist
                     safe_delete("DELETE FROM support_agencysupportmessage WHERE ticket_id IN (SELECT id FROM support_agencysupportticket WHERE tenant_id = %s)", [tenant.id])
                     safe_delete("DELETE FROM support_agencysupportticket WHERE tenant_id = %s", [tenant.id])
-                    # 5. Unlink admin_user from tenant
+                    # 5. Delete tenant provisioning logs
+                    safe_delete("DELETE FROM tenants_tenantprovisioninglog WHERE tenant_id = %s", [tenant.id])
+                    # 6. Unlink admin_user from tenant
                     admin_user_id = tenant.admin_user_id
                     if admin_user_id:
                         safe_delete("UPDATE tenants_tenant SET admin_user_id = NULL WHERE id = %s", [tenant.id])
-                    # 6. Delete Tenant record itself
+                    # 7. Delete Tenant record itself
                     cursor.execute("DELETE FROM tenants_tenant WHERE id = %s", [tenant.id])
-                    # 7. Delete Admin User record
+                    # 8. Delete Admin User record
                     if admin_user_id:
                         safe_delete("DELETE FROM accounts_user WHERE id = %s", [admin_user_id])
                 
