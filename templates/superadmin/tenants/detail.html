@@ -23,10 +23,19 @@
             </div>
             <h4 class="fw-bold mb-1 text-dark">{{ tenant.agency_name }}</h4>
             <p class="text-muted small mb-3"><i class="fa-solid fa-envelope me-1"></i> {{ tenant.email }}</p>
-            <div class="mb-3">
+            <div class="mb-3 d-flex align-items-center justify-content-center gap-2">
                 <span class="badge-status badge-status-{{ tenant.status }} px-3 py-1.5 fs-7">
                     {{ tenant.get_status_display }}
                 </span>
+                {% if tenant.status == 'active' %}
+                <a href="{% url 'superadmin:tenant_toggle_status' tenant.slug %}" class="btn btn-sm btn-outline-warning rounded-pill px-2.5 py-1 text-decoration-none fw-bold" onclick="return confirm('Disable/Suspend agency {{ tenant.agency_name }}?')">
+                    <i class="fa-solid fa-ban me-1"></i> Disable
+                </a>
+                {% else %}
+                <a href="{% url 'superadmin:tenant_toggle_status' tenant.slug %}" class="btn btn-sm btn-outline-success rounded-pill px-2.5 py-1 text-decoration-none fw-bold" onclick="return confirm('Enable/Activate agency {{ tenant.agency_name }}?')">
+                    <i class="fa-solid fa-power-off me-1"></i> Enable
+                </a>
+                {% endif %}
             </div>
 
             <hr class="my-3 opacity-10">
@@ -49,6 +58,14 @@
                     <a href="{{ tenant.subdomain_url }}" target="_blank" class="fw-bold small text-primary text-decoration-none">
                         <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>{{ tenant.slug }}.softobro.com
                     </a>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small fw-semibold">Sub. End Date:</span>
+                    {% if tenant.active_subscription %}
+                    <span class="fw-bold text-primary small"><i class="fa-regular fa-calendar-check me-1"></i>{{ tenant.active_subscription.end_date|date:"M d, Y" }}</span>
+                    {% else %}
+                    <span class="text-muted small italic">No active sub</span>
+                    {% endif %}
                 </div>
                 <div class="d-flex justify-content-between align-items-center">
                     <span class="text-muted small fw-semibold">Registered On:</span>

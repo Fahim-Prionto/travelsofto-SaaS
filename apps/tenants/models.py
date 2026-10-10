@@ -100,6 +100,11 @@ class Tenant(models.Model):
     def is_active(self):
         return self.status == self.Status.ACTIVE
 
+    @property
+    def active_subscription(self):
+        """Return the latest subscription for this tenant."""
+        return self.subscriptions.order_by('-end_date').first()
+
     def get_db_config(self):
         """Return the database configuration dict for this tenant (Schema-based)."""
         main_db = settings.DATABASES['default']

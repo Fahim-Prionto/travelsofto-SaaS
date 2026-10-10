@@ -260,6 +260,22 @@ The Platform Team""",
 
 @login_required
 @user_passes_test(superadmin_required)
+def tenant_toggle_status(request, slug):
+    """Toggle an agency tenant status between Active and Suspended/Disabled."""
+    tenant = get_object_or_404(Tenant, slug=slug)
+    if tenant.status == Tenant.Status.ACTIVE:
+        tenant.status = Tenant.Status.SUSPENDED
+        messages.warning(request, f'🛑 Agency "{tenant.agency_name}" has been SUSPENDED / DISABLED.')
+    else:
+        tenant.status = Tenant.Status.ACTIVE
+        messages.success(request, f'✅ Agency "{tenant.agency_name}" has been ACTIVATED / ENABLED.')
+    
+    tenant.save(update_fields=['status'])
+    return redirect(request.META.get('HTTP_REFERER', 'superadmin:tenant_list'))
+
+
+@login_required
+@user_passes_test(superadmin_required)
 def tenant_support_login(request, slug):
     """Super Admin support mode: Enter tenant's agency dashboard directly to support them."""
     tenant = get_object_or_404(Tenant, slug=slug)

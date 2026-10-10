@@ -33,6 +33,7 @@
                     <th>Subdomain</th>
                     <th>Database Engine</th>
                     <th>Status</th>
+                    <th>Sub. End Date</th>
                     <th>Registered</th>
                     <th class="text-end">Actions</th>
                 </tr>
@@ -73,6 +74,13 @@
                                 {{ tenant.get_status_display }}
                             </span>
                         </td>
+                        <td>
+                            {% if tenant.active_subscription %}
+                                <small class="fw-bold text-dark"><i class="fa-regular fa-calendar-check me-1 text-primary"></i>{{ tenant.active_subscription.end_date|date:"M d, Y" }}</small>
+                            {% else %}
+                                <small class="text-muted italic">No active sub</small>
+                            {% endif %}
+                        </td>
                         <td><small class="text-muted fw-semibold">{{ tenant.created_at|date:"M d, Y" }}</small></td>
                         <td class="text-end">
                             <div class="d-flex justify-content-end align-items-center gap-1.5">
@@ -81,6 +89,17 @@
                                     <i class="fa-solid fa-circle-check me-1"></i> Approve
                                 </a>
                                 {% endif %}
+
+                                {% if tenant.status == 'active' %}
+                                <a href="{% url 'superadmin:tenant_toggle_status' tenant.slug %}" class="btn btn-sm btn-outline-warning rounded-3 px-2 py-1" title="Suspend/Disable Agency Access" onclick="return confirm('Disable/Suspend agency {{ tenant.agency_name }}?')">
+                                    <i class="fa-solid fa-ban me-1"></i> Disable
+                                </a>
+                                {% else %}
+                                <a href="{% url 'superadmin:tenant_toggle_status' tenant.slug %}" class="btn btn-sm btn-outline-success rounded-3 px-2 py-1" title="Enable/Activate Agency Access" onclick="return confirm('Enable/Activate agency {{ tenant.agency_name }}?')">
+                                    <i class="fa-solid fa-power-off me-1"></i> Enable
+                                </a>
+                                {% endif %}
+
                                 <a href="{% url 'superadmin:tenant_support_login' tenant.slug %}" class="btn btn-sm btn-outline-primary rounded-3 px-2.5 py-1" title="Access Agency Dashboard in Support Mode">
                                     <i class="fa-solid fa-headset me-1"></i> Support Mode
                                 </a>

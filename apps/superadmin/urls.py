@@ -8,6 +8,7 @@ urlpatterns = [
     path('tenants/', views.tenant_list, name='tenant_list'),
     path('tenants/create/', views.tenant_create, name='tenant_create'),
     path('tenants/<slug:slug>/approve/', views.tenant_approve, name='tenant_approve'),
+    path('tenants/<slug:slug>/toggle-status/', views.tenant_toggle_status, name='tenant_toggle_status'),
     path('tenants/<slug:slug>/', views.tenant_detail, name='tenant_detail'),
     path('tenants/<slug:slug>/delete/', views.tenant_delete, name='tenant_delete'),
     path('tenants/<slug:slug>/support-login/', views.tenant_support_login, name='tenant_support_login'),
