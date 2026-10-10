@@ -845,6 +845,7 @@ def stage_view(request, stage_name):
 @login_required
 def okala_list(request):
     """Manage Visa Lots (displayed on agency website when show_on_website=True)."""
+    db = get_tenant_db(request)
     if request.method == 'POST':
         action = request.POST.get('action')
 
@@ -877,21 +878,21 @@ def okala_list(request):
             )
             if 'featured_image' in request.FILES:
                 lot.featured_image = request.FILES['featured_image']
-            lot.save()
+            lot.save(using=db)
             messages.success(request, f'Visa Lot "{title}" ({lot.lot_number}) added successfully!')
 
         elif action == 'toggle_lot':
             lot_id = request.POST.get('lot_id')
-            lot = VisaLot.objects.filter(pk=lot_id).first()
+            lot = VisaLot.objects.using(db).filter(pk=lot_id).first()
             if lot:
                 lot.is_active = not lot.is_active
-                lot.save()
+                lot.save(using=db)
                 status_label = 'Active' if lot.is_active else 'Closed'
                 messages.success(request, f'Visa Lot "{lot.title}" is now {status_label}.')
 
         elif action == 'edit_lot':
             lot_id = request.POST.get('lot_id')
-            lot = VisaLot.objects.filter(pk=lot_id).first()
+            lot = VisaLot.objects.using(db).filter(pk=lot_id).first()
             if lot:
                 lot.title = request.POST.get('title', '').strip() or 'Visa Lot'
                 lot.country = request.POST.get('country', 'Saudi Arabia').strip()
@@ -910,12 +911,12 @@ def okala_list(request):
                 if 'featured_image' in request.FILES:
                     lot.featured_image = request.FILES['featured_image']
                 
-                lot.save()
+                lot.save(using=db)
                 messages.success(request, f'Visa Lot "{lot.title}" ({lot.lot_number}) updated successfully!')
 
         elif action == 'delete_lot':
             lot_id = request.POST.get('lot_id')
-            lot = VisaLot.objects.filter(pk=lot_id).first()
+            lot = VisaLot.objects.using(db).filter(pk=lot_id).first()
             if lot:
                 title = lot.title
                 lot.delete()
@@ -923,7 +924,7 @@ def okala_list(request):
 
         return redirect('admin_panel:okala_list')
 
-    visa_lots = VisaLot.objects.all()
+    visa_lots = VisaLot.objects.using(db).all()
     return render(request, 'admin_panel/agency/okala_list.html', {'visa_lots': visa_lots})
 
 
@@ -931,8 +932,9 @@ def okala_list(request):
 @login_required
 def requisitions_list(request):
     """Payment, Receipt, and Contra Requisitions view."""
+    db = get_tenant_db(request)
     req_type = request.GET.get('type', 'all')
-    requisitions = Requisition.objects.all()
+    requisitions = Requisition.objects.using(db).all()
 
     if req_type == 'payment':
         requisitions = requisitions.filter(category__startswith='payment')
@@ -949,7 +951,7 @@ def requisitions_list(request):
         from_acc = request.POST.get('transfer_from_account', '').strip()
         to_acc = request.POST.get('transfer_to_account', '').strip()
 
-        Requisition.objects.create(
+        Requisition.objects.using(db).create(
             category=category,
             payee_or_payer=payee_or_payer,
             amount=Decimal(amount),
@@ -970,12 +972,13 @@ def requisitions_list(request):
 @login_required
 def accounts_vouchers(request):
     """Chart of Accounts & Vouchers (Bank, Cash Payment, Cheque/Cash Receipt, Journal)."""
-    ensure_default_settings()
+    db = get_tenant_db(request)
+    ensure_default_settings(db)
 
     active_tab = request.GET.get('tab', 'vouchers')
-    vouchers = AccountVoucher.objects.all()
-    accounts = ChartOfAccount.objects.all()
-    groups = AccountHeadGroup.objects.all()
+    vouchers = AccountVoucher.objects.using(db).all()
+    accounts = ChartOfAccount.objects.using(db).all()
+    groups = AccountHeadGroup.objects.using(db).all()
 
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -986,8 +989,8 @@ def accounts_vouchers(request):
             narration = request.POST.get('narration', '').strip()
             reference_no = request.POST.get('reference_no', '').strip()
 
-            acc = get_object_or_404(ChartOfAccount, pk=account_id)
-            v = AccountVoucher.objects.create(
+            acc = get_object_or_404(ChartOfAccount.objects.using(db), pk=account_id)
+            v = AccountVoucher.objects.using(db).create(
                 voucher_type=voucher_type,
                 account=acc,
                 amount=Decimal(amount),
@@ -999,7 +1002,7 @@ def accounts_vouchers(request):
                 acc.current_balance += Decimal(amount)
             else:
                 acc.current_balance -= Decimal(amount)
-            acc.save()
+            acc.save(using=db)
 
             messages.success(request, f'Voucher {v.voucher_no} recorded successfully!')
 
@@ -1010,8 +1013,8 @@ def accounts_vouchers(request):
             tds_section = request.POST.get('tds_section', '').strip()
             balance = request.POST.get('balance', '0')
 
-            grp = get_object_or_404(AccountHeadGroup, pk=head_group_id)
-            ChartOfAccount.objects.create(
+            grp = get_object_or_404(AccountHeadGroup.objects.using(db), pk=head_group_id)
+            ChartOfAccount.objects.using(db).create(
                 account_name=account_name,
                 account_code=account_code,
                 head_group=grp,
@@ -1022,24 +1025,24 @@ def accounts_vouchers(request):
 
         elif action == 'edit_account':
             account_id = request.POST.get('account_id')
-            acc = get_object_or_404(ChartOfAccount, pk=account_id)
+            acc = get_object_or_404(ChartOfAccount.objects.using(db), pk=account_id)
             acc.account_name = request.POST.get('account_name', '').strip()
             acc.account_code = request.POST.get('account_code', '').strip()
             head_group_id = request.POST.get('head_group_id')
             if head_group_id:
-                acc.head_group = get_object_or_404(AccountHeadGroup, pk=head_group_id)
+                acc.head_group = get_object_or_404(AccountHeadGroup.objects.using(db), pk=head_group_id)
             acc.tds_section = request.POST.get('tds_section', '').strip()
             balance_val = request.POST.get('balance', '0').strip()
             try:
                 acc.current_balance = Decimal(balance_val)
             except Exception:
                 pass
-            acc.save()
+            acc.save(using=db)
             messages.success(request, f'Account Head [{acc.account_code}] {acc.account_name} updated successfully!')
 
         elif action == 'delete_account':
             account_id = request.POST.get('account_id')
-            acc = get_object_or_404(ChartOfAccount, pk=account_id)
+            acc = get_object_or_404(ChartOfAccount.objects.using(db), pk=account_id)
             acc_name = acc.account_name
             if acc.vouchers.exists():
                 messages.error(request, f'Cannot delete account "{acc_name}" because it has {acc.vouchers.count()} recorded voucher(s).')
@@ -1049,7 +1052,7 @@ def accounts_vouchers(request):
 
         elif action == 'edit_voucher':
             voucher_id = request.POST.get('voucher_id')
-            v = get_object_or_404(AccountVoucher, pk=voucher_id)
+            v = get_object_or_404(AccountVoucher.objects.using(db), pk=voucher_id)
             old_acc = v.account
             old_amount = v.amount
             old_type = v.voucher_type
@@ -1059,7 +1062,7 @@ def accounts_vouchers(request):
                 old_acc.current_balance -= old_amount
             else:
                 old_acc.current_balance += old_amount
-            old_acc.save()
+            old_acc.save(using=db)
 
             new_type = request.POST.get('voucher_type', old_type)
             new_account_id = request.POST.get('account_id')
@@ -1067,7 +1070,7 @@ def accounts_vouchers(request):
             narration = request.POST.get('narration', '').strip()
             reference_no = request.POST.get('reference_no', '').strip()
 
-            new_acc = get_object_or_404(ChartOfAccount, pk=new_account_id) if new_account_id else old_acc
+            new_acc = get_object_or_404(ChartOfAccount.objects.using(db), pk=new_account_id) if new_account_id else old_acc
             try:
                 new_amount = Decimal(new_amount_str)
             except Exception:
@@ -1078,7 +1081,7 @@ def accounts_vouchers(request):
             v.amount = new_amount
             v.narration = narration
             v.reference_no = reference_no
-            v.save()
+            v.save(using=db)
 
             # Apply new balance effect
             new_acc.refresh_from_db()
@@ -1086,20 +1089,20 @@ def accounts_vouchers(request):
                 new_acc.current_balance += new_amount
             else:
                 new_acc.current_balance -= new_amount
-            new_acc.save()
+            new_acc.save(using=db)
 
             messages.success(request, f'Voucher {v.voucher_no} updated successfully!')
 
         elif action == 'delete_voucher':
             voucher_id = request.POST.get('voucher_id')
-            v = get_object_or_404(AccountVoucher, pk=voucher_id)
+            v = get_object_or_404(AccountVoucher.objects.using(db), pk=voucher_id)
             v_no = v.voucher_no
             acc = v.account
             if v.voucher_type in ['cr_cash', 'cr_cheque']:
                 acc.current_balance -= v.amount
             else:
                 acc.current_balance += v.amount
-            acc.save()
+            acc.save(using=db)
             v.delete()
             messages.success(request, f'Voucher {v_no} deleted successfully.')
 
@@ -1121,8 +1124,9 @@ def accounts_vouchers(request):
 @login_required
 def hr_movement_leave(request):
     """Daily Movement log and Leave submissions."""
-    movements = DailyMovement.objects.all()
-    leaves = LeaveSubmission.objects.all()
+    db = get_tenant_db(request)
+    movements = DailyMovement.objects.using(db).all()
+    leaves = LeaveSubmission.objects.using(db).all()
 
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -1131,7 +1135,7 @@ def hr_movement_leave(request):
             purpose = request.POST.get('purpose', '').strip()
             destination = request.POST.get('destination', '').strip()
 
-            DailyMovement.objects.create(
+            DailyMovement.objects.using(db).create(
                 person_name=person_name,
                 purpose=purpose,
                 destination=destination,
@@ -1146,7 +1150,7 @@ def hr_movement_leave(request):
             end_date = request.POST.get('end_date')
             reason = request.POST.get('reason', '').strip()
 
-            LeaveSubmission.objects.create(
+            LeaveSubmission.objects.using(db).create(
                 employee_name=employee_name,
                 leave_type=leave_type,
                 start_date=start_date,
@@ -1168,18 +1172,19 @@ def hr_movement_leave(request):
 @login_required
 def reports_hub(request):
     """Dynamic Reports Engine covering all 14 Agency Reports."""
+    db = get_tenant_db(request)
     report_type = request.GET.get('report', 'summary')
     title = "Summary Report"
 
     data = []
     headers = []
 
-    candidates = Candidate.objects.all()
+    candidates = Candidate.objects.using(db).all()
 
     if report_type == 'agent_ledger':
         title = "Agent Ledger Report"
         headers = ['Agent Name', 'Code', 'Phone', 'Assigned Candidates', 'Balance / Commission']
-        agents = AgencyAgent.objects.all()
+        agents = AgencyAgent.objects.using(db).all()
         for a in agents:
             data.append({
                 'col1': a.name,
@@ -1365,14 +1370,15 @@ def reports_hub(request):
 @login_required
 def master_settings(request):
     """Master agency settings management."""
-    ensure_default_settings()
+    db = get_tenant_db(request)
+    ensure_default_settings(db)
 
     active_tab = request.GET.get('tab', 'agents')
 
-    agents = AgencyAgent.objects.all()
-    companies = AgencyCompany.objects.all()
-    positions = AgencyPosition.objects.all()
-    grades = SelectionGrade.objects.all()
+    agents = AgencyAgent.objects.using(db).all()
+    companies = AgencyCompany.objects.using(db).all()
+    positions = AgencyPosition.objects.using(db).all()
+    grades = SelectionGrade.objects.using(db).all()
 
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -1382,26 +1388,26 @@ def master_settings(request):
             phone = request.POST.get('phone', '').strip()
             email = request.POST.get('email', '').strip()
             comp = request.POST.get('company_name', '').strip()
-            AgencyAgent.objects.create(name=name, phone=phone, email=email, company_name=comp)
+            AgencyAgent.objects.using(db).create(name=name, phone=phone, email=email, company_name=comp)
             messages.success(request, f'Agent "{name}" added successfully!')
 
         elif action == 'add_company':
             name = request.POST.get('name', '').strip()
             country = request.POST.get('country', 'Saudi Arabia')
             contact = request.POST.get('contact_person', '').strip()
-            AgencyCompany.objects.create(name=name, country=country, contact_person=contact)
+            AgencyCompany.objects.using(db).create(name=name, country=country, contact_person=contact)
             messages.success(request, f'Company "{name}" added successfully!')
 
         elif action == 'add_position':
             title = request.POST.get('title', '').strip()
             code = request.POST.get('code', '').strip()
-            AgencyPosition.objects.create(title=title, code=code)
+            AgencyPosition.objects.using(db).create(title=title, code=code)
             messages.success(request, f'Position "{title}" added successfully!')
 
         elif action == 'add_grade':
             grade_name = request.POST.get('grade_name', '').strip()
             desc = request.POST.get('description', '').strip()
-            SelectionGrade.objects.create(grade_name=grade_name, description=desc)
+            SelectionGrade.objects.using(db).create(grade_name=grade_name, description=desc)
             messages.success(request, f'Selection Grade "{grade_name}" added successfully!')
 
         return redirect(f'/admin-panel/master-settings/?tab={active_tab}')
@@ -1421,6 +1427,7 @@ def master_settings(request):
 def office_expense_list(request):
     """Manage office expenses — add, edit, delete, filter."""
     from django.db.models import Sum
+    db = get_tenant_db(request)
 
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -1453,14 +1460,14 @@ def office_expense_list(request):
                 )
                 if 'receipt_file' in request.FILES:
                     expense.receipt_file = request.FILES['receipt_file']
-                expense.save()
+                expense.save(using=db)
                 messages.success(request, f'Expense "{title}" of ৳{amount:,.2f} added successfully!')
             else:
                 messages.error(request, 'Please provide a title and a valid amount.')
 
         elif action == 'delete':
             pk = request.POST.get('expense_id')
-            expense = OfficeExpense.objects.filter(pk=pk).first()
+            expense = OfficeExpense.objects.using(db).filter(pk=pk).first()
             if expense:
                 title = expense.title
                 expense.delete()
@@ -1468,7 +1475,7 @@ def office_expense_list(request):
 
         elif action == 'edit':
             pk = request.POST.get('expense_id')
-            expense = OfficeExpense.objects.filter(pk=pk).first()
+            expense = OfficeExpense.objects.using(db).filter(pk=pk).first()
             if expense:
                 expense.title = request.POST.get('title', expense.title).strip()
                 expense.category = request.POST.get('category', expense.category)
@@ -1485,7 +1492,7 @@ def office_expense_list(request):
                 expense.notes = request.POST.get('notes', expense.notes).strip()
                 if 'receipt_file' in request.FILES:
                     expense.receipt_file = request.FILES['receipt_file']
-                expense.save()
+                expense.save(using=db)
                 messages.success(request, f'Expense "{expense.title}" updated.')
 
         return redirect('admin_panel:office_expense_list')
@@ -1495,7 +1502,7 @@ def office_expense_list(request):
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
 
-    expenses = OfficeExpense.objects.all()
+    expenses = OfficeExpense.objects.using(db).all()
     if cat_filter:
         expenses = expenses.filter(category=cat_filter)
     if date_from:
@@ -1505,7 +1512,7 @@ def office_expense_list(request):
 
     # Aggregates
     total_expense = expenses.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-    month_expense = OfficeExpense.objects.filter(
+    month_expense = OfficeExpense.objects.using(db).filter(
         expense_date__year=timezone.now().year,
         expense_date__month=timezone.now().month
     ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
@@ -1513,7 +1520,7 @@ def office_expense_list(request):
     # Category breakdown
     from django.db.models import Sum as DSum
     category_totals = (
-        OfficeExpense.objects.values('category')
+        OfficeExpense.objects.using(db).values('category')
         .annotate(total=DSum('amount'))
         .order_by('-total')
     )
