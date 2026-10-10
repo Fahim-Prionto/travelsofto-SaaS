@@ -152,34 +152,52 @@ def tenant_delete(request, slug):
 
     if request.method == 'POST':
         from apps.tenants.routers import set_tenant_db
+        from django.db import connection, transaction
+        from django.db.utils import ProgrammingError
+
         db_alias = f'tenant_{tenant.slug}'
         
         # Ensure DB is mapped
         if db_alias not in settings.DATABASES:
             settings.DATABASES[db_alias] = tenant.get_db_config()
             
-        # Point the router to the tenant's DB so cascading SET_NULLs or CASCADE deletes
-        # on tenant apps (like Bookings, Support Tickets) go to the correct schema.
         set_tenant_db(db_alias)
         
         try:
-            # Remove admin user if tied
-            if tenant.admin_user:
-                tenant.admin_user.delete()
-        except Exception as e:
-            messages.warning(request, f"User deleted but with warnings: {str(e)}")
+            # We wrap the standard Django deletion in atomic so if it fails, the transaction is cleanly rolled back
+            # and we can fall back to raw deletion without breaking the current DB connection state.
+            with transaction.atomic():
+                if tenant.admin_user:
+                    tenant.admin_user.delete()
+                tenant.delete()
+            messages.success(request, f'🗑️ Agency Tenant "{agency_name}" deleted successfully.')
             
-        # Delete the tenant record (Tenant router forces this to public DB anyway, 
-        # but cascades will correctly route to the tenant DB!)
-        try:
-            tenant.delete()
         except Exception as e:
-            messages.error(request, f"Failed to delete tenant completely: {str(e)}")
-        finally:
-            # Reset tenant context back to public ALWAYS
+            # If standard delete fails due to missing relation (tenant was never migrated)
+            import logging
+            logging.error(f"Tenant delete cascade failed: {e}. Falling back to force raw-delete.")
+            
+            # Reset tenant context back to public before executing raw SQL
             set_tenant_db('default')
-        
-        messages.success(request, f'🗑️ Agency Tenant "{agency_name}" deleted successfully.')
+            
+            try:
+                with connection.cursor() as cursor:
+                    # Clean up user's core relationships in main DB to prevent orphaned records in other tables
+                    if tenant.admin_user:
+                        cursor.execute("DELETE FROM subscriptions_subscription WHERE tenant_id = %s", [tenant.id])
+                        cursor.execute("DELETE FROM subscriptions_saaspayment WHERE tenant_id = %s", [tenant.id])
+                        cursor.execute("DELETE FROM tenants_tenantdomain WHERE tenant_id = %s", [tenant.id])
+                        cursor.execute("DELETE FROM accounts_user WHERE id = %s", [tenant.admin_user.id])
+                    
+                    cursor.execute("DELETE FROM tenants_tenant WHERE id = %s", [tenant.id])
+                
+                messages.success(request, f'⚠️ Agency "{agency_name}" force-deleted (database was unprovisioned).')
+            except Exception as force_e:
+                messages.error(request, f"Critical error during force delete: {str(force_e)}")
+                
+        finally:
+            set_tenant_db('default')
+            
         return redirect('superadmin:tenant_list')
 
     return render(request, 'superadmin/tenants/delete_confirm.html', {'tenant': tenant})
