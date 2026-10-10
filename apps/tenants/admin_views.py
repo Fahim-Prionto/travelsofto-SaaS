@@ -95,48 +95,70 @@ def dashboard(request):
 
     db = get_tenant_db(request)
 
+    from django.db import ProgrammingError as DBProgrammingError
+
     total_customers = User.objects.filter(tenant_id=request.user.tenant_id, role=User.Role.CUSTOMER).count()
-    total_packages = TravelPackage.objects.using(db).count()
-    total_bookings = Booking.objects.using(db).count()
-    pending_bookings = Booking.objects.using(db).filter(status='pending').count()
-    total_visa_apps = VisaApplication.objects.using(db).count()
-    pending_visa_apps = VisaApplication.objects.using(db).filter(status='pending').count()
-    total_revenue = Payment.objects.using(db).filter(status='paid').aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
 
-    tenant_id = getattr(request.user, 'tenant_id', None)
+    try:
+        total_packages = TravelPackage.objects.using(db).count()
+        total_bookings = Booking.objects.using(db).count()
+        pending_bookings = Booking.objects.using(db).filter(status='pending').count()
+        total_visa_apps = VisaApplication.objects.using(db).count()
+        pending_visa_apps = VisaApplication.objects.using(db).filter(status='pending').count()
+        total_revenue = Payment.objects.using(db).filter(status='paid').aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    except Exception:
+        total_packages = total_bookings = pending_bookings = 0
+        total_visa_apps = pending_visa_apps = 0
+        total_revenue = Decimal('0.00')
 
-    # Candidate Financial Metrics (always use tenant db alias)
-    cand_financials = Candidate.objects.using(db).aggregate(
-        total_val=Sum('total_amount'),
-        total_paid=Sum('paid_amount'),
-        total_due=Sum('due_amount')
-    )
-    total_candidate_collected = cand_financials['total_paid'] or Decimal('0.00')
-    total_candidate_due = cand_financials['total_due'] or Decimal('0.00')
-    total_candidate_package_val = cand_financials['total_val'] or Decimal('0.00')
+    # Candidate Financial Metrics (always use tenant db alias, safe fallback)
+    try:
+        cand_financials = Candidate.objects.using(db).aggregate(
+            total_val=Sum('total_amount'),
+            total_paid=Sum('paid_amount'),
+            total_due=Sum('due_amount')
+        )
+        total_candidate_collected = cand_financials['total_paid'] or Decimal('0.00')
+        total_candidate_due = cand_financials['total_due'] or Decimal('0.00')
+        total_candidate_package_val = cand_financials['total_val'] or Decimal('0.00')
+    except Exception:
+        total_candidate_collected = total_candidate_due = total_candidate_package_val = Decimal('0.00')
 
-    # Visa Lot Quota Stats (always use tenant db alias)
-    active_lots = VisaLot.objects.using(db).filter(is_active=True)
-    total_remaining_visas = sum(lot.remaining_visas for lot in active_lots)
-    total_visa_quota = active_lots.aggregate(total=Sum('quota'))['total'] or 0
+    # Visa Lot Quota Stats (always use tenant db alias, safe fallback)
+    try:
+        active_lots = VisaLot.objects.using(db).filter(is_active=True)
+        total_remaining_visas = sum(lot.remaining_visas for lot in active_lots)
+        total_visa_quota = active_lots.aggregate(total=Sum('quota'))['total'] or 0
+    except Exception:
+        total_remaining_visas = total_visa_quota = 0
 
-    recent_bookings = Booking.objects.using(db).order_by('-booked_at')[:5]
-    recent_visa_apps = VisaApplication.objects.using(db).order_by('-submitted_at')[:5]
+    try:
+        recent_bookings = Booking.objects.using(db).order_by('-booked_at')[:5]
+        recent_visa_apps = VisaApplication.objects.using(db).order_by('-submitted_at')[:5]
+    except Exception:
+        recent_bookings = recent_visa_apps = []
 
-    # Office Expense Metrics (always use tenant db alias)
-    expense_qs = OfficeExpense.objects.using(db).all()
-    total_office_expense = expense_qs.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-    month_office_expense = expense_qs.filter(
-        expense_date__year=timezone.now().year,
-        expense_date__month=timezone.now().month,
-    ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-    recent_expenses = expense_qs.order_by('-expense_date')[:5]
+    # Office Expense Metrics (always use tenant db alias, safe fallback)
+    try:
+        expense_qs = OfficeExpense.objects.using(db).all()
+        total_office_expense = expense_qs.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        month_office_expense = expense_qs.filter(
+            expense_date__year=timezone.now().year,
+            expense_date__month=timezone.now().month,
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        recent_expenses = expense_qs.order_by('-expense_date')[:5]
+    except Exception:
+        total_office_expense = month_office_expense = Decimal('0.00')
+        recent_expenses = []
 
     # Package Bookings Financial Metrics
-    pkg_booking_qs = Booking.objects.using(db).all()
-    booking_total_val = pkg_booking_qs.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
-    booking_paid_val = pkg_booking_qs.filter(payment_status='paid').aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
-    booking_due_val = pkg_booking_qs.exclude(payment_status='paid').aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+    try:
+        pkg_booking_qs = Booking.objects.using(db).all()
+        booking_total_val = pkg_booking_qs.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+        booking_paid_val = pkg_booking_qs.filter(payment_status='paid').aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+        booking_due_val = pkg_booking_qs.exclude(payment_status='paid').aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+    except Exception:
+        booking_total_val = booking_paid_val = booking_due_val = Decimal('0.00')
 
     context = {
         'total_customers': total_customers,
@@ -161,6 +183,7 @@ def dashboard(request):
         'recent_expenses': recent_expenses,
     }
     return render(request, 'admin_panel/dashboard.html', context)
+
 
 
 # ── TRAVEL PACKAGES ────────────────────────────────────────────────────────────
