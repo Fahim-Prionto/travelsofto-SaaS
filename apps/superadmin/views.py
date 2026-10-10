@@ -158,8 +158,8 @@ def tenant_delete(request, slug):
         if db_alias not in settings.DATABASES:
             settings.DATABASES[db_alias] = tenant.get_db_config()
             
-        # Point the router to the tenant's DB so cascading SET_NULLs on tenant apps (like Bookings)
-        # go to the correct DB instead of faulting on the public schema.
+        # Point the router to the tenant's DB so cascading SET_NULLs or CASCADE deletes
+        # on tenant apps (like Bookings, Support Tickets) go to the correct schema.
         set_tenant_db(db_alias)
         
         try:
@@ -169,9 +169,15 @@ def tenant_delete(request, slug):
         except Exception as e:
             messages.warning(request, f"User deleted but with warnings: {str(e)}")
             
-        # Reset tenant context back to public before deleting the tenant record itself (which is in public DB)
-        set_tenant_db('default')
-        tenant.delete()
+        # Delete the tenant record (Tenant router forces this to public DB anyway, 
+        # but cascades will correctly route to the tenant DB!)
+        try:
+            tenant.delete()
+        except Exception as e:
+            messages.error(request, f"Failed to delete tenant completely: {str(e)}")
+        finally:
+            # Reset tenant context back to public ALWAYS
+            set_tenant_db('default')
         
         messages.success(request, f'🗑️ Agency Tenant "{agency_name}" deleted successfully.')
         return redirect('superadmin:tenant_list')
