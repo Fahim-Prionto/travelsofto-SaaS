@@ -151,10 +151,28 @@ def tenant_delete(request, slug):
     agency_name = tenant.agency_name
 
     if request.method == 'POST':
-        # Remove admin user if tied
-        if tenant.admin_user:
-            tenant.admin_user.delete()
+        from apps.tenants.routers import set_tenant_db
+        db_alias = f'tenant_{tenant.slug}'
+        
+        # Ensure DB is mapped
+        if db_alias not in settings.DATABASES:
+            settings.DATABASES[db_alias] = tenant.get_db_config()
+            
+        # Point the router to the tenant's DB so cascading SET_NULLs on tenant apps (like Bookings)
+        # go to the correct DB instead of faulting on the public schema.
+        set_tenant_db(db_alias)
+        
+        try:
+            # Remove admin user if tied
+            if tenant.admin_user:
+                tenant.admin_user.delete()
+        except Exception as e:
+            messages.warning(request, f"User deleted but with warnings: {str(e)}")
+            
+        # Reset tenant context back to public before deleting the tenant record itself (which is in public DB)
+        set_tenant_db('default')
         tenant.delete()
+        
         messages.success(request, f'🗑️ Agency Tenant "{agency_name}" deleted successfully.')
         return redirect('superadmin:tenant_list')
 
