@@ -125,34 +125,47 @@ def candidate_list(request):
     med_status = request.GET.get('medical_status', '')
     visa_status = request.GET.get('visa_status', '')
 
-    candidates = Candidate.objects.using(db).all()
-
-    if query:
-        candidates = candidates.filter(
-            Q(name__icontains=query) |
-            Q(passport_number__icontains=query) |
-            Q(registration_id__icontains=query) |
-            Q(mobile__icontains=query)
+    try:
+        candidates_qs = Candidate.objects.using(db).all()
+        if query:
+            candidates_qs = candidates_qs.filter(
+                Q(name__icontains=query) |
+                Q(passport_number__icontains=query) |
+                Q(registration_id__icontains=query) |
+                Q(mobile__icontains=query)
+            )
+        if sel_status:
+            candidates_qs = candidates_qs.filter(selection_status=sel_status)
+        if med_status:
+            candidates_qs = candidates_qs.filter(medical_status=med_status)
+        if visa_status:
+            candidates_qs = candidates_qs.filter(visa_stamping_status=visa_status)
+            
+        candidates = list(candidates_qs)
+        agents = list(AgencyAgent.objects.using(db).filter(is_active=True))
+        positions = list(AgencyPosition.objects.using(db).filter(is_active=True))
+        companies = list(AgencyCompany.objects.using(db).filter(is_active=True))
+        grades = list(SelectionGrade.objects.using(db).all())
+        visa_lots = list(VisaLot.objects.using(db).filter(is_active=True))
+        accounts = list(ChartOfAccount.objects.using(db).all())
+        existing_vouchers = list(AccountVoucher.objects.using(db).all())
+        
+        totals = Candidate.objects.using(db).aggregate(
+            total_value=Sum('total_amount'),
+            total_paid=Sum('paid_amount'),
+            total_due=Sum('due_amount')
         )
-    if sel_status:
-        candidates = candidates.filter(selection_status=sel_status)
-    if med_status:
-        candidates = candidates.filter(medical_status=med_status)
-    if visa_status:
-        candidates = candidates.filter(visa_stamping_status=visa_status)
+        total_candidates = Candidate.objects.using(db).count()
+        selected_count = Candidate.objects.using(db).filter(selection_status='selected').count()
+        medical_fit_count = Candidate.objects.using(db).filter(medical_status='fit').count()
+        visa_completed_count = Candidate.objects.using(db).filter(visa_stamping_status='visa_completed').count()
+        next_cr_serial = AccountVoucher.get_next_serial('cr_cash')
 
-    agents = AgencyAgent.objects.using(db).filter(is_active=True)
-    positions = AgencyPosition.objects.using(db).filter(is_active=True)
-    companies = AgencyCompany.objects.using(db).filter(is_active=True)
-    grades = SelectionGrade.objects.using(db).all()
-    visa_lots = VisaLot.objects.using(db).filter(is_active=True)
-
-    # Compute total financial metrics across candidates
-    totals = Candidate.objects.using(db).aggregate(
-        total_value=Sum('total_amount'),
-        total_paid=Sum('paid_amount'),
-        total_due=Sum('due_amount')
-    )
+    except Exception:
+        candidates = agents = positions = companies = grades = visa_lots = accounts = existing_vouchers = []
+        totals = {'total_value': 0, 'total_paid': 0, 'total_due': 0}
+        total_candidates = selected_count = medical_fit_count = visa_completed_count = 0
+        next_cr_serial = 'VCH-0001'
 
     context = {
         'candidates': candidates,
@@ -162,16 +175,16 @@ def candidate_list(request):
         'companies': companies,
         'grades': grades,
         'visa_lots': visa_lots,
-        'total_candidates': Candidate.objects.using(db).count(),
-        'selected_count': Candidate.objects.using(db).filter(selection_status='selected').count(),
-        'medical_fit_count': Candidate.objects.using(db).filter(medical_status='fit').count(),
-        'visa_completed_count': Candidate.objects.using(db).filter(visa_stamping_status='visa_completed').count(),
+        'total_candidates': total_candidates,
+        'selected_count': selected_count,
+        'medical_fit_count': medical_fit_count,
+        'visa_completed_count': visa_completed_count,
         'total_package_value': totals['total_value'] or Decimal('0.00'),
         'total_collected': totals['total_paid'] or Decimal('0.00'),
         'total_due': totals['total_due'] or Decimal('0.00'),
-        'accounts': ChartOfAccount.objects.using(db).all(),
-        'next_cr_serial': AccountVoucher.get_next_serial('cr_cash'),
-        'existing_vouchers': AccountVoucher.objects.using(db).all(),
+        'accounts': accounts,
+        'next_cr_serial': next_cr_serial,
+        'existing_vouchers': existing_vouchers,
     }
     return render(request, 'admin_panel/agency/candidate_list.html', context)
 
