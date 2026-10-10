@@ -43,10 +43,10 @@
             <select name="package_id" class="form-select fw-semibold" required>
                 {% for pkg in packages %}
                     <option value="{{ pkg.id }}">
-                        {{ pkg.name }} – ${{ pkg.monthly_price }}/month ({{ pkg.trial_days }}-day free trial included)
+                        {{ pkg.name }} – ৳{{ pkg.monthly_price }}/month ({{ pkg.trial_days }}-day free trial included)
                     </option>
                 {% empty %}
-                    <option value="">Starter Plan – $49/month (14-day free trial)</option>
+                    <option value="">Starter Plan – ৳49.00/month (14-day free trial)</option>
                 {% endfor %}
             </select>
         </div>
