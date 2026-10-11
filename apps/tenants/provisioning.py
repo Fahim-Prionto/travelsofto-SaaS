@@ -96,7 +96,11 @@ def run_tenant_migrations(tenant, db_alias: str):
     from io import StringIO
 
     out = StringIO()
-    tenant_apps = ['travel_packages', 'visa', 'bookings', 'payments', 'destinations', 'cms', 'support', 'coupons', 'notifications', 'kyc', 'bus']
+    tenant_apps = [
+        'tenants',  # agency models: VisaLot, Candidate, AgencyAgent, etc.
+        'travel_packages', 'visa', 'bookings', 'payments', 'destinations',
+        'cms', 'support', 'coupons', 'notifications', 'kyc', 'bus',
+    ]
     try:
         for app in tenant_apps:
             try:

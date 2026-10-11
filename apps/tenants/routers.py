@@ -37,6 +37,7 @@ TENANT_SPECIFIC_MODELS = {
     'agencycompany',
     'agencyposition',
     'selectiongrade',
+    'okala',           # legacy model (migration dep): required for VisaLot FK chain
     'visalot',
     'candidate',
     'candidatepayment',
@@ -92,14 +93,20 @@ class TenantDatabaseRouter:
 
     def allow_migrate(self, db, app_label, model_name=None, **hints):
         if db == 'default':
-            if app_label == 'tenants' and model_name in TENANT_SPECIFIC_MODELS:
-                return False
-            # Prevent tenant apps from migrating to the default database (public schema)
+            # Allow ALL tenants-app models to migrate to the public/default DB.
+            # This is required so that the public schema has the agency tables as a
+            # fallback (e.g. when tenant middleware hasn't resolved a tenant yet, or
+            # for direct queries that don't carry a tenant context).
+            # Tenant-specific queries are still routed away by db_for_read/write.
+            if app_label == 'tenants':
+                return True
+            # Prevent pure tenant-specific apps from migrating to the default database
             tenant_apps = {'travel_packages', 'visa', 'bookings', 'payments', 'destinations', 'cms', 'support', 'coupons', 'notifications', 'kyc', 'bus', 'analytics', 'reviews'}
             if app_label in tenant_apps:
                 return False
             return True
         else:
+            # On tenant databases: allow tenants-app models that belong to this set
             if app_label == 'tenants' and model_name in TENANT_SPECIFIC_MODELS:
                 return True
             return app_label not in MAIN_DB_APPS
