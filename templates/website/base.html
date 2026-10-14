@@ -115,7 +115,9 @@
                     </h5>
                     {% else %}
                     <div class="mb-3">
-                        <img src="{% static 'images/logo.png' %}" alt="Travel.SoftoBro" style="max-height:50px; width:auto; filter: brightness(0) invert(1);">
+                        <div style="display:inline-block; background:#ffffff; border-radius:10px; padding:6px 12px;">
+                            <img src="{% static 'images/logo.png' %}" alt="Travel.SoftoBro" style="max-height:44px; width:auto;">
+                        </div>
                     </div>
                     {% endif %}
                     {% if current_tenant %}
