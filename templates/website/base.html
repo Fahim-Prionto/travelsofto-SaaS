@@ -23,13 +23,16 @@
     <!-- Header Navigation -->
     <nav class="navbar navbar-expand-lg sticky-top bg-white border-bottom shadow-sm py-3">
         <div class="container">
-            <a class="navbar-brand fw-extrabold fs-3 d-flex align-items-center gap-2 text-dark" href="/">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="/">
                 {% if current_tenant and current_tenant.logo %}
-                    <img src="{{ current_tenant.logo.url }}" alt="{{ current_tenant.agency_name }}" style="max-height:32px;" class="rounded">
+                    <img src="{{ current_tenant.logo.url }}" alt="{{ current_tenant.agency_name }}" style="max-height:40px;" class="rounded">
+                    <span class="fw-extrabold fs-4 text-dark">{{ current_tenant.agency_name }}</span>
+                {% elif current_tenant %}
+                    <i class="fa-solid fa-plane-departure text-primary fs-4"></i>
+                    <span class="fw-extrabold fs-4 text-dark">{{ current_tenant.agency_name }}</span>
                 {% else %}
-                    <i class="fa-solid fa-plane-departure text-primary"></i>
+                    <img src="{% static 'images/logo.png' %}" alt="Travel.SoftoBro" style="max-height:50px; width:auto;">
                 {% endif %}
-                <span>{{ current_tenant.agency_name|default:"Softobro Travel" }}</span>
             </a>
             <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#publicNav">
                 <span class="navbar-toggler-icon"></span>
@@ -106,9 +109,15 @@
         <div class="container">
             <div class="row g-4 mb-4">
                 <div class="col-lg-4">
+                    {% if current_tenant %}
                     <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
-                        <i class="fa-solid fa-plane-departure text-primary"></i> {{ current_tenant.agency_name|default:"Softobro Travel" }}
+                        <i class="fa-solid fa-plane-departure text-primary"></i> {{ current_tenant.agency_name }}
                     </h5>
+                    {% else %}
+                    <div class="mb-3">
+                        <img src="{% static 'images/logo.png' %}" alt="Travel.SoftoBro" style="max-height:50px; width:auto; filter: brightness(0) invert(1);">
+                    </div>
+                    {% endif %}
                     {% if current_tenant %}
                         <p class="text-secondary small">Your trusted partner for effortless tour bookings, luxury travel experiences, and rapid visa application processing worldwide.</p>
                     {% else %}
