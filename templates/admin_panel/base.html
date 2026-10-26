@@ -476,21 +476,32 @@
     const sidebarToggle = document.getElementById('sidebarToggle');
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebar-overlay');
+    let sidebarOpen = false;
+    function isMobile(){ return window.innerWidth < 992; }
+    function initSidebar(){
+        if(isMobile() && sidebar){
+            sidebar.style.setProperty('transform','translateX(-260px)','important');
+            sidebar.style.setProperty('transition','transform 0.3s ease','important');
+        }
+    }
     function openSidebar(){
-        sidebar.classList.add('show');
-        if(overlay){ overlay.classList.add('show'); }
+        sidebarOpen = true;
+        if(sidebar) sidebar.style.setProperty('transform','translateX(0)','important');
+        if(overlay) overlay.style.cssText = 'display:block!important;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:999;';
         document.body.style.overflow = 'hidden';
     }
     function closeSidebar(){
-        sidebar.classList.remove('show');
-        if(overlay){ overlay.classList.remove('show'); }
+        sidebarOpen = false;
+        if(sidebar) sidebar.style.setProperty('transform','translateX(-260px)','important');
+        if(overlay) overlay.style.display = 'none';
         document.body.style.overflow = '';
     }
-    if (sidebarToggle && sidebar) {
-        sidebarToggle.addEventListener('click', () => {
-            sidebar.classList.contains('show') ? closeSidebar() : openSidebar();
-        });
-    }
+    initSidebar();
+    window.addEventListener('resize', function(){
+        if(!isMobile() && sidebar){ sidebar.style.removeProperty('transform'); sidebarOpen = false; }
+        else if(isMobile() && !sidebarOpen){ initSidebar(); }
+    });
+    if(sidebarToggle) sidebarToggle.addEventListener('click', () => { sidebarOpen ? closeSidebar() : openSidebar(); });
     if(overlay) overlay.addEventListener('click', closeSidebar);
 
     // ── Modal Form Submit Cleanup ─────────────────────────────
