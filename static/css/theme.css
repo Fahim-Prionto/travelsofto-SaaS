@@ -513,16 +513,22 @@ a:hover {
 }
 
 @media (max-width: 991.98px) {
-  /* Sidebar slides in from left */
+  /* Sidebar slides in from left — !important needed to override inline styles */
   #sidebar {
-    transform: translateX(-100%);
+    transform: translateX(-100%) !important;
     margin-left: 0 !important;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 1040;
+    left: 0 !important;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    z-index: 1050 !important;
   }
   #sidebar.show {
-    transform: translateX(0);
-    box-shadow: 6px 0 32px rgba(0, 0, 0, 0.45);
+    transform: translateX(0) !important;
+    box-shadow: 6px 0 32px rgba(0, 0, 0, 0.55) !important;
+  }
+
+  /* Overlay sits just below sidebar */
+  #sidebar-overlay {
+    z-index: 1045 !important;
   }
 
   /* Main content uses full width */
@@ -543,7 +549,7 @@ a:hover {
 
   /* Header title shrinks gracefully */
   .top-nav h4 {
-    font-size: clamp(0.9rem, 3.5vw, 1.15rem) !important;
+    font-size: clamp(0.9rem, 3.5vw, 1.1rem) !important;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -565,30 +571,18 @@ a:hover {
     flex-shrink: 0;
   }
 
-  /* Stat cards stack nicely */
-  .stat-card {
-    padding: 0.9rem 1rem;
+  /* Nav links bigger touch target */
+  #sidebar .nav-link {
+    min-height: 44px;
+    padding: 0.65rem 1rem !important;
   }
 
   /* Tables scroll horizontally */
   .table-responsive {
     -webkit-overflow-scrolling: touch;
   }
-
-  /* Cards less padding */
-  .card {
-    padding: 1rem !important;
-  }
-  .card.p-4 {
-    padding: 1rem !important;
-  }
-
-  /* Nav links bigger touch target */
-  #sidebar .nav-link {
-    min-height: 44px;
-    padding: 0.65rem 1rem !important;
-  }
 }
+
 
 /* ── Accordion Sidebar Navigation ───────────────────────────────────────────── */
 #sidebar {
