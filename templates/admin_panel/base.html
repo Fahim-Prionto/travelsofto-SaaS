@@ -204,6 +204,40 @@
         overflow-y: auto !important;
         -webkit-overflow-scrolling: touch !important;
     }
+    /* ── Mobile Sidebar – added inline so it works without collectstatic ── */
+    #sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.55);
+        z-index: 999;
+        backdrop-filter: blur(2px);
+        -webkit-backdrop-filter: blur(2px);
+    }
+    #sidebar-overlay.show { display: block !important; }
+
+    @media (max-width: 991.98px) {
+        #sidebar {
+            transform: translateX(-260px) !important;
+            transition: transform 0.3s ease !important;
+        }
+        #sidebar.show {
+            transform: translateX(0) !important;
+            box-shadow: 6px 0 24px rgba(0,0,0,0.5) !important;
+        }
+        #main-content {
+            margin-left: 0 !important;
+            padding: 0.85rem !important;
+        }
+        .top-nav h4 {
+            font-size: 1rem !important;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 42vw;
+        }
+        .user-email-text { display: none !important; }
+    }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
