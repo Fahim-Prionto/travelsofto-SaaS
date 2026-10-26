@@ -25,11 +25,19 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         dry_run = options['dry_run']
-        base_domain = getattr(settings, 'BASE_DOMAIN', 'localhost:8000')
-        # Strip port from base domain for clean comparisons
-        clean_base = base_domain.split(':')[0]
+        raw_base_domain = getattr(settings, 'BASE_DOMAIN', 'localhost:8000')
 
-        self.stdout.write(f'BASE_DOMAIN = {base_domain}')
+        # Strip protocol (http:// or https://) and trailing slashes that may
+        # have been accidentally included in the .env value
+        clean_base = raw_base_domain \
+            .replace('https://', '') \
+            .replace('http://', '') \
+            .strip('/')
+        # Also strip port for the domain record (subdomain.softobro.com not subdomain.softobro.com:443)
+        clean_base = clean_base.split(':')[0]
+
+        self.stdout.write(f'BASE_DOMAIN (raw)  = {raw_base_domain}')
+        self.stdout.write(f'BASE_DOMAIN (clean) = {clean_base}')
         self.stdout.write(f'Scanning all subdomain TenantDomain records...\n')
 
         fixed = 0
