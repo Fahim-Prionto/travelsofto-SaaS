@@ -498,13 +498,13 @@ a:hover {
 
 /* ── Mobile & Responsive Fixes ─────────────────────────────────────────── */
 
-/* Sidebar overlay backdrop */
+/* Sidebar overlay backdrop — must stay BELOW sidebar z-index (1000) */
 #sidebar-overlay {
   display: none;
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.55);
-  z-index: 999;
+  z-index: 999;       /* sidebar inline style locks it at 1000, so 999 = behind sidebar */
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
 }
@@ -519,16 +519,11 @@ a:hover {
     margin-left: 0 !important;
     left: 0 !important;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    z-index: 1050 !important;
+    /* Do NOT override z-index here — inline 1000 > overlay 999 = sidebar on top ✅ */
   }
   #sidebar.show {
     transform: translateX(0) !important;
     box-shadow: 6px 0 32px rgba(0, 0, 0, 0.55) !important;
-  }
-
-  /* Overlay sits just below sidebar */
-  #sidebar-overlay {
-    z-index: 1045 !important;
   }
 
   /* Main content uses full width */
