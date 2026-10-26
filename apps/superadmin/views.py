@@ -73,7 +73,7 @@ def dashboard(request):
 @login_required
 @user_passes_test(superadmin_required)
 def tenant_list(request):
-    """List all registered tenants with filtering."""
+    """List all registered tenants with filtering. Also auto-syncs stale tenant statuses."""
     status_filter = request.GET.get('status', '')
     query = request.GET.get('q', '')
 
@@ -83,6 +83,12 @@ def tenant_list(request):
         tenants = tenants.filter(status=status_filter)
     if query:
         tenants = tenants.filter(agency_name__icontains=query) | tenants.filter(email__icontains=query)
+
+    # Auto-sync: check every tenant's subscription and fix stale Tenant.status
+    for tenant in tenants:
+        sub = tenant.subscriptions.order_by('-created_at').first()
+        if sub:
+            sub.check_and_update_status()
 
     context = {
         'tenants': tenants,

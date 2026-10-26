@@ -134,13 +134,28 @@ class Subscription(models.Model):
     def __str__(self):
         return f'{self.tenant.agency_name} – {self.package.name} ({self.status})'
 
+    def _sync_tenant_status(self, new_status):
+        """Sync the parent Tenant.status to match subscription status."""
+        try:
+            tenant = self.tenant
+            if new_status == self.Status.EXPIRED and tenant.status != 'expired':
+                tenant.status = 'expired'
+                tenant.save(update_fields=['status'])
+            elif new_status == self.Status.ACTIVE and tenant.status not in ('active',):
+                tenant.status = 'active'
+                tenant.save(update_fields=['status'])
+        except Exception:
+            pass  # Never break the subscription flow due to tenant sync errors
+
     def check_and_update_status(self):
         """
         Automatically update subscription status to EXPIRED if end_date has passed.
+        Also syncs Tenant.status so both columns stay in sync.
         """
         if self.status in (self.Status.ACTIVE, self.Status.TRIAL) and self.end_date <= timezone.now():
             self.status = self.Status.EXPIRED
             self.save(update_fields=['status'])
+            self._sync_tenant_status(self.Status.EXPIRED)
         return self.status
 
     @property
@@ -148,6 +163,7 @@ class Subscription(models.Model):
         if self.status in (self.Status.ACTIVE, self.Status.TRIAL) and self.end_date <= timezone.now():
             self.status = self.Status.EXPIRED
             self.save(update_fields=['status'])
+            self._sync_tenant_status(self.Status.EXPIRED)
             return False
         return self.status in (self.Status.ACTIVE, self.Status.TRIAL)
 
@@ -159,10 +175,12 @@ class Subscription(models.Model):
     def activate(self):
         self.status = self.Status.ACTIVE
         self.save(update_fields=['status'])
+        self._sync_tenant_status(self.Status.ACTIVE)
 
     def expire(self):
         self.status = self.Status.EXPIRED
         self.save(update_fields=['status'])
+        self._sync_tenant_status(self.Status.EXPIRED)
 
 
 class SaaSPayment(models.Model):
