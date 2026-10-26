@@ -830,42 +830,119 @@ def staff_delete(request, pk):
 # ── WEBSITE CMS MANAGEMENT & AGENCY BRANDING ──────────────────────────────────
 @login_required
 def cms_settings(request):
-    """Manage Tenant Website Hero, Agency Logo, Agency Name & CMS Content."""
+    """Manage the full agency website: Hero, Branding, About, Contact, SEO, Theme."""
+    from apps.cms.models import AboutSection, WebsiteSetting
+
     db = get_tenant_db(request)
     hero = HeroSection.objects.using(db).first()
+    about = AboutSection.objects.using(db).first()
     tenant = None
     if request.user.tenant_id:
         tenant = Tenant.objects.filter(slug=request.user.tenant_id).first()
 
+    # Load WebsiteSettings key-value pairs
+    def _ws_get(key, default=''):
+        try:
+            return WebsiteSetting.objects.using(db).get(key=key).value
+        except WebsiteSetting.DoesNotExist:
+            return default
+
+    def _ws_set(key, value):
+        obj, _ = WebsiteSetting.objects.using(db).get_or_create(key=key)
+        obj.value = value
+        obj.save(using=db)
+
     if request.method == 'POST':
-        hero_title = request.POST.get('hero_title', '').strip()
-        hero_subtitle = request.POST.get('hero_subtitle', '').strip()
-        agency_name = request.POST.get('agency_name', '').strip()
+        tab = request.POST.get('tab', 'hero')
 
-        # Update Hero Section
-        if hero:
-            hero.title = hero_title
-            hero.subtitle = hero_subtitle
-            hero.save(using=db)
-        else:
-            HeroSection.objects.using(db).create(
-                title=hero_title,
-                subtitle=hero_subtitle,
-                is_active=True,
-            )
+        if tab == 'hero':
+            hero_title    = request.POST.get('hero_title', '').strip()
+            hero_subtitle = request.POST.get('hero_subtitle', '').strip()
+            cta_text      = request.POST.get('cta_text', 'Explore Now').strip()
+            if hero:
+                hero.title    = hero_title
+                hero.subtitle = hero_subtitle
+                hero.cta_text = cta_text
+                if 'hero_bg' in request.FILES:
+                    hero.background_image = request.FILES['hero_bg']
+                hero.save(using=db)
+            else:
+                kw = {'title': hero_title, 'subtitle': hero_subtitle,
+                      'cta_text': cta_text, 'is_active': True}
+                if 'hero_bg' in request.FILES:
+                    kw['background_image'] = request.FILES['hero_bg']
+                HeroSection.objects.using(db).create(**kw)
 
-        # Update Agency Name & Logo
-        if tenant:
-            if agency_name:
-                tenant.agency_name = agency_name
-            if 'logo' in request.FILES:
-                tenant.logo = request.FILES['logo']
-            tenant.save()
+        elif tab == 'branding':
+            agency_name   = request.POST.get('agency_name', '').strip()
+            primary_color = request.POST.get('primary_color', '').strip()
+            if tenant:
+                if agency_name:
+                    tenant.agency_name = agency_name
+                if 'logo' in request.FILES:
+                    tenant.logo = request.FILES['logo']
+                if 'favicon' in request.FILES:
+                    tenant.favicon = request.FILES['favicon']
+                tenant.save()
+            if primary_color:
+                _ws_set('primary_color', primary_color)
 
-        messages.success(request, 'Website CMS & Agency Branding settings saved successfully!')
+        elif tab == 'about':
+            about_title   = request.POST.get('about_title', '').strip()
+            about_content = request.POST.get('about_content', '').strip()
+            about_mission = request.POST.get('about_mission', '').strip()
+            about_vision  = request.POST.get('about_vision', '').strip()
+            if about:
+                about.title   = about_title
+                about.content = about_content
+                about.mission = about_mission
+                about.vision  = about_vision
+                if 'about_image' in request.FILES:
+                    about.image = request.FILES['about_image']
+                about.save(using=db)
+            else:
+                kw = {'title': about_title, 'content': about_content,
+                      'mission': about_mission, 'vision': about_vision, 'is_active': True}
+                if 'about_image' in request.FILES:
+                    kw['image'] = request.FILES['about_image']
+                AboutSection.objects.using(db).create(**kw)
+
+        elif tab == 'contact':
+            _ws_set('contact_phone',   request.POST.get('contact_phone', '').strip())
+            _ws_set('contact_email',   request.POST.get('contact_email', '').strip())
+            _ws_set('contact_address', request.POST.get('contact_address', '').strip())
+            _ws_set('contact_map_url', request.POST.get('contact_map_url', '').strip())
+
+        elif tab == 'seo':
+            _ws_set('meta_title',       request.POST.get('meta_title', '').strip())
+            _ws_set('meta_description', request.POST.get('meta_description', '').strip())
+            _ws_set('meta_keywords',    request.POST.get('meta_keywords', '').strip())
+
+        messages.success(request, '✅ Website settings saved successfully!')
         return redirect('admin_panel:cms_settings')
 
-    return render(request, 'admin_panel/cms/settings.html', {'hero': hero, 'tenant': tenant})
+    # Build context with all editable data
+    ws = {
+        'primary_color':   _ws_get('primary_color', '#0d6efd'),
+        'contact_phone':   _ws_get('contact_phone'),
+        'contact_email':   _ws_get('contact_email'),
+        'contact_address': _ws_get('contact_address'),
+        'contact_map_url': _ws_get('contact_map_url'),
+        'meta_title':      _ws_get('meta_title'),
+        'meta_description': _ws_get('meta_description'),
+        'meta_keywords':   _ws_get('meta_keywords'),
+    }
+
+    site_url = getattr(settings, 'SITE_URL', 'http://localhost:8000')
+    directory_url = f"{site_url}/a/{tenant.slug}/" if tenant else '#'
+
+    return render(request, 'admin_panel/cms/settings.html', {
+        'hero':          hero,
+        'about':         about,
+        'tenant':        tenant,
+        'ws':            ws,
+        'directory_url': directory_url,
+    })
 
 
 @login_required
@@ -1003,7 +1080,7 @@ def my_subscription(request):
 
 @login_required
 def domain_settings(request):
-    """Agency Domain Management: Subdomain URL and Custom Domain Setup."""
+    """Agency Domain Management: Subdomain URL, Directory URL, Slug Rename, and Custom Domains."""
     if not request.user.tenant_id:
         return redirect('admin_panel:dashboard')
 
@@ -1072,7 +1149,58 @@ def domain_settings(request):
                 messages.success(request, "Custom domain removed successfully.")
             return redirect('admin_panel:domain_settings')
 
+        elif action == 'rename_slug':
+            # ── Agency URL Slug Rename ────────────────────────────────────────
+            import re as _re
+            new_slug = request.POST.get('new_slug', '').strip().lower()
+            new_slug = _re.sub(r'[^a-z0-9-]', '-', new_slug).strip('-')
+            new_slug = _re.sub(r'-+', '-', new_slug)
+
+            # Reserved keywords that cannot be used as slugs
+            _reserved = {'auth', 'api', 'admin-panel', 'django-admin', 'static',
+                         'media', 'superadmin', 'a', 'admin'}
+
+            if not new_slug or len(new_slug) < 3:
+                messages.error(request, "Agency URL slug must be at least 3 characters.")
+            elif new_slug in _reserved:
+                messages.error(request, f"'{new_slug}' is a reserved keyword and cannot be used as the agency URL.")
+            elif Tenant.objects.filter(slug=new_slug).exclude(pk=tenant.pk).exists():
+                messages.error(request, f"The slug '{new_slug}' is already in use by another agency.")
+            else:
+                old_slug = tenant.slug
+
+                # Update subdomain domain record to reflect new slug
+                base_domain_cfg = getattr(settings, 'BASE_DOMAIN', 'localhost:8000')
+                new_clean_subdomain = f"{new_slug}.{base_domain_cfg}".split(':')[0]
+                subdomain_obj.domain = new_clean_subdomain
+                subdomain_obj.save(update_fields=['domain'])
+
+                # Update tenant slug
+                tenant.slug = new_slug
+                tenant.save(update_fields=['slug'])
+
+                # Update the logged-in user's tenant_id to the new slug
+                request.user.tenant_id = new_slug
+                request.user.save(update_fields=['tenant_id'])
+
+                # Also update all OTHER users belonging to this tenant
+                from apps.accounts.models import User as _User
+                _User.objects.filter(tenant_id=old_slug).update(tenant_id=new_slug)
+
+                messages.success(
+                    request,
+                    f"✅ Agency URL updated to <strong>/{new_slug}/</strong>. "
+                    f"Old URLs using <em>/{old_slug}/</em> will no longer work."
+                )
+                return redirect('admin_panel:domain_settings')
+
     domains = tenant.domains.all()
+
+    # Build both URL styles to display in the template
+    base_domain = getattr(settings, 'BASE_DOMAIN', 'localhost:8000')
+    site_url = getattr(settings, 'SITE_URL', f'http://{base_domain}')
+    directory_url = f"{site_url}/a/{tenant.slug}/"
+    subdomain_url = f"http://{tenant.slug}.{base_domain}/"
 
     return render(request, 'admin_panel/settings/domain_settings.html', {
         'tenant': tenant,

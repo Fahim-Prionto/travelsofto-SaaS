@@ -12,6 +12,11 @@ On every request:
   6. Attach the tenant object to request.tenant for use in views/templates.
 
 If no tenant domain matches (e.g. superadmin paths), tenant context is None.
+
+Path-based (directory) routing:
+  Paths starting with /a/<slug>/ are also resolved to the tenant whose slug
+  matches. This allows travel.softobro.com/a/{agencyname}/ to work alongside
+  the existing subdomain routing.
 """
 import logging
 from django.conf import settings
@@ -20,6 +25,11 @@ from django.utils.deprecation import MiddlewareMixin
 from apps.tenants.routers import set_tenant_db
 
 logger = logging.getLogger(__name__)
+
+# Reserved path prefixes that should NEVER be treated as agency slugs
+_RESERVED_PATHS = {
+    'auth', 'api', 'admin-panel', 'django-admin', 'static', 'media',
+}
 
 
 class TenantMiddleware(MiddlewareMixin):
@@ -42,7 +52,7 @@ class TenantMiddleware(MiddlewareMixin):
 
             tenant = None
 
-            # Domain lookup (supports custom domains & exact subdomains)
+            # ── Strategy A: Domain lookup (supports custom domains & exact subdomains) ──
             domain_obj = TenantDomain.objects.select_related('tenant').filter(
                 domain__iexact=hostname
             ).first()
@@ -50,7 +60,8 @@ class TenantMiddleware(MiddlewareMixin):
             if domain_obj:
                 tenant = domain_obj.tenant
             else:
-                # Subdomain slug fallback (e.g. fahim-travel.localhost -> slug 'fahim-travel')
+                # ── Strategy B: Subdomain slug fallback ──────────────────────
+                # e.g. fahim-travel.localhost → slug 'fahim-travel'
                 base_domain = getattr(settings, 'BASE_DOMAIN', 'localhost:8000').split(':')[0].lower()
                 if '.' in hostname and (hostname.endswith(f'.{base_domain}') or hostname.endswith('.localhost')):
                     subdomain_prefix = hostname.split('.')[0]
@@ -66,7 +77,19 @@ class TenantMiddleware(MiddlewareMixin):
                             }
                         )
 
-            # Fallback to logged in user's tenant if hostname is localhost/127.0.0.1 or no domain matched
+            # ── Strategy C: Path-based directory routing (/a/<slug>/) ────────
+            # This allows travel.softobro.com/a/{agencyname}/ to map to the
+            # correct tenant without a subdomain.
+            if not tenant:
+                path_parts = request.path.strip('/').split('/')
+                if len(path_parts) >= 2 and path_parts[0] == 'a':
+                    agency_slug = path_parts[1]
+                    if agency_slug and agency_slug not in _RESERVED_PATHS:
+                        tenant = Tenant.objects.filter(slug=agency_slug).first()
+                        if tenant:
+                            logger.debug(f'Tenant resolved via directory path: /a/{agency_slug}/')
+
+            # ── Fallback: Logged-in user's tenant (localhost/no domain match) ─
             if not tenant and hasattr(request, 'user') and request.user.is_authenticated and getattr(request.user, 'tenant_id', None):
                 tenant = Tenant.objects.filter(slug=request.user.tenant_id).first()
 
@@ -90,3 +113,4 @@ class TenantMiddleware(MiddlewareMixin):
         # Always clear tenant context after response
         set_tenant_db(None)
         return response
+

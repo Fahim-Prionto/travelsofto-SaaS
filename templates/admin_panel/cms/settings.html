@@ -1,78 +1,299 @@
 {% extends 'admin_panel/base.html' %}
 
-{% block title %}Website CMS & Agency Branding - Agency Admin{% endblock %}
-{% block header_title %}Website CMS & Agency Branding Settings{% endblock %}
+{% block title %}Website Editor - Agency Panel{% endblock %}
+{% block header_title %}Agency Website Editor{% endblock %}
 
 {% block content %}
-<div class="row g-4 justify-content-center">
-    <div class="col-lg-8">
-        <!-- Agency Branding (Logo & Platform Title) -->
-        <div class="card border-0 shadow-sm p-4 mb-4">
-            <div class="d-flex align-items-center gap-3 mb-4 border-bottom pb-3">
-                <div class="stat-icon bg-primary text-white rounded-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; font-size: 1.25rem;">
-                    <i class="fa-solid fa-paintbrush"></i>
+{# Preview link bar #}
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <p class="text-muted mb-0 small">
+        <i class="fa-solid fa-circle-info text-primary me-1"></i>
+        Changes are reflected live on your public agency website.
+    </p>
+    {% if directory_url %}
+    <a href="{{ directory_url }}" target="_blank" class="btn btn-outline-primary btn-sm rounded-3 fw-bold">
+        <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Preview Website
+    </a>
+    {% endif %}
+</div>
+
+{# ── Tab Navigation ── #}
+<ul class="nav nav-tabs mb-0 border-bottom-0" id="websiteEditorTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active fw-semibold" id="hero-tab" data-bs-toggle="tab" data-bs-target="#tab-hero" type="button" role="tab">
+            <i class="fa-solid fa-images me-1"></i> Hero / Banner
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-semibold" id="branding-tab" data-bs-toggle="tab" data-bs-target="#tab-branding" type="button" role="tab">
+            <i class="fa-solid fa-palette me-1"></i> Branding
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-semibold" id="about-tab" data-bs-toggle="tab" data-bs-target="#tab-about" type="button" role="tab">
+            <i class="fa-solid fa-circle-info me-1"></i> About
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-semibold" id="contact-tab" data-bs-toggle="tab" data-bs-target="#tab-contact" type="button" role="tab">
+            <i class="fa-solid fa-phone me-1"></i> Contact
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-semibold" id="seo-tab" data-bs-toggle="tab" data-bs-target="#tab-seo" type="button" role="tab">
+            <i class="fa-solid fa-magnifying-glass me-1"></i> SEO
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content card border-0 shadow-sm rounded-bottom-4 rounded-top-0 p-4" id="websiteEditorTabContent">
+
+    {# ━━━━━━━━━━━━ TAB 1 — HERO / BANNER ━━━━━━━━━━━━ #}
+    <div class="tab-pane fade show active" id="tab-hero" role="tabpanel">
+        <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-star text-warning me-1"></i> Homepage Hero Section</h6>
+        <form method="post" enctype="multipart/form-data" action="{% url 'admin_panel:cms_settings' %}">
+            {% csrf_token %}
+            <input type="hidden" name="tab" value="hero">
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Hero Title <span class="text-danger">*</span></label>
+                        <input type="text" name="hero_title" class="form-control"
+                               value="{{ hero.title|default:'' }}"
+                               placeholder="e.g. Discover the World with Us" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Hero Subtitle / Description</label>
+                        <textarea name="hero_subtitle" class="form-control" rows="3"
+                                  placeholder="e.g. Affordable tour packages, visa services and more.">{{ hero.subtitle|default:'' }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">CTA Button Text</label>
+                        <input type="text" name="cta_text" class="form-control"
+                               value="{{ hero.cta_text|default:'Explore Now' }}"
+                               placeholder="Explore Now">
+                    </div>
                 </div>
-                <div>
-                    <h5 class="fw-bold m-0 text-dark">Agency Logo & Branding</h5>
-                    <p class="text-muted small mb-0">Customize your agency name and logo displayed on customer dashboards and landing pages</p>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold small">Background Image</label>
+                    {% if hero.background_image %}
+                    <div class="mb-2">
+                        <img src="{{ hero.background_image.url }}" class="img-fluid rounded-3 border" alt="Hero Background">
+                    </div>
+                    {% endif %}
+                    <input type="file" name="hero_bg" class="form-control" accept="image/*">
+                    <small class="text-muted">Recommended: 1920×700px JPG/PNG</small>
                 </div>
             </div>
+            <button type="submit" class="btn btn-primary fw-bold px-4 mt-2">
+                <i class="fa-solid fa-save me-1"></i> Save Hero Section
+            </button>
+        </form>
+    </div>
 
-            <form method="POST" enctype="multipart/form-data">
-                {% csrf_token %}
-                <div class="mb-4">
-                    <label class="form-label small fw-bold text-muted">Agency Platform Name</label>
-                    <input type="text" name="agency_name" class="form-control" value="{{ tenant.agency_name }}" placeholder="e.g. Viser Agency" required>
-                    <small class="text-muted fs-8">This name appears in your customer dashboard sidebar, landing page title, and headers.</small>
+    {# ━━━━━━━━━━━━ TAB 2 — BRANDING ━━━━━━━━━━━━ #}
+    <div class="tab-pane fade" id="tab-branding" role="tabpanel">
+        <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-swatchbook text-primary me-1"></i> Agency Branding</h6>
+        <form method="post" enctype="multipart/form-data" action="{% url 'admin_panel:cms_settings' %}">
+            {% csrf_token %}
+            <input type="hidden" name="tab" value="branding">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Agency Display Name</label>
+                        <input type="text" name="agency_name" class="form-control"
+                               value="{{ tenant.agency_name|default:'' }}"
+                               placeholder="Your Agency Name">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Primary Theme Color</label>
+                        <div class="input-group">
+                            <input type="color" name="primary_color" class="form-control form-control-color"
+                                   value="{{ ws.primary_color|default:'#0d6efd' }}" style="max-width:56px;">
+                            <input type="text" class="form-control" value="{{ ws.primary_color|default:'#0d6efd' }}"
+                                   id="colorHexInput" placeholder="#0d6efd" maxlength="7">
+                        </div>
+                        <small class="text-muted">This color is used for buttons and accents on your website.</small>
+                    </div>
                 </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold small">Agency Logo</label>
+                    {% if tenant.logo %}
+                    <div class="mb-2">
+                        <img src="{{ tenant.logo.url }}" class="img-fluid rounded-3 border p-2 bg-light" alt="Logo" style="max-height:80px;">
+                    </div>
+                    {% endif %}
+                    <input type="file" name="logo" class="form-control mb-1" accept="image/*">
+                    <small class="text-muted">PNG with transparent background preferred.</small>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold small">Favicon</label>
+                    {% if tenant.favicon %}
+                    <div class="mb-2">
+                        <img src="{{ tenant.favicon.url }}" class="img-fluid rounded border p-1 bg-light" alt="Favicon" style="max-height:40px;">
+                    </div>
+                    {% endif %}
+                    <input type="file" name="favicon" class="form-control mb-1" accept="image/*">
+                    <small class="text-muted">32×32 or 64×64 ICO/PNG.</small>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary fw-bold px-4 mt-2">
+                <i class="fa-solid fa-save me-1"></i> Save Branding
+            </button>
+        </form>
+    </div>
 
-                <div class="mb-4">
-                    <label class="form-label small fw-bold text-muted">Agency Dashboard & Website Logo</label>
-                    <div class="d-flex align-items-center gap-3">
-                        {% if tenant.logo %}
-                            <img src="{{ tenant.logo.url }}" alt="Agency Logo" class="rounded border p-1 bg-light" style="max-height: 54px;">
-                        {% else %}
-                            <div class="rounded bg-primary-subtle text-primary fw-bold d-flex align-items-center justify-content-center border" style="width: 54px; height: 54px; font-size: 1.5rem;">
-                                <i class="fa-solid fa-plane-departure"></i>
-                            </div>
-                        {% endif %}
-                        <div class="flex-grow-1">
-                            <input type="file" name="logo" class="form-control" accept="image/*">
-                            <small class="text-muted fs-8">Upload PNG/JPG logo (recommended height: 60px).</small>
+    {# ━━━━━━━━━━━━ TAB 3 — ABOUT ━━━━━━━━━━━━ #}
+    <div class="tab-pane fade" id="tab-about" role="tabpanel">
+        <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-circle-info text-info me-1"></i> About Us Page</h6>
+        <form method="post" enctype="multipart/form-data" action="{% url 'admin_panel:cms_settings' %}">
+            {% csrf_token %}
+            <input type="hidden" name="tab" value="about">
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">About Section Title</label>
+                        <input type="text" name="about_title" class="form-control"
+                               value="{{ about.title|default:'' }}"
+                               placeholder="e.g. About Our Agency">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">About Content / Story</label>
+                        <textarea name="about_content" class="form-control" rows="4"
+                                  placeholder="Tell your customers about your agency...">{{ about.content|default:'' }}</textarea>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Our Mission</label>
+                            <textarea name="about_mission" class="form-control" rows="3"
+                                      placeholder="Our mission is...">{{ about.mission|default:'' }}</textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Our Vision</label>
+                            <textarea name="about_vision" class="form-control" rows="3"
+                                      placeholder="Our vision is...">{{ about.vision|default:'' }}</textarea>
                         </div>
                     </div>
                 </div>
-
-                <hr class="my-4">
-
-                <!-- Landing Page Content (CMS) -->
-                <div class="d-flex align-items-center gap-3 mb-4 border-bottom pb-3">
-                    <div class="stat-icon bg-info text-white rounded-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; font-size: 1.25rem;">
-                        <i class="fa-solid fa-globe"></i>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold small">About Section Image</label>
+                    {% if about.image %}
+                    <div class="mb-2">
+                        <img src="{{ about.image.url }}" class="img-fluid rounded-3 border" alt="About Image">
                     </div>
-                    <div>
-                        <h5 class="fw-bold m-0 text-dark">Homepage Hero Banner (CMS)</h5>
-                        <p class="text-muted small mb-0">Update your agency landing page headline and subtitle</p>
-                    </div>
+                    {% endif %}
+                    <input type="file" name="about_image" class="form-control" accept="image/*">
+                    <small class="text-muted">Recommended: 800×600px JPG/PNG</small>
                 </div>
-
-                <div class="mb-3">
-                    <label class="form-label small fw-bold text-muted">Homepage Hero Headline</label>
-                    <input type="text" name="hero_title" class="form-control" value="{{ hero.title|default:'Explore Extraordinary Worldwide Destinations' }}" required>
-                </div>
-
-                <div class="mb-4">
-                    <label class="form-label small fw-bold text-muted">Homepage Hero Subtitle</label>
-                    <textarea name="hero_subtitle" class="form-control" rows="3" required>{{ hero.subtitle|default:'Book premium tour packages, luxury travel itineraries, and complete your visa application in a single platform.' }}</textarea>
-                </div>
-
-                <div class="d-flex align-items-center justify-content-end gap-2 pt-3 border-top">
-                    <button type="submit" class="btn btn-primary px-4 fw-bold">
-                        <i class="fa-solid fa-floppy-disk me-1"></i> Save Branding & CMS Settings
-                    </button>
-                </div>
-            </form>
-        </div>
+            </div>
+            <button type="submit" class="btn btn-primary fw-bold px-4 mt-2">
+                <i class="fa-solid fa-save me-1"></i> Save About Section
+            </button>
+        </form>
     </div>
-</div>
+
+    {# ━━━━━━━━━━━━ TAB 4 — CONTACT ━━━━━━━━━━━━ #}
+    <div class="tab-pane fade" id="tab-contact" role="tabpanel">
+        <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-phone text-success me-1"></i> Contact Information</h6>
+        <form method="post" action="{% url 'admin_panel:cms_settings' %}">
+            {% csrf_token %}
+            <input type="hidden" name="tab" value="contact">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold small">Phone Number</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fa-solid fa-phone text-muted"></i></span>
+                        <input type="text" name="contact_phone" class="form-control"
+                               value="{{ ws.contact_phone }}" placeholder="+880 1xxx-xxxxxx">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold small">Contact Email</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fa-solid fa-envelope text-muted"></i></span>
+                        <input type="email" name="contact_email" class="form-control"
+                               value="{{ ws.contact_email }}" placeholder="info@youragency.com">
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold small">Office Address</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fa-solid fa-location-dot text-muted"></i></span>
+                        <input type="text" name="contact_address" class="form-control"
+                               value="{{ ws.contact_address }}" placeholder="123 Travel Street, Dhaka, Bangladesh">
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold small">Google Maps Embed URL <span class="text-muted fw-normal">(optional)</span></label>
+                    <input type="url" name="contact_map_url" class="form-control"
+                           value="{{ ws.contact_map_url }}"
+                           placeholder="https://www.google.com/maps/embed?pb=...">
+                    <small class="text-muted">Paste the embed URL from Google Maps → Share → Embed a map.</small>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary fw-bold px-4 mt-3">
+                <i class="fa-solid fa-save me-1"></i> Save Contact Info
+            </button>
+        </form>
+    </div>
+
+    {# ━━━━━━━━━━━━ TAB 5 — SEO ━━━━━━━━━━━━ #}
+    <div class="tab-pane fade" id="tab-seo" role="tabpanel">
+        <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-magnifying-glass text-secondary me-1"></i> SEO Settings</h6>
+        <form method="post" action="{% url 'admin_panel:cms_settings' %}">
+            {% csrf_token %}
+            <input type="hidden" name="tab" value="seo">
+            <div class="mb-3">
+                <label class="form-label fw-semibold small">Meta Title <span class="text-muted fw-normal">(shown in browser tab &amp; Google results)</span></label>
+                <input type="text" name="meta_title" class="form-control" maxlength="70"
+                       value="{{ ws.meta_title }}"
+                       placeholder="e.g. {{ tenant.agency_name }} - Travel &amp; Visa Agency">
+                <small class="text-muted">Keep under 60 characters for best results.</small>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold small">Meta Description <span class="text-muted fw-normal">(shown in Google search snippet)</span></label>
+                <textarea name="meta_description" class="form-control" rows="3" maxlength="165"
+                          placeholder="Describe your agency in 1-2 sentences for search engines.">{{ ws.meta_description }}</textarea>
+                <small class="text-muted">Keep under 155 characters for best results.</small>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold small">Keywords <span class="text-muted fw-normal">(comma-separated)</span></label>
+                <input type="text" name="meta_keywords" class="form-control"
+                       value="{{ ws.meta_keywords }}"
+                       placeholder="travel agency, tour packages, visa, bangladesh">
+            </div>
+            <button type="submit" class="btn btn-primary fw-bold px-4">
+                <i class="fa-solid fa-save me-1"></i> Save SEO Settings
+            </button>
+        </form>
+    </div>
+
+</div>{# /tab-content #}
+
+<script>
+// Sync color picker value to text input
+document.addEventListener('DOMContentLoaded', function () {
+    const colorInput = document.querySelector('input[name="primary_color"]');
+    const hexInput   = document.getElementById('colorHexInput');
+    if (colorInput && hexInput) {
+        colorInput.addEventListener('input', () => { hexInput.value = colorInput.value; });
+        hexInput.addEventListener('input', () => {
+            if (/^#[0-9A-Fa-f]{6}$/.test(hexInput.value)) colorInput.value = hexInput.value;
+        });
+    }
+
+    // Restore active tab after form submission via hash
+    const hash = window.location.hash;
+    if (hash) {
+        const tab = document.querySelector('#websiteEditorTabs button[data-bs-target="' + hash + '"]');
+        if (tab) { new bootstrap.Tab(tab).show(); }
+    }
+    // Write tab hash on click so page remembers position after POST redirect
+    document.querySelectorAll('#websiteEditorTabs button').forEach(btn => {
+        btn.addEventListener('shown.bs.tab', () => {
+            history.replaceState(null, '', btn.dataset.bsTarget);
+        });
+    });
+});
+</script>
 {% endblock %}

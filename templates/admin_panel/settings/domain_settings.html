@@ -1,68 +1,100 @@
 {% extends 'admin_panel/base.html' %}
 
-{% block title %}Domain Management & Website Setup - Agency Admin{% endblock %}
+{% block title %}Domain Management & Website URL - Agency Admin{% endblock %}
 {% block header_title %}Domain Management & Website URL{% endblock %}
 
 {% block content %}
 <div class="row g-4">
-    <!-- Subdirectory / Subdomain Overview Card -->
+
+    {# ── Card 1: Agency Directory URL (new path-based) ── #}
     <div class="col-lg-6">
         <div class="card border-0 shadow-sm p-4 h-100 rounded-4">
             <div class="d-flex align-items-center gap-3 mb-3 border-bottom pb-3">
-                <div class="stat-icon bg-primary text-white rounded-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; font-size: 1.4rem;">
-                    <i class="fa-solid fa-globe"></i>
+                <div class="stat-icon text-white rounded-3 d-flex align-items-center justify-content-center"
+                     style="width:48px;height:48px;font-size:1.4rem;background:#0d6efd;">
+                    <i class="fa-solid fa-folder-open"></i>
                 </div>
                 <div>
-                    <h5 class="fw-bold m-0 text-dark">Default Website Domain</h5>
-                    <small class="text-muted">Auto-generated directory subdomain for your agency</small>
+                    <h5 class="fw-bold m-0 text-dark">Agency Directory URL</h5>
+                    <small class="text-muted">Path-based public website accessible from the main platform domain</small>
                 </div>
             </div>
 
-            <p class="text-secondary small mb-3">
-                When your agency registered, a dedicated website subdomain was created automatically. You can share this URL directly with your customers.
-            </p>
-
-            <div class="bg-light p-3 rounded-3 mb-3 border">
+            <div class="bg-light border rounded-3 p-3 mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small fw-semibold">Directory URL:</span>
+                    <a href="{{ directory_url }}" target="_blank" class="fw-bold text-primary text-decoration-none small">
+                        <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>{{ directory_url }}
+                    </a>
+                </div>
                 <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <span class="badge bg-primary me-2">Primary Subdomain</span>
-                        <code class="fw-bold text-dark fs-6">http://{{ subdomain_str }}</code>
-                    </div>
-                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1">Active</span>
+                    <span class="text-muted small fw-semibold">Subdomain URL:</span>
+                    <a href="{{ subdomain_url }}" target="_blank" class="fw-bold text-primary text-decoration-none small">
+                        <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>{{ subdomain_url }}
+                    </a>
                 </div>
             </div>
 
-            <div class="d-flex gap-2 mt-auto">
-                <a href="http://{{ subdomain_str }}" target="_blank" class="btn btn-primary rounded-3 fw-bold flex-fill py-2">
-                    <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Visit Agency Website
+            <div class="d-flex gap-2 mb-4">
+                <a href="{{ directory_url }}" target="_blank" class="btn btn-primary rounded-3 fw-bold flex-fill py-2">
+                    <i class="fa-solid fa-globe me-1"></i> Visit Website
                 </a>
-                <button class="btn btn-outline-secondary rounded-3 px-3" onclick="navigator.clipboard.writeText('http://{{ subdomain_str }}'); alert('Website URL copied!');">
-                    <i class="fa-solid fa-copy me-1"></i> Copy Link
+                <button class="btn btn-outline-secondary rounded-3 px-3"
+                        onclick="navigator.clipboard.writeText('{{ directory_url }}');this.innerHTML='<i class=fa-solid\ fa-check></i>'">
+                    <i class="fa-solid fa-copy"></i>
                 </button>
+            </div>
+
+            {# ── Slug Rename Form ── #}
+            <div class="card border border-warning-subtle bg-warning-subtle bg-opacity-25 rounded-3 p-3">
+                <h6 class="fw-bold text-dark mb-1">
+                    <i class="fa-solid fa-pen-to-square text-warning me-1"></i> Rename Agency URL Slug
+                </h6>
+                <p class="text-muted small mb-3">
+                    Current slug: <code class="fw-bold text-dark">{{ tenant.slug }}</code>
+                    &nbsp;—&nbsp;
+                    <span class="text-danger fw-semibold small"><i class="fa-solid fa-triangle-exclamation me-1"></i>Old URLs will stop working after rename.</span>
+                </p>
+                <form method="post" action="{% url 'admin_panel:domain_settings' %}"
+                      onsubmit="return confirm('⚠️ Renaming your URL slug will break all existing links. Are you sure?');">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="rename_slug">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light text-muted fw-bold">/a/</span>
+                        <input type="text" name="new_slug" class="form-control" value="{{ tenant.slug }}"
+                               pattern="[a-z0-9\-]+" minlength="3" maxlength="60"
+                               placeholder="new-agency-slug" required>
+                        <button type="submit" class="btn btn-warning fw-bold px-3">
+                            <i class="fa-solid fa-save me-1"></i> Rename
+                        </button>
+                    </div>
+                    <small class="text-muted mt-1 d-block">Only lowercase letters, numbers, and hyphens allowed.</small>
+                </form>
             </div>
         </div>
     </div>
 
-    <!-- Custom Domain Setup Card -->
+    {# ── Card 2: Custom Domain ── #}
     <div class="col-lg-6">
         <div class="card border-0 shadow-sm p-4 h-100 rounded-4">
             <div class="d-flex align-items-center gap-3 mb-3 border-bottom pb-3">
-                <div class="stat-icon bg-accent text-white rounded-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; font-size: 1.4rem; background-color: #8b5cf6;">
+                <div class="stat-icon text-white rounded-3 d-flex align-items-center justify-content-center"
+                     style="width:48px;height:48px;font-size:1.4rem;background:#8b5cf6;">
                     <i class="fa-solid fa-link"></i>
                 </div>
                 <div>
                     <h5 class="fw-bold m-0 text-dark">Custom Domain (Branded Website)</h5>
-                    <small class="text-muted">Connect your own custom domain name (e.g. www.myagency.com)</small>
+                    <small class="text-muted">Connect your own domain, e.g. www.myagency.com</small>
                 </div>
             </div>
 
             {% if not custom_domain_allowed %}
-                <div class="alert alert-warning border-0 rounded-3 mb-3 d-flex align-items-center gap-2">
-                    <i class="fa-solid fa-triangle-exclamation fs-5 text-warning"></i>
-                    <div>
-                        <strong>Custom Domain Gated:</strong> Upgrade your plan to Professional or Enterprise to connect custom domain names.
-                    </div>
+            <div class="alert alert-warning border-0 rounded-3 mb-3 d-flex align-items-center gap-2">
+                <i class="fa-solid fa-triangle-exclamation fs-5 text-warning"></i>
+                <div>
+                    <strong>Upgrade Required:</strong> Upgrade your plan to Professional or Enterprise to connect custom domains.
                 </div>
+            </div>
             {% endif %}
 
             <form method="post" action="{% url 'admin_panel:domain_settings' %}" class="mb-4">
@@ -71,23 +103,22 @@
                 <label class="form-label fw-semibold small text-dark">Add Custom Domain</label>
                 <div class="input-group mb-2">
                     <span class="input-group-text bg-light text-muted">https://</span>
-                    <input type="text" name="custom_domain" class="form-control" placeholder="e.g. www.youragency.com" {% if not custom_domain_allowed %}disabled{% endif %} required>
-                    <button type="submit" class="btn btn-primary fw-bold" {% if not custom_domain_allowed %}disabled{% endif %}>
-                        <i class="fa-solid fa-plus me-1"></i> Add Domain
+                    <input type="text" name="custom_domain" class="form-control"
+                           placeholder="e.g. www.youragency.com"
+                           {% if not custom_domain_allowed %}disabled{% endif %} required>
+                    <button type="submit" class="btn btn-primary fw-bold"
+                            {% if not custom_domain_allowed %}disabled{% endif %}>
+                        <i class="fa-solid fa-plus me-1"></i> Add
                     </button>
                 </div>
-                <small class="text-muted">Enter your domain without http:// or trailing slashes.</small>
+                <small class="text-muted">Enter domain without http:// or trailing slash.</small>
             </form>
 
             <h6 class="fw-bold text-dark mb-2">DNS Setup Instructions</h6>
-            <div class="table-responsive mb-3 rounded-3 border">
-                <table class="table table-sm table-custom align-middle mb-0" style="font-size: 0.85rem;">
+            <div class="table-responsive rounded-3 border">
+                <table class="table table-sm table-custom align-middle mb-0" style="font-size:0.85rem;">
                     <thead>
-                        <tr>
-                            <th>Type</th>
-                            <th>Host / Name</th>
-                            <th>Value / Points To</th>
-                        </tr>
+                        <tr><th>Type</th><th>Host</th><th>Points To</th></tr>
                     </thead>
                     <tbody>
                         <tr>
@@ -102,64 +133,72 @@
     </div>
 </div>
 
-<!-- Active Domains Table Card -->
+{# ── Registered Domains Table ── #}
 <div class="card border-0 shadow-sm p-4 rounded-4 mt-4">
-    <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-list-check text-primary me-2"></i>Registered Agency Domains</h5>
+    <h5 class="fw-bold text-dark mb-3">
+        <i class="fa-solid fa-list-check text-primary me-2"></i>Registered Agency Domains
+    </h5>
     <div class="table-responsive rounded-3 border">
         <table class="table table-custom align-middle mb-0">
             <thead>
                 <tr>
                     <th>Domain</th>
-                    <th>Type</th>
+                    <th>Routing Type</th>
                     <th>Status</th>
-                    <th>SSL</th>
+                    <th>SSL Encryption</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for d in domains %}
-                    <tr>
-                        <td>
-                            <a href="http://{{ d.domain }}" target="_blank" class="fw-bold text-primary text-decoration-none">
-                                {{ d.domain }} <i class="fa-solid fa-arrow-up-right-from-square ms-1 small"></i>
-                            </a>
-                        </td>
-                        <td>
-                            <span class="badge {% if d.domain_type == 'subdomain' %}bg-info-subtle text-info border border-info-subtle{% else %}bg-purple-subtle text-purple border{% endif %}">
-                                {{ d.get_domain_type_display }}
+                <tr>
+                    <td>
+                        <a href="http://{{ d.domain }}" target="_blank"
+                           class="fw-bold text-primary text-decoration-none">
+                            {{ d.domain }} <i class="fa-solid fa-arrow-up-right-from-square ms-1 small"></i>
+                        </a>
+                    </td>
+                    <td>
+                        <span class="badge {% if d.domain_type == 'subdomain' %}bg-info-subtle text-info border border-info-subtle{% else %}bg-purple-subtle text-purple border{% endif %}">
+                            {{ d.get_domain_type_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge {% if d.status == 'active' %}bg-success{% elif d.status == 'pending' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                            {{ d.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if d.ssl_enabled %}
+                            <span class="text-success fw-bold"><i class="fa-solid fa-lock me-1"></i>Active</span>
+                        {% else %}
+                            <span class="text-muted"><i class="fa-solid fa-lock-open me-1"></i>Pending SSL</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if d.domain_type != 'subdomain' %}
+                        <form method="post" action="{% url 'admin_panel:domain_settings' %}"
+                              onsubmit="return confirm('Remove domain {{ d.domain }}?');" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete_domain">
+                            <input type="hidden" name="domain_id" value="{{ d.id }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="fa-solid fa-trash me-1"></i>Remove
+                            </button>
+                        </form>
+                        {% else %}
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                                <i class="fa-solid fa-shield-halved me-1"></i>Primary Route Active
                             </span>
-                        </td>
-                        <td>
-                            <span class="badge {% if d.status == 'active' %}bg-success{% elif d.status == 'pending' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
-                                {{ d.get_status_display }}
-                            </span>
-                        </td>
-                        <td>
-                            {% if d.ssl_enabled %}
-                                <span class="text-success fw-bold"><i class="fa-solid fa-lock me-1"></i> Active</span>
-                            {% else %}
-                                <span class="text-muted"><i class="fa-solid fa-lock-open me-1"></i> HTTP</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if d.domain_type != 'subdomain' %}
-                                <form method="post" action="{% url 'admin_panel:domain_settings' %}" onsubmit="return confirm('Remove custom domain {{ d.domain }}?');" class="d-inline">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="action" value="delete_domain">
-                                    <input type="hidden" name="domain_id" value="{{ d.id }}">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                                        <i class="fa-solid fa-trash me-1"></i> Remove
-                                    </button>
-                                </form>
-                            {% else %}
-                                <span class="text-muted small">Default</span>
-                            {% endif %}
-                        </td>
-                    </tr>
+                        {% endif %}
+                    </td>
+                </tr>
                 {% empty %}
-                    <tr>
-                        <td colspan="5" class="text-center text-muted py-4">No domains found.</td>
-                    </tr>
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-4">
+                        <i class="fa-solid fa-globe me-2"></i>No domains found.
+                    </td>
+                </tr>
                 {% endfor %}
             </tbody>
         </table>

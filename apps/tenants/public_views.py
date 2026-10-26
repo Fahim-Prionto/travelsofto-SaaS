@@ -189,13 +189,38 @@ def visa_list(request):
 
 
 def about(request):
-    """About Us Page."""
-    return render(request, 'website/about.html')
+    """About Us Page — renders CMS-editable AboutSection content."""
+    db = tenant_db(request)
+    from apps.cms.models import AboutSection
+    try:
+        about_section = AboutSection.objects.using(db).filter(is_active=True).first()
+    except Exception:
+        about_section = None
+    return render(request, 'website/about.html', {
+        'about': about_section,
+        'tenant': getattr(request, 'tenant', None),
+    })
 
 
 def contact(request):
-    """Contact Us Page."""
+    """Contact Us Page — renders CMS-editable contact info."""
+    db = tenant_db(request)
+    from apps.cms.models import WebsiteSetting
+    def _ws(key, default=''):
+        try:
+            return WebsiteSetting.objects.using(db).get(key=key).value
+        except Exception:
+            return default
+
     if request.method == 'POST':
         messages.success(request, 'Thank you for reaching out! We will contact you shortly.')
         return redirect('public:contact')
-    return render(request, 'website/contact.html')
+
+    ctx = {
+        'tenant':          getattr(request, 'tenant', None),
+        'contact_phone':   _ws('contact_phone'),
+        'contact_email':   _ws('contact_email'),
+        'contact_address': _ws('contact_address'),
+        'contact_map_url': _ws('contact_map_url'),
+    }
+    return render(request, 'website/contact.html', ctx)

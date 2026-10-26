@@ -22,6 +22,10 @@ urlpatterns = [
     # Tenant/Admin Panel - accessed via subdomain routing
     path('admin-panel/', include('apps.tenants.admin_urls', namespace='admin_panel')),
 
+    # Agency Directory - path-based access: /a/<agency_slug>/
+    # Allows: travel.softobro.com/a/{agencyname}/ alongside subdomain routing
+    path('a/<slug:agency_slug>/', include('apps.tenants.directory_urls', namespace='directory')),
+
     # Customer-facing routes (handled by tenant middleware)
     path('', include('apps.tenants.public_urls', namespace='public')),
 ]
