@@ -47,13 +47,42 @@
                             </div>
                             <div class="col-12 mb-2">
                                 <label class="form-label fw-semibold small text-muted">Assign SaaS Package Plan</label>
-                                <select name="package_id" class="form-select rounded-3 py-2" required>
+                                <select name="package_id" class="form-select rounded-3 py-2" required id="packageSelect">
                                     {% for pkg in packages %}
-                                        <option value="{{ pkg.id }}">
-                                            {{ pkg.name }} — ৳{{ pkg.monthly_price }}/month ({% if pkg.max_users == -1 %}Unlimited Users{% else %}{{ pkg.max_users }} Users{% endif %})
+                                        <option value="{{ pkg.id }}" data-trial-days="{{ pkg.trial_days }}">
+                                            {{ pkg.name }} — ৳{{ pkg.monthly_price }}/mo
+                                            ({% if pkg.max_users == -1 %}∞{% else %}{{ pkg.max_users }}{% endif %} users)
+                                            | Trial: {{ pkg.trial_days }} days
                                         </option>
                                     {% endfor %}
                                 </select>
+                            </div>
+
+                            <div class="col-12 mb-2">
+                                <label class="form-label fw-semibold small text-muted">Subscription Type</label>
+                                <div class="row g-2" id="billing-type-group">
+                                    <div class="col-4">
+                                        <input type="radio" class="btn-check" name="billing_type" id="bt_trial" value="trial" checked>
+                                        <label class="btn btn-outline-warning w-100 rounded-3 fw-semibold" for="bt_trial">
+                                            <i class="fa-solid fa-gift me-1"></i>Free Trial
+                                            <small class="d-block text-muted fw-normal" id="trial-days-label">14 days</small>
+                                        </label>
+                                    </div>
+                                    <div class="col-4">
+                                        <input type="radio" class="btn-check" name="billing_type" id="bt_monthly" value="monthly">
+                                        <label class="btn btn-outline-primary w-100 rounded-3 fw-semibold" for="bt_monthly">
+                                            <i class="fa-solid fa-calendar-days me-1"></i>Monthly
+                                            <small class="d-block text-muted fw-normal">30 days</small>
+                                        </label>
+                                    </div>
+                                    <div class="col-4">
+                                        <input type="radio" class="btn-check" name="billing_type" id="bt_yearly" value="yearly">
+                                        <label class="btn btn-outline-success w-100 rounded-3 fw-semibold" for="bt_yearly">
+                                            <i class="fa-solid fa-calendar-check me-1"></i>Yearly
+                                            <small class="d-block text-muted fw-normal">365 days</small>
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -68,4 +97,20 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+    var sel = document.getElementById('packageSelect');
+    var lbl = document.getElementById('trial-days-label');
+    function updateTrialDays(){
+        var opt = sel ? sel.options[sel.selectedIndex] : null;
+        var d = opt ? (opt.getAttribute('data-trial-days') || '14') : '14';
+        if(lbl) lbl.textContent = d + ' days';
+    }
+    if(sel) sel.addEventListener('change', updateTrialDays);
+    updateTrialDays();
+})();
+</script>
 {% endblock %}

@@ -209,6 +209,9 @@
 </head>
 <body>
 
+<!-- Mobile Sidebar Overlay Backdrop -->
+<div id="sidebar-overlay"></div>
+
     <!-- Agency Admin Sidebar -->
     <nav id="sidebar">
         <div class="brand d-flex align-items-center gap-2 px-3 py-3 border-bottom border-secondary border-opacity-25">
@@ -375,7 +378,7 @@
                         <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style="width:28px; height:28px; font-size:0.8rem;">
                             {{ request.user.email|first|upper }}
                         </div>
-                        <span class="fw-semibold small">{{ request.user.email }}</span>
+                        <span class="fw-semibold small user-email-text">{{ request.user.email }}</span>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3 mt-2">
                         <li><h6 class="dropdown-header text-uppercase fs-8 text-muted">Agency Admin</h6></li>
@@ -438,11 +441,23 @@
     // ── Mobile Sidebar Toggle ─────────────────────────────────
     const sidebarToggle = document.getElementById('sidebarToggle');
     const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    function openSidebar(){
+        sidebar.classList.add('show');
+        if(overlay){ overlay.classList.add('show'); }
+        document.body.style.overflow = 'hidden';
+    }
+    function closeSidebar(){
+        sidebar.classList.remove('show');
+        if(overlay){ overlay.classList.remove('show'); }
+        document.body.style.overflow = '';
+    }
     if (sidebarToggle && sidebar) {
         sidebarToggle.addEventListener('click', () => {
-            sidebar.classList.toggle('show');
+            sidebar.classList.contains('show') ? closeSidebar() : openSidebar();
         });
     }
+    if(overlay) overlay.addEventListener('click', closeSidebar);
 
     // ── Modal Form Submit Cleanup ─────────────────────────────
     document.addEventListener('submit', (e) => {

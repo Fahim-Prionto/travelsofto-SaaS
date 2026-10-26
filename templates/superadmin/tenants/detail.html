@@ -76,9 +76,147 @@
     </div>
 
     <!-- Details & Routing -->
-    <div class="col-lg-8">
+    <div class="col-lg-8 d-flex flex-column gap-4">
+
+        <!-- ── Subscription Countdown + Usage ─────────────────────────────── -->
+        {% if usage_stats %}
+        {% with usage_stats as u %}
+        <div class="card border-0 shadow-sm p-4 rounded-4">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <h6 class="fw-bold m-0 text-dark"><i class="fa-solid fa-gauge-high text-primary me-2"></i>Subscription & Plan Usage</h6>
+                <span class="badge
+                    {% if u.status == 'expired' %}bg-danger
+                    {% elif u.days_remaining <= 3 %}bg-danger
+                    {% elif u.days_remaining <= 7 %}bg-warning text-dark
+                    {% elif u.status == 'trial' %}bg-info text-dark
+                    {% else %}bg-success{% endif %}
+                    rounded-pill px-3 py-1">
+                    <i class="fa-solid fa-{% if u.status == 'expired' %}circle-xmark{% elif u.days_remaining <= 7 %}triangle-exclamation{% else %}circle-check{% endif %} me-1"></i>
+                    {% if u.status == 'expired' %}Expired
+                    {% elif u.days_remaining <= 3 %}{{ u.days_remaining }}d left — Critical!
+                    {% elif u.days_remaining <= 7 %}{{ u.days_remaining }} days left
+                    {% else %}{{ u.days_remaining }} days remaining{% endif %}
+                </span>
+            </div>
+
+            <!-- Countdown + plan meta row -->
+            <div class="row g-3 mb-3">
+                <div class="col-sm-6">
+                    <div class="bg-light rounded-3 p-3 border text-center">
+                        <div class="small text-muted fw-semibold mb-1"><i class="fa-solid fa-hourglass-half me-1 text-warning"></i>Time Until Expiry</div>
+                        <div id="sa-countdown-{{ tenant.pk }}" class="fw-bold text-dark fs-6">calculating…</div>
+                        <div class="text-muted small mt-1"><i class="fa-regular fa-calendar me-1"></i>{{ u.end_date|date:"M d, Y" }}</div>
+                    </div>
+                    <script>
+                    (function(){
+                        var el = document.getElementById('sa-countdown-{{ tenant.pk }}');
+                        var end = new Date("{{ u.end_date|date:'Y-m-d H:i:s' }}".replace(' ','T'));
+                        function t(){
+                            var diff = end - new Date();
+                            if(diff <= 0){ el.innerHTML='<span class="text-danger fw-bold">EXPIRED</span>'; return; }
+                            var d=Math.floor(diff/864e5),h=Math.floor((diff%864e5)/36e5),m=Math.floor((diff%36e5)/6e4),s=Math.floor((diff%6e4)/1e3);
+                            el.textContent = d+'d '+String(h).padStart(2,'0')+'h '+String(m).padStart(2,'0')+'m '+String(s).padStart(2,'0')+'s';
+                        }
+                        t(); setInterval(t,1000);
+                    })();
+                    </script>
+                </div>
+                <div class="col-sm-6">
+                    <div class="bg-light rounded-3 p-3 border">
+                        <div class="small text-muted fw-semibold mb-2">Plan Details</div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="small text-muted">Plan:</span>
+                            <span class="small fw-bold text-dark">{{ u.plan.name }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="small text-muted">Billing:</span>
+                            <span class="small fw-bold text-dark">৳{{ u.plan.monthly_price }}/mo</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="small text-muted">Status:</span>
+                            <span class="badge-status badge-status-{% if u.status == 'active' %}active{% elif u.status == 'trial' %}trial{% else %}expired{% endif %}">{{ u.status|title }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resource usage bars -->
+            <div class="row g-3">
+                <!-- Customers -->
+                <div class="col-sm-6">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="small fw-semibold"><i class="fa-solid fa-users text-primary me-1"></i>Customers</span>
+                        <span class="small fw-bold {% if u.max_customers != -1 and u.current_customers >= u.max_customers %}text-danger{% else %}text-dark{% endif %}">
+                            {{ u.current_customers }} / {% if u.max_customers == -1 %}∞{% else %}{{ u.max_customers }}{% endif %}
+                        </span>
+                    </div>
+                    <div class="progress mb-1" style="height:7px;border-radius:6px;">
+                        <div class="progress-bar {% if u.customers_pct >= 90 %}bg-danger{% elif u.customers_pct >= 70 %}bg-warning{% else %}bg-primary{% endif %}"
+                             style="width:{{ u.customers_pct }}%"></div>
+                    </div>
+                    {% if u.max_customers != -1 and u.current_customers >= u.max_customers %}
+                    <div class="text-danger" style="font-size:.7rem;"><i class="fa-solid fa-lock me-1"></i>Limit reached</div>
+                    {% endif %}
+                </div>
+                <!-- Tour Packages -->
+                <div class="col-sm-6">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="small fw-semibold"><i class="fa-solid fa-map-location-dot text-info me-1"></i>Tour Packages</span>
+                        <span class="small fw-bold {% if u.max_packages != -1 and u.current_packages >= u.max_packages %}text-danger{% else %}text-dark{% endif %}">
+                            {{ u.current_packages }} / {% if u.max_packages == -1 %}∞{% else %}{{ u.max_packages }}{% endif %}
+                        </span>
+                    </div>
+                    <div class="progress mb-1" style="height:7px;border-radius:6px;">
+                        <div class="progress-bar {% if u.packages_pct >= 90 %}bg-danger{% elif u.packages_pct >= 70 %}bg-warning{% else %}bg-info{% endif %}"
+                             style="width:{{ u.packages_pct }}%"></div>
+                    </div>
+                    {% if u.max_packages != -1 and u.current_packages >= u.max_packages %}
+                    <div class="text-danger" style="font-size:.7rem;"><i class="fa-solid fa-lock me-1"></i>Limit reached</div>
+                    {% endif %}
+                </div>
+                <!-- Visa Services -->
+                <div class="col-sm-6">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="small fw-semibold"><i class="fa-solid fa-passport text-warning me-1"></i>Visa Services</span>
+                        <span class="small fw-bold {% if u.max_visa != -1 and u.current_visa >= u.max_visa %}text-danger{% else %}text-dark{% endif %}">
+                            {{ u.current_visa }} / {% if u.max_visa == -1 %}∞{% else %}{{ u.max_visa }}{% endif %}
+                        </span>
+                    </div>
+                    <div class="progress mb-1" style="height:7px;border-radius:6px;">
+                        <div class="progress-bar {% if u.visa_pct >= 90 %}bg-danger{% elif u.visa_pct >= 70 %}bg-warning{% else %}bg-warning{% endif %}"
+                             style="width:{{ u.visa_pct }}%"></div>
+                    </div>
+                    {% if u.max_visa != -1 and u.current_visa >= u.max_visa %}
+                    <div class="text-danger" style="font-size:.7rem;"><i class="fa-solid fa-lock me-1"></i>Limit reached</div>
+                    {% endif %}
+                </div>
+                <!-- Staff Members -->
+                <div class="col-sm-6">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="small fw-semibold"><i class="fa-solid fa-user-tie text-secondary me-1"></i>Staff Members</span>
+                        <span class="small fw-bold {% if u.max_staff != -1 and u.current_staff >= u.max_staff %}text-danger{% else %}text-dark{% endif %}">
+                            {{ u.current_staff }} / {% if u.max_staff == -1 %}∞{% else %}{{ u.max_staff }}{% endif %}
+                        </span>
+                    </div>
+                    <div class="progress mb-1" style="height:7px;border-radius:6px;">
+                        <div class="progress-bar {% if u.staff_pct >= 90 %}bg-danger{% elif u.staff_pct >= 70 %}bg-warning{% else %}bg-secondary{% endif %}"
+                             style="width:{{ u.staff_pct }}%"></div>
+                    </div>
+                    {% if u.max_staff != -1 and u.current_staff >= u.max_staff %}
+                    <div class="text-danger" style="font-size:.7rem;"><i class="fa-solid fa-lock me-1"></i>Limit reached</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endwith %}
+        {% else %}
+        <div class="alert alert-warning border-0 rounded-3 mb-0">
+            <i class="fa-solid fa-triangle-exclamation me-2"></i>No active subscription found for this agency.
+        </div>
+        {% endif %}
+
         <!-- Domains & Routing -->
-        <div class="card border-0 shadow-sm p-4 mb-4 rounded-4">
+        <div class="card border-0 shadow-sm p-4 rounded-4">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h6 class="fw-bold m-0 text-dark"><i class="fa-solid fa-globe text-primary me-2"></i>Domains & Routing Configuration</h6>
                 <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1">Primary Route Active</span>

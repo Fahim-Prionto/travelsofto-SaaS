@@ -4,7 +4,7 @@
 {% block header_title %}Subscription Plan & Billing Overview{% endblock %}
 
 {% block content %}
-<div class="row g-4">
+<div class="row g-4 mb-4">
     <!-- Active Plan Summary Card -->
     <div class="col-lg-5">
         <div class="card border-0 shadow-sm p-4 h-100 rounded-4">
@@ -43,11 +43,21 @@
                     <span class="text-muted small fw-semibold">Start Date:</span>
                     <span class="fw-semibold text-dark small">{{ subscription.start_date|date:"M d, Y"|default:"Active" }}</span>
                 </div>
-                <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex justify-content-between align-items-center mb-2">
                     <span class="text-muted small fw-semibold">Renewal / Expiry:</span>
-                    <span class="fw-bold text-primary small">{{ subscription.end_date|date:"M d, Y"|default:"Active" }}</span>
+                    <span class="fw-bold text-primary small" id="expiry-date-text">{{ subscription.end_date|date:"M d, Y"|default:"Active" }}</span>
                 </div>
             </div>
+
+            <!-- Live Countdown Timer -->
+            {% if subscription.end_date %}
+            <div class="alert alert-primary bg-primary-subtle border-0 rounded-3 p-3 mb-4 text-center">
+                <small class="text-muted fw-bold text-uppercase d-block mb-1" style="font-size: 0.7rem;">Time Remaining</small>
+                <div id="countdown-timer" class="fw-bold text-primary fs-5" data-end-date="{{ subscription.end_date|date:'Y-m-d H:i:s' }}">
+                    Calculating...
+                </div>
+            </div>
+            {% endif %}
 
             <a href="{% url 'admin_panel:subscription_checkout' %}" class="btn btn-outline-primary w-100 rounded-3 py-2.5 fw-bold">
                 <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Upgrade / Renew Plan
@@ -55,9 +65,64 @@
         </div>
     </div>
 
-    <!-- SaaS Payment History -->
+    <!-- Resource Usage Limits -->
     <div class="col-lg-7">
         <div class="card border-0 shadow-sm p-4 h-100 rounded-4">
+            <h5 class="fw-bold text-dark mb-4"><i class="fa-solid fa-gauge-high text-primary me-2"></i>Resource Usage Limits</h5>
+            
+            <div class="d-flex flex-column gap-4">
+                <!-- Customers Limit -->
+                <div>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-semibold text-dark small"><i class="fa-solid fa-users text-muted me-1"></i> Customers / Profiles</span>
+                        <span class="small fw-bold text-muted">{{ usage.customers_count|default:0 }} / {% if usage.max_customers == -1 %}Unlimited{% else %}{{ usage.max_customers|default:100 }}{% endif %}</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-primary rounded-pill" role="progressbar" style="width: {{ usage.customers_percentage|default:0 }}%;" aria-valuenow="{{ usage.customers_count|default:0 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+
+                <!-- Packages Limit -->
+                <div>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-semibold text-dark small"><i class="fa-solid fa-suitcase text-muted me-1"></i> Tour Packages</span>
+                        <span class="small fw-bold text-muted">{{ usage.packages_count|default:0 }} / {% if usage.max_packages == -1 %}Unlimited{% else %}{{ usage.max_packages|default:10 }}{% endif %}</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-success rounded-pill" role="progressbar" style="width: {{ usage.packages_percentage|default:0 }}%;" aria-valuenow="{{ usage.packages_count|default:0 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+
+                <!-- Visa Applications Limit -->
+                <div>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-semibold text-dark small"><i class="fa-solid fa-passport text-muted me-1"></i> Visa Applications</span>
+                        <span class="small fw-bold text-muted">{{ usage.visa_count|default:0 }} / {% if usage.max_visa == -1 %}Unlimited{% else %}{{ usage.max_visa|default:50 }}{% endif %}</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-info rounded-pill" role="progressbar" style="width: {{ usage.visa_percentage|default:0 }}%;" aria-valuenow="{{ usage.visa_count|default:0 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+
+                <!-- Staff Accounts Limit -->
+                <div>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-semibold text-dark small"><i class="fa-solid fa-user-tie text-muted me-1"></i> Staff Accounts</span>
+                        <span class="small fw-bold text-muted">{{ usage.staff_count|default:0 }} / {% if usage.max_staff == -1 %}Unlimited{% else %}{{ usage.max_staff|default:5 }}{% endif %}</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-warning rounded-pill" role="progressbar" style="width: {{ usage.staff_percentage|default:0 }}%;" aria-valuenow="{{ usage.staff_count|default:0 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SaaS Payment History -->
+<div class="row">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm p-4 rounded-4">
             <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-receipt text-primary me-2"></i>SaaS Payment Receipts</h5>
             <div class="table-responsive rounded-3 border">
                 <table class="table table-custom align-middle mb-0">
@@ -94,4 +159,32 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const timerElement = document.getElementById("countdown-timer");
+    if (timerElement) {
+        const endDateString = timerElement.getAttribute("data-end-date");
+        const countDownDate = new Date(endDateString).getTime();
+
+        const x = setInterval(function() {
+            const now = new Date().getTime();
+            const distance = countDownDate - now;
+
+            if (distance < 0) {
+                clearInterval(x);
+                timerElement.innerHTML = "EXPIRED";
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            timerElement.innerHTML = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+        }, 1000);
+    }
+});
+</script>
 {% endblock %}

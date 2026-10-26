@@ -71,7 +71,11 @@ def check_agency_subscription(request):
     try:
         tenant = Tenant.objects.get(slug=request.user.tenant_id)
         sub = tenant.subscriptions.order_by('-created_at').first()
-        
+
+        # Auto-expire subscription if end_date has passed
+        if sub:
+            sub.check_and_update_status()
+
         # If subscription is pending payment or tenant inactive, block access
         if tenant.status in (Tenant.Status.PENDING, Tenant.Status.INACTIVE, Tenant.Status.SUSPENDED) or (sub and sub.status in ('pending_payment', 'expired', 'suspended')):
             pending_payment = SaaSPayment.objects.filter(tenant=tenant, status='pending').exists()
@@ -82,6 +86,72 @@ def check_agency_subscription(request):
         return True, 'active', tenant
     except Tenant.DoesNotExist:
         return True, None, None
+
+
+def get_subscription_limits(request):
+    """
+    Returns a dict with the plan limits and current resource usage for the
+    current agency tenant. Used by create views for limit-enforcement and
+    by templates for showing usage progress bars.
+
+    Returns None if called for a super admin / support mode context.
+    """
+    # Super admin and support-mode sessions: bypass all limits
+    if request.user.is_super_admin or 'support_mode_tenant_id' in request.session:
+        return None
+
+    tenant_slug = getattr(request.user, 'tenant_id', None)
+    if not tenant_slug:
+        return None
+
+    try:
+        tenant = Tenant.objects.get(slug=tenant_slug)
+    except Tenant.DoesNotExist:
+        return None
+
+    sub = tenant.subscriptions.select_related('package').order_by('-created_at').first()
+    if not sub or not sub.package:
+        return None
+
+    pkg = sub.package
+
+    # Current resource counts
+    current_customers = User.objects.filter(tenant_id=tenant_slug, role=User.Role.CUSTOMER).count()
+    current_staff     = User.objects.filter(tenant_id=tenant_slug, role=User.Role.TENANT_STAFF).count()
+
+    db_alias = f'tenant_{tenant_slug}'
+    if db_alias not in settings.DATABASES:
+        try:
+            settings.DATABASES[db_alias] = tenant.get_db_config()
+        except Exception:
+            db_alias = 'default'
+
+    try:
+        current_packages = TravelPackage.objects.using(db_alias).count()
+    except Exception:
+        current_packages = 0
+    try:
+        current_visa = VisaService.objects.using(db_alias).count()
+    except Exception:
+        current_visa = 0
+
+    return {
+        'subscription': sub,
+        'plan': pkg,
+        'days_remaining': sub.days_remaining,
+        'end_date': sub.end_date,
+        'status': sub.status,
+        # Limits (-1 = unlimited)
+        'max_customers': pkg.max_users,
+        'max_packages': pkg.max_travel_packages,
+        'max_visa': pkg.max_visa_services,
+        'max_staff': pkg.max_staff,
+        # Current usage
+        'current_customers': current_customers,
+        'current_packages': current_packages,
+        'current_visa': current_visa,
+        'current_staff': current_staff,
+    }
 
 
 @login_required
@@ -160,6 +230,8 @@ def dashboard(request):
     except Exception:
         booking_total_val = booking_paid_val = booking_due_val = Decimal('0.00')
 
+    sub_info = get_subscription_limits(request)
+
     context = {
         'total_customers': total_customers,
         'total_packages': total_packages,
@@ -181,6 +253,7 @@ def dashboard(request):
         'total_office_expense': total_office_expense,
         'month_office_expense': month_office_expense,
         'recent_expenses': recent_expenses,
+        'sub_info': sub_info,
     }
     return render(request, 'admin_panel/dashboard.html', context)
 
@@ -218,6 +291,15 @@ def package_create(request):
         bus_schedule_id = request.POST.get('connected_bus_schedule_id', '').strip()
         travel_date = request.POST.get('travel_date', '').strip()
         return_date = request.POST.get('return_date', '').strip()
+
+        # ── Subscription limit check ────────────────────────────────────────
+        sub_info = get_subscription_limits(request)
+        if sub_info and sub_info['max_packages'] != -1:
+            if sub_info['current_packages'] >= sub_info['max_packages']:
+                messages.error(request,
+                    f'🚫 Tour Package limit reached ({sub_info["current_packages"]}/{sub_info["max_packages"]}). '
+                    f'Upgrade your plan to add more tour packages.')
+                return redirect('admin_panel:package_list')
 
         slug = name.lower().replace(' ', '-').strip()
         base_slug = slug
@@ -373,6 +455,15 @@ def visa_service_create(request):
         price = request.POST.get('price', '0')
         processing_time = request.POST.get('processing_time', '5-7 business days')
         description = request.POST.get('description', '').strip()
+
+        # ── Subscription limit check ────────────────────────────────────────
+        sub_info = get_subscription_limits(request)
+        if sub_info and sub_info['max_visa'] != -1:
+            if sub_info['current_visa'] >= sub_info['max_visa']:
+                messages.error(request,
+                    f'🚫 Visa Service limit reached ({sub_info["current_visa"]}/{sub_info["max_visa"]}). '
+                    f'Upgrade your plan to add more visa services.')
+                return redirect('admin_panel:visa_service_list')
 
         VisaService.objects.using(db).create(
             name=name,
@@ -610,6 +701,15 @@ def customer_create(request):
         mobile = request.POST.get('mobile', '').strip()
         password = request.POST.get('password', '').strip()
 
+        # ── Subscription limit check ────────────────────────────────────────
+        sub_info = get_subscription_limits(request)
+        if sub_info and sub_info['max_customers'] != -1:
+            if sub_info['current_customers'] >= sub_info['max_customers']:
+                messages.error(request,
+                    f'🚫 Customer limit reached ({sub_info["current_customers"]}/{sub_info["max_customers"]}). '
+                    f'Upgrade your plan to add more customers.')
+                return redirect('admin_panel:customer_list')
+
         if User.objects.filter(email=email).exists():
             messages.error(request, 'An account with this email address already exists.')
             return render(request, 'admin_panel/customers/create.html')
@@ -669,6 +769,15 @@ def staff_create(request):
         email      = request.POST.get('email', '').strip()
         mobile     = request.POST.get('mobile', '').strip()
         password   = request.POST.get('password', '').strip()
+
+        # ── Subscription limit check ────────────────────────────────────────
+        sub_info = get_subscription_limits(request)
+        if sub_info and sub_info['max_staff'] != -1:
+            if sub_info['current_staff'] >= sub_info['max_staff']:
+                messages.error(request,
+                    f'🚫 Staff member limit reached ({sub_info["current_staff"]}/{sub_info["max_staff"]}). '
+                    f'Upgrade your plan to add more staff.')
+                return redirect('admin_panel:staff_list')
 
         if User.objects.filter(email=email).exists():
             messages.error(request, 'An account with this email address already exists.')
@@ -872,7 +981,7 @@ def subscription_pending(request):
 
 @login_required
 def my_subscription(request):
-    """View active subscription plan details and payments for the agency."""
+    """View active subscription plan details, resource usage bars, and payments."""
     if not request.user.tenant_id:
         return redirect('admin_panel:dashboard')
 
@@ -882,11 +991,13 @@ def my_subscription(request):
         subscription.check_and_update_status()
 
     payments = SaaSPayment.objects.filter(tenant=tenant).order_by('-created_at')
+    sub_info = get_subscription_limits(request)
 
     return render(request, 'admin_panel/subscription/my_subscription.html', {
         'tenant': tenant,
         'subscription': subscription,
         'payments': payments,
+        'sub_info': sub_info,
     })
 
 

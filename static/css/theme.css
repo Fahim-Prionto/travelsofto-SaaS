@@ -496,17 +496,97 @@ a:hover {
   animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Responsive adjustments */
+/* ── Mobile & Responsive Fixes ─────────────────────────────────────────── */
+
+/* Sidebar overlay backdrop */
+#sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 999;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+#sidebar-overlay.show {
+  display: block;
+}
+
 @media (max-width: 991.98px) {
+  /* Sidebar slides in from left */
   #sidebar {
-    margin-left: calc(-1 * var(--sidebar-width));
+    transform: translateX(-100%);
+    margin-left: 0 !important;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1040;
   }
   #sidebar.show {
-    margin-left: 0;
+    transform: translateX(0);
+    box-shadow: 6px 0 32px rgba(0, 0, 0, 0.45);
   }
+
+  /* Main content uses full width */
   #main-content {
-    margin-left: 0;
-    padding: 1rem;
+    margin-left: 0 !important;
+    padding: 0.85rem 0.85rem 1.5rem 0.85rem;
+    min-height: 100vh;
+  }
+
+  /* Top nav compact on mobile */
+  .top-nav {
+    padding: 0.65rem 1rem;
+    margin-bottom: 1rem;
+    border-radius: var(--radius-sm);
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+
+  /* Header title shrinks gracefully */
+  .top-nav h4 {
+    font-size: clamp(0.9rem, 3.5vw, 1.15rem) !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 40vw;
+  }
+
+  /* Hide email text, keep avatar icon only on mobile */
+  .top-nav .user-email-text {
+    display: none !important;
+  }
+
+  /* Sidebar toggle button bigger touch target */
+  #sidebarToggle {
+    min-width: 38px;
+    min-height: 38px;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* Stat cards stack nicely */
+  .stat-card {
+    padding: 0.9rem 1rem;
+  }
+
+  /* Tables scroll horizontally */
+  .table-responsive {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Cards less padding */
+  .card {
+    padding: 1rem !important;
+  }
+  .card.p-4 {
+    padding: 1rem !important;
+  }
+
+  /* Nav links bigger touch target */
+  #sidebar .nav-link {
+    min-height: 44px;
+    padding: 0.65rem 1rem !important;
   }
 }
 

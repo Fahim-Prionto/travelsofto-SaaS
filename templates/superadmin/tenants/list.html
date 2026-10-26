@@ -76,7 +76,27 @@
                         </td>
                         <td>
                             {% if tenant.active_subscription %}
-                                <small class="fw-bold text-dark"><i class="fa-regular fa-calendar-check me-1 text-primary"></i>{{ tenant.active_subscription.end_date|date:"M d, Y" }}</small>
+                                <small class="fw-bold text-dark d-block">
+                                    <i class="fa-regular fa-calendar-check me-1 text-primary"></i>{{ tenant.active_subscription.end_date|date:"M d, Y" }}
+                                </small>
+                            {% with tenant.active_subscription.days_remaining as days %}
+                                <span class="badge rounded-pill mt-1
+                                    {% if tenant.active_subscription.status == 'expired' %}bg-danger
+                                    {% elif tenant.active_subscription.status == 'trial' %}bg-warning text-dark
+                                    {% elif days <= 3 %}bg-danger
+                                    {% elif days <= 7 %}bg-warning text-dark
+                                    {% elif days <= 30 %}bg-info text-dark
+                                    {% else %}bg-success{% endif %}"
+                                    style="font-size:.68rem;">
+                                    {% if tenant.active_subscription.status == 'expired' %}
+                                        <i class="fa-solid fa-circle-xmark me-1"></i>Expired
+                                    {% elif tenant.active_subscription.status == 'trial' %}
+                                        <i class="fa-solid fa-gift me-1"></i>Trial – {{ days }}d left
+                                    {% else %}
+                                        <i class="fa-solid fa-hourglass-half me-1"></i>{{ days }}d left
+                                    {% endif %}
+                                </span>
+                                {% endwith %}
                             {% else %}
                                 <small class="text-muted italic">No active sub</small>
                             {% endif %}

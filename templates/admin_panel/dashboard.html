@@ -5,6 +5,66 @@
 
 {% block content %}
 
+{% if sub_info %}
+{% with sub_info as s %}
+{% if s.days_remaining <= 7 or s.status == 'trial' or s.status == 'expired' %}
+<div class="alert border-0 shadow-sm mb-4 rounded-4 px-4 py-3 d-flex align-items-center gap-3
+    {% if s.status == 'expired' %}alert-danger
+    {% elif s.days_remaining <= 3 %}alert-danger
+    {% elif s.days_remaining <= 7 %}alert-warning
+    {% else %}alert-info{% endif %}"
+    id="subscription-banner" style="border-left: 5px solid {% if s.status == 'expired' %}#dc3545{% elif s.days_remaining <= 3 %}#dc3545{% elif s.days_remaining <= 7 %}#fd7e14{% else %}#0dcaf0{% endif %} !important;">
+    <div class="flex-shrink-0 fs-3">
+        {% if s.status == 'expired' %}<i class="fa-solid fa-circle-xmark text-danger"></i>
+        {% elif s.days_remaining <= 3 %}<i class="fa-solid fa-triangle-exclamation text-danger"></i>
+        {% else %}<i class="fa-solid fa-clock text-warning"></i>{% endif %}
+    </div>
+    <div class="flex-grow-1">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div>
+                <strong class="fw-bold">
+                    {% if s.status == 'expired' %}Subscription Expired!
+                    {% elif s.status == 'trial' %}Trial Subscription
+                    {% else %}{{ s.plan.name }} Plan{% endif %}
+                </strong>
+                <span class="ms-2 small text-muted">
+                    <i class="fa-regular fa-calendar me-1"></i>
+                    Expires: <strong>{{ s.end_date|date:"M d, Y" }}</strong>
+                </span>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <div id="sub-countdown" class="d-flex gap-2 align-items-center fw-bold small">
+                    <span class="badge bg-dark text-white px-2 py-1 rounded-2"><span id="cd-days">--</span><span class="text-muted fw-normal ms-1">d</span></span>
+                    <span class="badge bg-dark text-white px-2 py-1 rounded-2"><span id="cd-hrs">--</span><span class="text-muted fw-normal ms-1">h</span></span>
+                    <span class="badge bg-dark text-white px-2 py-1 rounded-2"><span id="cd-mins">--</span><span class="text-muted fw-normal ms-1">m</span></span>
+                    <span class="badge bg-dark text-white px-2 py-1 rounded-2"><span id="cd-secs">--</span><span class="text-muted fw-normal ms-1">s</span></span>
+                </div>
+                <a href="{% url 'admin_panel:my_subscription' %}" class="btn btn-sm btn-primary rounded-pill px-3 fw-bold">
+                    <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Renew Plan
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+(function(){
+    var endDate = new Date("{{ s.end_date|date:'Y-m-d H:i:s' }}".replace(' ', 'T'));
+    function tick(){
+        var now = new Date(), diff = endDate - now;
+        if(diff <= 0){ document.getElementById('sub-countdown').innerHTML='<span class="badge bg-danger text-white px-3 py-1 rounded-2">EXPIRED</span>'; return; }
+        var d = Math.floor(diff/864e5), h = Math.floor((diff%864e5)/36e5), m = Math.floor((diff%36e5)/6e4), s = Math.floor((diff%6e4)/1e3);
+        document.getElementById('cd-days').textContent = d;
+        document.getElementById('cd-hrs').textContent = String(h).padStart(2,'0');
+        document.getElementById('cd-mins').textContent = String(m).padStart(2,'0');
+        document.getElementById('cd-secs').textContent = String(s).padStart(2,'0');
+    }
+    tick(); setInterval(tick, 1000);
+})();
+</script>
+{% endif %}
+{% endwith %}
+{% endif %}
+
 <!-- ── SECTION 1: Agency Overview ───────────────────────────────── -->
 <div class="d-flex align-items-center mb-2 gap-2">
     <span class="fw-bold text-muted small text-uppercase" style="letter-spacing:.08em;"><i class="fa-solid fa-chart-bar me-1"></i>Agency Overview</span>

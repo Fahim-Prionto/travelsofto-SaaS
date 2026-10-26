@@ -105,6 +105,7 @@ def tenant_create(request):
         mobile = request.POST.get('mobile', '').strip()
         password = request.POST.get('password', '').strip()
         package_id = request.POST.get('package_id')
+        billing_type = request.POST.get('billing_type', 'trial')  # trial | monthly | yearly
 
         if User.objects.filter(email=email).exists():
             messages.error(request, 'An account with this email already exists.')
@@ -115,32 +116,61 @@ def tenant_create(request):
         except SubscriptionPackage.DoesNotExist:
             package = packages.first()
 
+        # ── Determine billing cycle, dates, and status ──────────────────────
+        now = timezone.now()
+        if billing_type == 'trial':
+            trial_days = package.trial_days or 14
+            trial_end = now + timezone.timedelta(days=trial_days)
+            sub_status = Subscription.Status.TRIAL
+            tenant_status = Tenant.Status.TRIAL
+            billing_cycle = Subscription.BillingCycle.TRIAL
+            start_date = now
+            end_date = trial_end
+            trial_ends_at = trial_end
+        elif billing_type == 'yearly':
+            sub_status = Subscription.Status.ACTIVE
+            tenant_status = Tenant.Status.ACTIVE
+            billing_cycle = Subscription.BillingCycle.YEARLY
+            start_date = now
+            end_date = now + timezone.timedelta(days=365)
+            trial_ends_at = None
+        else:  # monthly (default)
+            sub_status = Subscription.Status.ACTIVE
+            tenant_status = Tenant.Status.ACTIVE
+            billing_cycle = Subscription.BillingCycle.MONTHLY
+            start_date = now
+            end_date = now + timezone.timedelta(days=30)
+            trial_ends_at = None
+
         # Create Tenant Record
         tenant = Tenant.objects.create(
             agency_name=agency_name,
             owner_name=owner_name,
             email=email,
             mobile=mobile,
-            status=Tenant.Status.ACTIVE,
+            status=tenant_status,
         )
 
         # Create Subscription
         Subscription.objects.create(
             tenant=tenant,
             package=package,
-            billing_cycle='monthly',
-            start_date=timezone.now(),
-            end_date=timezone.now() + timezone.timedelta(days=30),
-            status='active',
+            billing_cycle=billing_cycle,
+            start_date=start_date,
+            end_date=end_date,
+            trial_ends_at=trial_ends_at,
+            status=sub_status,
         )
 
         # Provision Tenant Database & Create Admin User
         provision_tenant(tenant, admin_email=email, admin_password=password)
 
-        messages.success(request, f'✅ Agency "{agency_name}" successfully created and provisioned!')
+        type_label = '🆓 Trial' if billing_type == 'trial' else '✅ Active'
+        messages.success(request, f'{type_label} Agency "{agency_name}" successfully created and provisioned!')
         return redirect('superadmin:tenant_list')
 
     return render(request, 'superadmin/tenants/create.html', {'packages': packages})
+
 
 
 @login_required
@@ -294,12 +324,77 @@ def tenant_support_login(request, slug):
 @login_required
 @user_passes_test(superadmin_required)
 def tenant_detail(request, slug):
-    """Tenant detailed view with subscription history & logs."""
+    """Tenant detailed view with subscription history, resource usage & logs."""
     tenant = get_object_or_404(Tenant, slug=slug)
     subscriptions = tenant.subscriptions.select_related('package').all()
     payments = tenant.saas_payments.all()
     logs = tenant.provisioning_logs.all()[:20]
     domains = tenant.domains.all()
+
+    # ── Compute per-agency resource usage stats ─────────────────────────────
+    active_sub = tenant.subscriptions.select_related('package').order_by('-end_date').first()
+    usage_stats = None
+
+    if active_sub and active_sub.package:
+        from apps.accounts.models import User as TenantUser
+        pkg = active_sub.package
+
+        # Auto-expire if needed
+        active_sub.check_and_update_status()
+
+        current_customers = TenantUser.objects.filter(
+            tenant_id=tenant.slug, role=TenantUser.Role.CUSTOMER
+        ).count()
+        current_staff = TenantUser.objects.filter(
+            tenant_id=tenant.slug, role=TenantUser.Role.TENANT_STAFF
+        ).count()
+
+        # Read tenant-isolated DB for package/visa counts
+        from apps.travel_packages.models import TravelPackage
+        from apps.visa.models import VisaService
+        db_alias = f'tenant_{tenant.slug}'
+        if db_alias not in settings.DATABASES:
+            try:
+                settings.DATABASES[db_alias] = tenant.get_db_config()
+            except Exception:
+                db_alias = 'default'
+        try:
+            current_packages = TravelPackage.objects.using(db_alias).count()
+        except Exception:
+            current_packages = 0
+        try:
+            current_visa = VisaService.objects.using(db_alias).count()
+        except Exception:
+            current_visa = 0
+
+        def pct(used, limit):
+            if limit == -1 or limit == 0:
+                return 100 if limit == 0 else 0
+            return min(round(used / limit * 100), 100)
+
+        usage_stats = {
+            'subscription': active_sub,
+            'plan': pkg,
+            'days_remaining': active_sub.days_remaining,
+            'end_date': active_sub.end_date,
+            'status': active_sub.status,
+            # Customers
+            'current_customers': current_customers,
+            'max_customers': pkg.max_users,
+            'customers_pct': pct(current_customers, pkg.max_users),
+            # Packages
+            'current_packages': current_packages,
+            'max_packages': pkg.max_travel_packages,
+            'packages_pct': pct(current_packages, pkg.max_travel_packages),
+            # Visa
+            'current_visa': current_visa,
+            'max_visa': pkg.max_visa_services,
+            'visa_pct': pct(current_visa, pkg.max_visa_services),
+            # Staff
+            'current_staff': current_staff,
+            'max_staff': pkg.max_staff,
+            'staff_pct': pct(current_staff, pkg.max_staff),
+        }
 
     context = {
         'tenant': tenant,
@@ -307,6 +402,7 @@ def tenant_detail(request, slug):
         'payments': payments,
         'logs': logs,
         'domains': domains,
+        'usage_stats': usage_stats,
     }
     return render(request, 'superadmin/tenants/detail.html', context)
 
