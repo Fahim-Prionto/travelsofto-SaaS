@@ -502,14 +502,15 @@
                         {% elif visa.visa_type == 'student' %}<i class="fa-solid fa-graduation-cap"></i>
                         {% elif visa.visa_type == 'work' %}<i class="fa-solid fa-hard-hat"></i>
                         {% elif visa.visa_type == 'family' %}<i class="fa-solid fa-people-roof"></i>
+                        {% elif visa.visa_type == 'domestic' %}<i class="fa-solid fa-house-user"></i>
+                        {% elif visa.visa_type == 'transit' %}<i class="fa-solid fa-plane-departure"></i>
                         {% else %}<i class="fa-solid fa-passport"></i>{% endif %}
                     </div>
                     <div>
                         <div class="visa-type">{{ visa.get_visa_type_display }}</div>
-                        <div class="visa-name">{{ visa.name }}</div>
+                        <div class="visa-name">{{ visa.title }}</div>
                     </div>
                 </div>
-                {% if visa.country %}
                 <div class="visa-country">
                     <i class="fa-solid fa-globe"></i>
                     {{ visa.country.name }}

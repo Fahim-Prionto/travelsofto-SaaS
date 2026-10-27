@@ -72,10 +72,18 @@ def _load_packages(db_alias):
 
 
 def _load_visa_services(db_alias):
-    """Load active visa services from the tenant's database."""
-    from apps.visa.models import VisaService
+    """
+    Load visa lots from the tenant's database.
+    Agencies manage visas via VisaLot (agency_models.py), not VisaService.
+    Only returns lots marked show_on_website=True and is_active=True.
+    """
+    from apps.tenants.agency_models import VisaLot
     try:
-        return VisaService.objects.using(db_alias).filter(is_active=True).order_by('-is_featured', '-created_at')[:8]
+        return list(
+            VisaLot.objects.using(db_alias)
+            .filter(is_active=True, show_on_website=True)
+            .order_by('-created_at')[:12]
+        )
     except Exception:
         return []
 
