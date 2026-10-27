@@ -402,6 +402,70 @@ def tenant_detail(request, slug):
             'staff_pct': pct(current_staff, pkg.max_staff),
         }
 
+    # ── Check if this tenant ever had a trial (trial-once enforcement) ──────
+    trial_used = tenant.subscriptions.filter(billing_cycle='trial').exists()
+    packages = SubscriptionPackage.objects.filter(is_active=True)
+
+    # ── Handle Superadmin: Renew / Extend Subscription ───────────────────────
+    if request.method == 'POST' and request.POST.get('action') == 'renew_subscription':
+        billing_type = request.POST.get('billing_type', 'monthly')
+        package_id   = request.POST.get('package_id')
+
+        # Enforce trial-once rule
+        if billing_type == 'trial' and trial_used:
+            messages.error(
+                request,
+                f'⚠️ Agency "{tenant.agency_name}" already used their free trial. '
+                'Only Monthly or Yearly renewal is allowed.'
+            )
+            return redirect('superadmin:tenant_detail', slug=tenant.slug)
+
+        try:
+            pkg = SubscriptionPackage.objects.get(id=package_id)
+        except SubscriptionPackage.DoesNotExist:
+            pkg = packages.first()
+
+        now = timezone.now()
+        if billing_type == 'trial':
+            trial_days = pkg.trial_days or 14
+            sub_status    = Subscription.Status.TRIAL
+            tenant_status = Tenant.Status.TRIAL
+            billing_cycle = Subscription.BillingCycle.TRIAL
+            end_date      = now + timezone.timedelta(days=trial_days)
+            trial_ends_at = end_date
+        elif billing_type == 'yearly':
+            sub_status    = Subscription.Status.ACTIVE
+            tenant_status = Tenant.Status.ACTIVE
+            billing_cycle = Subscription.BillingCycle.YEARLY
+            end_date      = now + timezone.timedelta(days=365)
+            trial_ends_at = None
+        else:  # monthly
+            sub_status    = Subscription.Status.ACTIVE
+            tenant_status = Tenant.Status.ACTIVE
+            billing_cycle = Subscription.BillingCycle.MONTHLY
+            end_date      = now + timezone.timedelta(days=30)
+            trial_ends_at = None
+
+        Subscription.objects.create(
+            tenant=tenant,
+            package=pkg,
+            billing_cycle=billing_cycle,
+            start_date=now,
+            end_date=end_date,
+            trial_ends_at=trial_ends_at,
+            status=sub_status,
+        )
+        tenant.status = tenant_status
+        tenant.save(update_fields=['status'])
+
+        label = {'trial': '🆓 Free Trial', 'monthly': '📅 Monthly', 'yearly': '📅 Yearly'}.get(billing_type, billing_type.title())
+        messages.success(
+            request,
+            f'✅ {label} subscription renewed for "{tenant.agency_name}" '
+            f'until {end_date.strftime("%b %d, %Y")}.'
+        )
+        return redirect('superadmin:tenant_detail', slug=tenant.slug)
+
     base_domain = getattr(settings, 'BASE_DOMAIN', 'localhost:8000')
     site_url = getattr(settings, 'SITE_URL', f'http://{base_domain}')
     directory_url = f"{site_url}/a/{tenant.slug}/"
@@ -416,6 +480,8 @@ def tenant_detail(request, slug):
         'usage_stats': usage_stats,
         'directory_url': directory_url,
         'subdomain_url': subdomain_url,
+        'trial_used': trial_used,
+        'packages': packages,
     }
     return render(request, 'superadmin/tenants/detail.html', context)
 

@@ -221,7 +221,66 @@
         </div>
         {% endif %}
 
-        <!-- Domains & Routing -->
+        {# ── Renew / Extend Subscription ── #}
+        <div class="card border-0 shadow-sm p-4 rounded-4">
+            <h6 class="fw-bold m-0 text-dark mb-3">
+                <i class="fa-solid fa-rotate text-primary me-2"></i>Renew / Extend Subscription
+                {% if trial_used %}
+                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-2 fw-normal small">
+                        <i class="fa-solid fa-lock me-1"></i>Trial Already Used
+                    </span>
+                {% endif %}
+            </h6>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="renew_subscription">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold small text-muted">Plan Package</label>
+                        <select name="package_id" class="form-select rounded-3" required>
+                            {% for pkg in packages %}
+                                <option value="{{ pkg.id }}">{{ pkg.name }} — ৳{{ pkg.monthly_price }}/mo</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label fw-semibold small text-muted">Billing Type</label>
+                        <div class="d-flex gap-2">
+                            {# Free Trial — disabled if already used #}
+                            <div class="flex-fill" {% if trial_used %}title="This agency already used their free trial. Trial is not available." data-bs-toggle="tooltip"{% endif %}>
+                                <input type="radio" class="btn-check" name="billing_type" id="r_trial" value="trial"
+                                       {% if trial_used %}disabled{% endif %}>
+                                <label class="btn btn-outline-warning w-100 rounded-3 small fw-semibold {% if trial_used %}opacity-50{% endif %}" for="r_trial">
+                                    <i class="fa-solid fa-gift me-1"></i>Free Trial
+                                    {% if trial_used %}<br><small class="fw-normal">(Used)</small>{% endif %}
+                                </label>
+                            </div>
+                            <div class="flex-fill">
+                                <input type="radio" class="btn-check" name="billing_type" id="r_monthly" value="monthly" checked>
+                                <label class="btn btn-outline-primary w-100 rounded-3 small fw-semibold" for="r_monthly">
+                                    <i class="fa-solid fa-calendar-days me-1"></i>Monthly<br><small class="fw-normal">30 days</small>
+                                </label>
+                            </div>
+                            <div class="flex-fill">
+                                <input type="radio" class="btn-check" name="billing_type" id="r_yearly" value="yearly">
+                                <label class="btn btn-outline-success w-100 rounded-3 small fw-semibold" for="r_yearly">
+                                    <i class="fa-solid fa-calendar-check me-1"></i>Yearly<br><small class="fw-normal">365 days</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary w-100 rounded-3 fw-bold"
+                                onclick="return confirm('Extend/Renew subscription for {{ tenant.agency_name }}?')">
+                            <i class="fa-solid fa-rotate me-1"></i> Renew Now
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        {# ── Domains & Routing ── #}
+
         <div class="card border-0 shadow-sm p-4 rounded-4">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h6 class="fw-bold m-0 text-dark"><i class="fa-solid fa-globe text-primary me-2"></i>Domains & Routing Configuration</h6>
