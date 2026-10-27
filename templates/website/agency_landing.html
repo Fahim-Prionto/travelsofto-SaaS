@@ -512,10 +512,8 @@
                     </div>
                 </div>
                 <div class="visa-country">
-                    <i class="fa-solid fa-globe"></i>
-                    {{ visa.country.name }}
+                    <i class="fa-solid fa-globe"></i> {{ visa.country }}
                 </div>
-                {% endif %}
                 {% if visa.description %}
                 <p style="font-size:.84rem;color:var(--muted);line-height:1.6;margin:0;">{{ visa.description|truncatewords:18 }}</p>
                 {% endif %}
