@@ -494,42 +494,48 @@
         {% if visa_services %}
         <div class="visa-grid">
             {% for visa in visa_services %}
-            <div class="visa-card fade-up">
-                <div style="display:flex;align-items:center;gap:12px;">
-                    <div class="visa-icon">
-                        {% if visa.visa_type == 'tourist' %}<i class="fa-solid fa-umbrella-beach"></i>
-                        {% elif visa.visa_type == 'business' %}<i class="fa-solid fa-briefcase"></i>
-                        {% elif visa.visa_type == 'student' %}<i class="fa-solid fa-graduation-cap"></i>
-                        {% elif visa.visa_type == 'work' %}<i class="fa-solid fa-hard-hat"></i>
-                        {% elif visa.visa_type == 'family' %}<i class="fa-solid fa-people-roof"></i>
-                        {% elif visa.visa_type == 'domestic' %}<i class="fa-solid fa-house-user"></i>
-                        {% elif visa.visa_type == 'transit' %}<i class="fa-solid fa-plane-departure"></i>
-                        {% else %}<i class="fa-solid fa-passport"></i>{% endif %}
+            <div class="visa-card fade-up" style="padding:0;overflow:hidden;">
+                {% if visa.featured_image %}
+                <div style="height:160px;overflow:hidden;position:relative;">
+                    <img src="{{ visa.featured_image.url }}" alt="{{ visa.title }}"
+                         style="width:100%;height:100%;object-fit:cover;">
+                    <div style="position:absolute;top:10px;left:10px;background:rgba(0,0,0,.55);
+                                backdrop-filter:blur(6px);color:#fff;padding:4px 12px;border-radius:50px;
+                                font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">
+                        {{ visa.get_visa_type_display }}
                     </div>
-                    <div>
+                </div>
+                <div style="padding:18px 20px;display:flex;flex-direction:column;gap:10px;">
+                {% else %}
+                <div style="padding:22px;display:flex;flex-direction:column;gap:12px;">
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <div class="visa-icon">
+                            {% if visa.visa_type == 'tourist' %}<i class="fa-solid fa-umbrella-beach"></i>
+                            {% elif visa.visa_type == 'business' %}<i class="fa-solid fa-briefcase"></i>
+                            {% elif visa.visa_type == 'student' %}<i class="fa-solid fa-graduation-cap"></i>
+                            {% elif visa.visa_type == 'work' %}<i class="fa-solid fa-hard-hat"></i>
+                            {% elif visa.visa_type == 'family' %}<i class="fa-solid fa-people-roof"></i>
+                            {% elif visa.visa_type == 'domestic' %}<i class="fa-solid fa-house-user"></i>
+                            {% elif visa.visa_type == 'transit' %}<i class="fa-solid fa-plane-departure"></i>
+                            {% else %}<i class="fa-solid fa-passport"></i>{% endif %}
+                        </div>
                         <div class="visa-type">{{ visa.get_visa_type_display }}</div>
-                        <div class="visa-name">{{ visa.title }}</div>
                     </div>
-                </div>
-                <div class="visa-country">
-                    <i class="fa-solid fa-globe"></i> {{ visa.country }}
-                </div>
-                {% if visa.description %}
-                <p style="font-size:.84rem;color:var(--muted);line-height:1.6;margin:0;">{{ visa.description|truncatewords:18 }}</p>
                 {% endif %}
-                <div class="visa-meta">
-                    <span class="visa-badge">
-                        <i class="fa-regular fa-clock"></i>{{ visa.processing_time }}
-                    </span>
-                    {% if visa.is_featured %}
-                    <span class="visa-badge" style="background:var(--brand-light);border-color:var(--brand);color:var(--brand);">
-                        <i class="fa-solid fa-star"></i> Featured
-                    </span>
+                    <div class="visa-name">{{ visa.title }}</div>
+                    <div class="visa-country"><i class="fa-solid fa-globe"></i> {{ visa.country }}</div>
+                    {% if visa.description %}
+                    <p style="font-size:.84rem;color:var(--muted);line-height:1.6;margin:0;">{{ visa.description|truncatewords:18 }}</p>
                     {% endif %}
-                </div>
-                <div class="visa-footer">
-                    <span class="visa-price">{{ visa.price|floatformat:0 }} ৳</span>
-                    <a href="#contact" class="visa-apply">Apply Now</a>
+                    <div class="visa-meta">
+                        {% if visa.processing_time %}<span class="visa-badge"><i class="fa-regular fa-clock"></i>{{ visa.processing_time }} days</span>{% endif %}
+                        <span class="visa-badge"><i class="fa-solid fa-users"></i>{{ visa.remaining_visas }} slots</span>
+                    </div>
+                    <div class="visa-footer">
+                        {% if visa.price %}<span class="visa-price">৳{{ visa.price|floatformat:0 }}</span>
+                        {% else %}<span class="visa-price" style="font-size:.85rem;color:var(--muted);">Contact for price</span>{% endif %}
+                        <a href="#contact" class="visa-apply">Apply Now</a>
+                    </div>
                 </div>
             </div>
             {% endfor %}
@@ -540,6 +546,7 @@
             <p>Visa services coming soon. Contact us for inquiries.</p>
         </div>
         {% endif %}
+
     </div>
 </section>
 
