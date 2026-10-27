@@ -54,8 +54,14 @@
                     <code class="bg-light px-2 py-0.5 rounded text-primary fw-bold small">{{ tenant.db_name }}</code>
                 </div>
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span class="text-muted small fw-semibold">Domain Subdomain:</span>
-                    <a href="{{ tenant.subdomain_url }}" target="_blank" class="fw-bold small text-primary text-decoration-none">
+                    <span class="text-muted small fw-semibold">Site Directory URL:</span>
+                    <a href="{{ directory_url }}" target="_blank" class="fw-bold small text-primary text-decoration-none">
+                        <i class="fa-solid fa-folder-open me-1"></i>/a/{{ tenant.slug }}/
+                    </a>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small fw-semibold">Subdomain:</span>
+                    <a href="{{ subdomain_url }}" target="_blank" class="fw-bold small text-primary text-decoration-none">
                         <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>{{ tenant.slug }}.softobro.com
                     </a>
                 </div>
@@ -234,7 +240,13 @@
                     <tbody>
                         {% for domain in domains %}
                             <tr>
-                                <td><code class="text-primary fw-bold">{{ domain.domain }}</code></td>
+                                <td>
+                                    <a href="http://{{ domain.domain }}" target="_blank"
+                                       class="fw-bold text-primary text-decoration-none">
+                                        <code>{{ domain.domain }}</code>
+                                        <i class="fa-solid fa-arrow-up-right-from-square ms-1 small"></i>
+                                    </a>
+                                </td>
                                 <td><span class="badge bg-light text-dark border">{{ domain.get_domain_type_display }}</span></td>
                                 <td><span class="badge-status badge-status-{{ domain.status }}">{{ domain.get_status_display }}</span></td>
                                 <td>
@@ -247,9 +259,22 @@
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="4" class="text-muted text-center py-4">No custom domain routing records configured yet. Default subdomain routing active.</td>
+                                <td colspan="4" class="text-muted text-center py-3">No custom domain records. Default subdomain routing active.</td>
                             </tr>
                         {% endfor %}
+                        {# Directory URL row — always shown #}
+                        <tr class="table-primary">
+                            <td>
+                                <a href="{{ directory_url }}" target="_blank" class="fw-bold text-primary text-decoration-none">
+                                    <code>{{ directory_url }}</code>
+                                    <i class="fa-solid fa-arrow-up-right-from-square ms-1 small"></i>
+                                </a>
+                            </td>
+                            <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle">Directory Path</span></td>
+                            <td><span class="badge-status badge-status-active">Active</span></td>
+                            <td><span class="text-muted"><i class="fa-solid fa-folder-open me-1"></i> Path Routing</span></td>
+                        </tr>
+
                     </tbody>
                 </table>
             </div>

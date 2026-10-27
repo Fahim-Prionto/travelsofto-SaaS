@@ -402,6 +402,11 @@ def tenant_detail(request, slug):
             'staff_pct': pct(current_staff, pkg.max_staff),
         }
 
+    base_domain = getattr(settings, 'BASE_DOMAIN', 'localhost:8000')
+    site_url = getattr(settings, 'SITE_URL', f'http://{base_domain}')
+    directory_url = f"{site_url}/a/{tenant.slug}/"
+    subdomain_url = f"http://{tenant.slug}.{base_domain}/"
+
     context = {
         'tenant': tenant,
         'subscriptions': subscriptions,
@@ -409,6 +414,8 @@ def tenant_detail(request, slug):
         'logs': logs,
         'domains': domains,
         'usage_stats': usage_stats,
+        'directory_url': directory_url,
+        'subdomain_url': subdomain_url,
     }
     return render(request, 'superadmin/tenants/detail.html', context)
 
