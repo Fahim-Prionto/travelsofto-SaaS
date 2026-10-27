@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if cms.meta_title %}{{ cms.meta_title }}{% else %}{{ tenant.agency_name }} — Travel Agency{% endif %}</title>
+    <meta name="description" content="{% if cms.meta_description %}{{ cms.meta_description }}{% else %}Explore amazing travel packages and visa services with {{ tenant.agency_name }}{% endif %}">
+
+    {% load static %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <style>
+        :root {
+            --brand: {{ cms.primary_color|default:"#0057e7" }};
+            --brand-dark: color-mix(in srgb, var(--brand) 75%, #000);
+            --brand-light: color-mix(in srgb, var(--brand) 12%, #fff);
+            --brand-mid: color-mix(in srgb, var(--brand) 20%, #fff);
+            --text: #1a1a2e;
+            --muted: #6b7280;
+            --border: #e5e7eb;
+            --surface: #f9fafb;
+            --white: #ffffff;
+            --radius: 16px;
+            --shadow: 0 4px 24px rgba(0,0,0,.08);
+            --shadow-lg: 0 12px 48px rgba(0,0,0,.14);
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', sans-serif; color: var(--text); background: var(--white); line-height: 1.6; }
+        a { text-decoration: none; color: inherit; }
+        img { max-width: 100%; height: auto; display: block; }
+
+        /* ── NAV ───────────────────────────────────────────────── */
+        .nav {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+            background: rgba(255,255,255,0.96);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            transition: box-shadow .3s;
+        }
+        .nav.scrolled { box-shadow: var(--shadow); }
+        .nav-inner {
+            max-width: 1200px; margin: 0 auto; padding: 0 24px;
+            display: flex; align-items: center; justify-content: space-between;
+            height: 68px;
+        }
+        .nav-brand {
+            font-weight: 800; font-size: 1.2rem; color: var(--brand);
+            display: flex; align-items: center; gap: 10px;
+        }
+        .nav-brand img { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; }
+        .nav-links { display: flex; align-items: center; gap: 8px; }
+        .nav-links a {
+            padding: 7px 16px; border-radius: 8px; font-weight: 500; font-size: .9rem;
+            color: var(--muted); transition: all .2s;
+        }
+        .nav-links a:hover { background: var(--brand-light); color: var(--brand); }
+        .nav-cta {
+            background: var(--brand); color: var(--white) !important;
+            border-radius: 10px !important; padding: 8px 20px !important;
+            font-weight: 600 !important; transition: all .2s !important;
+        }
+        .nav-cta:hover { background: var(--brand-dark) !important; transform: translateY(-1px); }
+        .hamburger { display: none; background: none; border: none; cursor: pointer; padding: 8px; }
+        .hamburger span { display: block; width: 22px; height: 2px; background: var(--text); margin: 5px 0; border-radius: 2px; transition: all .3s; }
+        .mobile-menu { display: none; flex-direction: column; gap: 4px; padding: 12px 24px 16px; border-top: 1px solid var(--border); }
+        .mobile-menu.open { display: flex; }
+        .mobile-menu a { padding: 10px 14px; border-radius: 8px; font-weight: 500; color: var(--muted); }
+        .mobile-menu a:hover { background: var(--brand-light); color: var(--brand); }
+
+        /* ── HERO ──────────────────────────────────────────────── */
+        .hero {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%);
+            display: flex; align-items: center; position: relative; overflow: hidden; padding: 100px 24px 60px;
+        }
+        .hero-bg {
+            position: absolute; inset: 0;
+            background-image: url('{{ hero.background_image.url|default:"" }}');
+            background-size: cover; background-position: center;
+            opacity: 0.2;
+        }
+        .hero-overlay { position: absolute; inset: 0; background: linear-gradient(135deg, rgba(15,23,42,.85) 0%, rgba(0,87,231,.4) 100%); }
+        .hero-inner { position: relative; max-width: 1200px; margin: 0 auto; text-align: center; }
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(255,255,255,.1); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,.2); border-radius: 50px;
+            padding: 8px 20px; font-size: .82rem; font-weight: 600; color: rgba(255,255,255,.9);
+            margin-bottom: 28px; letter-spacing: .08em; text-transform: uppercase;
+        }
+        .hero-badge span { width: 6px; height: 6px; border-radius: 50%; background: #34d399; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.4} }
+        .hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2.4rem, 6vw, 4.5rem);
+            font-weight: 700; color: var(--white); line-height: 1.15; margin-bottom: 20px;
+        }
+        .hero h1 .accent { color: #fbbf24; }
+        .hero p { font-size: clamp(1rem, 2vw, 1.2rem); color: rgba(255,255,255,.75); max-width: 620px; margin: 0 auto 40px; }
+        .hero-btns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+        .btn-primary-hero {
+            background: var(--brand); color: var(--white);
+            padding: 14px 32px; border-radius: 12px; font-weight: 700; font-size: 1rem;
+            transition: all .3s; display: inline-flex; align-items: center; gap: 8px;
+            box-shadow: 0 8px 32px rgba(0,87,231,.4);
+        }
+        .btn-primary-hero:hover { transform: translateY(-3px); box-shadow: 0 16px 48px rgba(0,87,231,.5); background: var(--brand-dark); }
+        .btn-ghost-hero {
+            background: rgba(255,255,255,.1); backdrop-filter: blur(10px);
+            color: var(--white); padding: 14px 32px; border-radius: 12px;
+            font-weight: 600; font-size: 1rem; border: 1px solid rgba(255,255,255,.2);
+            transition: all .3s; display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-ghost-hero:hover { background: rgba(255,255,255,.2); transform: translateY(-2px); }
+        .hero-stats {
+            display: flex; justify-content: center; gap: 40px; flex-wrap: wrap;
+            margin-top: 60px; padding-top: 40px; border-top: 1px solid rgba(255,255,255,.1);
+        }
+        .stat-item { text-align: center; }
+        .stat-num { font-size: 2rem; font-weight: 800; color: var(--white); }
+        .stat-label { font-size: .8rem; color: rgba(255,255,255,.6); text-transform: uppercase; letter-spacing: .08em; margin-top: 2px; }
+        .scroll-hint {
+            position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
+            color: rgba(255,255,255,.5); font-size: .8rem; display: flex; flex-direction: column; align-items: center; gap: 6px;
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce { 0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(8px)} }
+
+        /* ── SECTION COMMON ────────────────────────────────────── */
+        .section { padding: 96px 24px; }
+        .section-alt { background: var(--surface); }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .section-header { text-align: center; margin-bottom: 64px; }
+        .section-pill {
+            display: inline-block; background: var(--brand-light); color: var(--brand);
+            padding: 6px 18px; border-radius: 50px; font-size: .78rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: .1em; margin-bottom: 16px;
+        }
+        .section-title { font-family: 'Playfair Display', serif; font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 700; color: var(--text); margin-bottom: 14px; line-height: 1.2; }
+        .section-sub { color: var(--muted); font-size: 1.05rem; max-width: 580px; margin: 0 auto; }
+
+        /* ── PACKAGES ──────────────────────────────────────────── */
+        .packages-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 28px; }
+        .pkg-card {
+            background: var(--white); border-radius: var(--radius); overflow: hidden;
+            box-shadow: var(--shadow); transition: all .3s; border: 1px solid var(--border);
+        }
+        .pkg-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); }
+        .pkg-img { position: relative; height: 210px; overflow: hidden; background: var(--brand-light); }
+        .pkg-img img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s; }
+        .pkg-card:hover .pkg-img img { transform: scale(1.06); }
+        .pkg-img-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 3.5rem; color: var(--brand); opacity: .4; }
+        .pkg-featured-badge {
+            position: absolute; top: 12px; left: 12px;
+            background: #f59e0b; color: white; padding: 4px 12px;
+            border-radius: 50px; font-size: .73rem; font-weight: 700;
+        }
+        .pkg-body { padding: 22px; }
+        .pkg-destination { font-size: .78rem; color: var(--brand); font-weight: 600; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 6px; display: flex; align-items: center; gap: 5px; }
+        .pkg-name { font-size: 1.08rem; font-weight: 700; color: var(--text); margin-bottom: 8px; line-height: 1.3; }
+        .pkg-desc { font-size: .87rem; color: var(--muted); margin-bottom: 16px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .pkg-meta { display: flex; gap: 16px; margin-bottom: 18px; }
+        .pkg-meta span { display: flex; align-items: center; gap: 5px; font-size: .82rem; color: var(--muted); }
+        .pkg-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 16px; border-top: 1px solid var(--border); }
+        .pkg-price { font-size: 1.3rem; font-weight: 800; color: var(--brand); }
+        .pkg-price-orig { font-size: .8rem; color: var(--muted); text-decoration: line-through; margin-left: 6px; }
+        .pkg-btn {
+            background: var(--brand-light); color: var(--brand); padding: 8px 18px;
+            border-radius: 8px; font-weight: 600; font-size: .85rem; transition: all .2s;
+        }
+        .pkg-btn:hover { background: var(--brand); color: white; }
+        .empty-state { text-align: center; padding: 80px 20px; color: var(--muted); }
+        .empty-state i { font-size: 3.5rem; margin-bottom: 16px; opacity: .3; }
+        .view-all-wrap { text-align: center; margin-top: 48px; }
+        .btn-outline-brand {
+            display: inline-flex; align-items: center; gap: 8px;
+            border: 2px solid var(--brand); color: var(--brand); padding: 12px 28px;
+            border-radius: 10px; font-weight: 600; font-size: .95rem; transition: all .2s;
+        }
+        .btn-outline-brand:hover { background: var(--brand); color: white; }
+
+        /* ── VISA SERVICES ─────────────────────────────────────── */
+        .visa-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
+        .visa-card {
+            background: var(--white); border-radius: var(--radius); padding: 28px;
+            border: 1px solid var(--border); box-shadow: var(--shadow); transition: all .3s;
+            display: flex; flex-direction: column; gap: 14px;
+        }
+        .visa-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--brand); }
+        .visa-icon {
+            width: 52px; height: 52px; border-radius: 12px;
+            background: var(--brand-light); display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem; color: var(--brand);
+        }
+        .visa-type { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--brand); }
+        .visa-name { font-size: 1rem; font-weight: 700; color: var(--text); line-height: 1.3; }
+        .visa-country { font-size: .85rem; color: var(--muted); display: flex; align-items: center; gap: 5px; }
+        .visa-meta { display: flex; gap: 12px; flex-wrap: wrap; }
+        .visa-badge {
+            display: flex; align-items: center; gap: 5px;
+            background: var(--surface); border: 1px solid var(--border);
+            padding: 5px 10px; border-radius: 6px; font-size: .78rem; color: var(--muted); font-weight: 500;
+        }
+        .visa-footer { display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding-top: 14px; border-top: 1px solid var(--border); }
+        .visa-price { font-size: 1.2rem; font-weight: 800; color: var(--brand); }
+        .visa-apply {
+            background: var(--brand); color: white; padding: 7px 18px;
+            border-radius: 8px; font-weight: 600; font-size: .83rem; transition: all .2s;
+        }
+        .visa-apply:hover { background: var(--brand-dark); }
+        .visa-type-icon { font-size: .9rem; }
+
+        /* ── ABOUT ─────────────────────────────────────────────── */
+        .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+        @media(max-width:768px){ .about-grid { grid-template-columns: 1fr; gap: 40px; } }
+        .about-img-wrap { position: relative; }
+        .about-img-wrap img { border-radius: var(--radius); box-shadow: var(--shadow-lg); width: 100%; height: 400px; object-fit: cover; }
+        .about-img-placeholder {
+            width: 100%; height: 400px; border-radius: var(--radius);
+            background: var(--brand-light); display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 14px;
+            color: var(--brand); font-size: 4rem; opacity: .5;
+        }
+        .about-stats-tag {
+            position: absolute; bottom: -20px; right: -20px;
+            background: var(--brand); color: white; width: 100px; height: 100px;
+            border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 1.1rem; box-shadow: 0 8px 24px rgba(0,87,231,.4);
+        }
+        .about-stats-tag small { font-size: .6rem; font-weight: 400; opacity: .85; }
+        .about-content h2 { font-family: 'Playfair Display', serif; font-size: clamp(1.8rem,3vw,2.4rem); font-weight: 700; margin-bottom: 18px; line-height: 1.25; }
+        .about-content p { color: var(--muted); margin-bottom: 20px; line-height: 1.8; }
+        .about-values { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 28px; }
+        .value-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+        .value-card h4 { font-size: .9rem; font-weight: 700; color: var(--text); margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+        .value-card h4 i { color: var(--brand); }
+        .value-card p { font-size: .82rem; color: var(--muted); margin: 0; line-height: 1.5; }
+
+        /* ── TESTIMONIALS ──────────────────────────────────────── */
+        .testimonials-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; }
+        .testi-card {
+            background: var(--white); border-radius: var(--radius); padding: 28px;
+            border: 1px solid var(--border); box-shadow: var(--shadow); transition: all .3s;
+        }
+        .testi-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+        .testi-stars { display: flex;gap:3px;margin-bottom:14px; }
+        .testi-stars i { color: #f59e0b; font-size: .9rem; }
+        .testi-text { font-size: .93rem; color: var(--muted); line-height: 1.7; margin-bottom: 18px; font-style: italic; }
+        .testi-author { display: flex; align-items: center; gap: 12px; }
+        .testi-avatar {
+            width: 42px; height: 42px; border-radius: 50%;
+            background: var(--brand-light); display: flex; align-items: center; justify-content: center;
+            font-weight: 700; color: var(--brand); font-size: 1rem; overflow: hidden;
+        }
+        .testi-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .testi-name { font-weight: 700; font-size: .9rem; color: var(--text); }
+        .testi-destination { font-size: .78rem; color: var(--muted); }
+
+        /* ── CONTACT ───────────────────────────────────────────── */
+        .contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }
+        @media(max-width:768px){ .contact-grid { grid-template-columns: 1fr; } }
+        .contact-info h3 { font-family: 'Playfair Display', serif; font-size: 1.8rem; font-weight: 700; margin-bottom: 20px; }
+        .contact-info p { color: var(--muted); margin-bottom: 28px; line-height: 1.7; }
+        .contact-items { display: flex; flex-direction: column; gap: 16px; }
+        .contact-item { display: flex; align-items: flex-start; gap: 14px; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+        .contact-item-icon { width: 40px; height: 40px; background: var(--brand-light); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--brand); font-size: 1rem; flex-shrink: 0; }
+        .contact-item-text strong { display: block; font-size: .82rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 600; margin-bottom: 2px; }
+        .contact-item-text span { font-size: .93rem; color: var(--text); font-weight: 500; }
+        .contact-form-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px; box-shadow: var(--shadow); }
+        .contact-form-card h3 { font-weight: 700; font-size: 1.2rem; margin-bottom: 24px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: .83rem; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+        .form-group input, .form-group textarea {
+            width: 100%; padding: 12px 14px; border: 1.5px solid var(--border);
+            border-radius: 10px; font-family: 'Inter', sans-serif; font-size: .93rem; color: var(--text);
+            transition: border-color .2s; background: var(--white);
+        }
+        .form-group input:focus, .form-group textarea:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-light); }
+        .form-group textarea { resize: vertical; min-height: 110px; }
+        .btn-submit {
+            width: 100%; background: var(--brand); color: white; padding: 13px;
+            border: none; border-radius: 10px; font-weight: 700; font-size: .95rem;
+            cursor: pointer; transition: all .2s; font-family: 'Inter', sans-serif;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-submit:hover { background: var(--brand-dark); transform: translateY(-1px); }
+        .map-wrap { margin-top: 24px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+        .map-wrap iframe { width: 100%; height: 200px; border: none; }
+
+        /* ── FOOTER ────────────────────────────────────────────── */
+        .footer {
+            background: #0f172a; color: rgba(255,255,255,.7);
+            padding: 52px 24px 28px;
+        }
+        .footer-inner { max-width: 1200px; margin: 0 auto; }
+        .footer-top { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 48px; margin-bottom: 40px; }
+        @media(max-width:768px){ .footer-top { grid-template-columns: 1fr; gap: 28px; } }
+        .footer-brand { font-size: 1.3rem; font-weight: 800; color: white; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+        .footer-desc { font-size: .88rem; line-height: 1.7; }
+        .footer-col h4 { font-size: .85rem; font-weight: 700; color: white; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 14px; }
+        .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+        .footer-col ul li a { font-size: .87rem; color: rgba(255,255,255,.6); transition: color .2s; }
+        .footer-col ul li a:hover { color: white; }
+        .footer-bottom { border-top: 1px solid rgba(255,255,255,.08); padding-top: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; font-size: .83rem; color: rgba(255,255,255,.4); }
+        .footer-badge { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); border-radius: 50px; padding: 4px 14px; font-size: .75rem; color: rgba(255,255,255,.5); }
+
+        /* ── RESPONSIVE ────────────────────────────────────────── */
+        @media(max-width:900px){
+            .about-values { grid-template-columns: 1fr; }
+            .packages-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+        }
+        @media(max-width:640px){
+            .nav-links { display: none; }
+            .hamburger { display: block; }
+            .hero { padding: 90px 20px 60px; }
+            .hero-stats { gap: 24px; }
+            .about-stats-tag { right: 0; bottom: -16px; width: 80px; height: 80px; font-size: .9rem; }
+            .section { padding: 64px 20px; }
+        }
+
+        /* ── ANIMATIONS ────────────────────────────────────────── */
+        .fade-up { opacity: 0; transform: translateY(30px); transition: all .6s ease; }
+        .fade-up.visible { opacity: 1; transform: translateY(0); }
+    </style>
+</head>
+<body>
+{% load static %}
+
+<!-- ── NAVBAR ──────────────────────────────────────────────────────── -->
+<nav class="nav" id="mainNav">
+    <div class="nav-inner">
+        <a class="nav-brand" href="#hero">
+            {% if tenant.logo %}
+                <img src="{{ tenant.logo.url }}" alt="{{ tenant.agency_name }}">
+            {% endif %}
+            {{ tenant.agency_name }}
+        </a>
+        <div class="nav-links">
+            <a href="#packages">Packages</a>
+            <a href="#visa">Visa Services</a>
+            <a href="#about">About Us</a>
+            {% if testimonials %}<a href="#testimonials">Reviews</a>{% endif %}
+            <a href="#contact" class="nav-cta">Contact Us</a>
+        </div>
+        <button class="hamburger" onclick="toggleMenu()" aria-label="Menu">
+            <span></span><span></span><span></span>
+        </button>
+    </div>
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="#packages" onclick="closeMenu()"><i class="fa-solid fa-plane me-2"></i>Packages</a>
+        <a href="#visa" onclick="closeMenu()"><i class="fa-solid fa-passport me-2"></i>Visa Services</a>
+        <a href="#about" onclick="closeMenu()"><i class="fa-solid fa-building me-2"></i>About Us</a>
+        {% if testimonials %}<a href="#testimonials" onclick="closeMenu()"><i class="fa-solid fa-star me-2"></i>Reviews</a>{% endif %}
+        <a href="#contact" onclick="closeMenu()" style="background:var(--brand-light);color:var(--brand);"><i class="fa-solid fa-envelope me-2"></i>Contact</a>
+    </div>
+</nav>
+
+<!-- ── HERO ────────────────────────────────────────────────────────── -->
+<section class="hero" id="hero">
+    {% if hero and hero.background_image %}
+    <div class="hero-bg" style="background-image: url('{{ hero.background_image.url }}');"></div>
+    {% endif %}
+    <div class="hero-overlay"></div>
+    <div class="hero-inner">
+        <div class="hero-badge">
+            <span></span>
+            {{ tenant.agency_name }} · Trusted Travel Partner
+        </div>
+        <h1>
+            {% if hero %}
+                {{ hero.title }}
+            {% else %}
+                Discover the World with <span class="accent">{{ tenant.agency_name }}</span>
+            {% endif %}
+        </h1>
+        <p>
+            {% if hero %}{{ hero.subtitle }}{% else %}Your trusted travel partner for unforgettable adventures and seamless visa services.{% endif %}
+        </p>
+        <div class="hero-btns">
+            <a href="#packages" class="btn-primary-hero">
+                <i class="fa-solid fa-compass"></i>
+                {% if hero %}{{ hero.cta_text }}{% else %}Explore Packages{% endif %}
+            </a>
+            <a href="#contact" class="btn-ghost-hero">
+                <i class="fa-regular fa-envelope"></i> Get In Touch
+            </a>
+        </div>
+        <div class="hero-stats">
+            <div class="stat-item">
+                <div class="stat-num">{{ packages_count }}+</div>
+                <div class="stat-label">Tour Packages</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-num">{{ visa_count }}+</div>
+                <div class="stat-label">Visa Services</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-num">100%</div>
+                <div class="stat-label">Client Satisfaction</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-num">24/7</div>
+                <div class="stat-label">Support</div>
+            </div>
+        </div>
+    </div>
+    <div class="scroll-hint">
+        <span>Scroll Down</span>
+        <i class="fa-solid fa-chevron-down"></i>
+    </div>
+</section>
+
+<!-- ── TOUR PACKAGES ────────────────────────────────────────────────── -->
+<section class="section" id="packages">
+    <div class="container">
+        <div class="section-header fade-up">
+            <div class="section-pill"><i class="fa-solid fa-map-location-dot me-1"></i> Tour Packages</div>
+            <h2 class="section-title">Explore Our Travel Packages</h2>
+            <p class="section-sub">Hand-crafted itineraries designed for memorable experiences. Book your dream trip today.</p>
+        </div>
+
+        {% if packages %}
+        <div class="packages-grid">
+            {% for pkg in packages %}
+            <div class="pkg-card fade-up">
+                <div class="pkg-img">
+                    {% if pkg.featured_image %}
+                        <img src="{{ pkg.featured_image.url }}" alt="{{ pkg.name }}" loading="lazy">
+                    {% else %}
+                        <div class="pkg-img-placeholder"><i class="fa-solid fa-mountain-sun"></i></div>
+                    {% endif %}
+                    {% if pkg.is_featured %}<span class="pkg-featured-badge">⭐ Featured</span>{% endif %}
+                </div>
+                <div class="pkg-body">
+                    <div class="pkg-destination">
+                        <i class="fa-solid fa-location-dot"></i>
+                        {{ pkg.destination_name|default:pkg.destination.name|default:"International" }}
+                    </div>
+                    <div class="pkg-name">{{ pkg.name }}</div>
+                    {% if pkg.short_description %}
+                    <div class="pkg-desc">{{ pkg.short_description }}</div>
+                    {% elif pkg.description %}
+                    <div class="pkg-desc">{{ pkg.description|truncatewords:20 }}</div>
+                    {% endif %}
+                    <div class="pkg-meta">
+                        <span><i class="fa-regular fa-clock"></i> {{ pkg.duration_days }} day{% if pkg.duration_days != 1 %}s{% endif %}</span>
+                        {% if pkg.available_seats > 0 %}
+                        <span><i class="fa-solid fa-users"></i> {{ pkg.available_seats }} seats left</span>
+                        {% else %}
+                        <span style="color:#ef4444;"><i class="fa-solid fa-circle-xmark"></i> Sold out</span>
+                        {% endif %}
+                        <span><i class="fa-solid fa-gauge-simple"></i> {{ pkg.get_difficulty_display }}</span>
+                    </div>
+                    <div class="pkg-footer">
+                        <div>
+                            <span class="pkg-price">{{ pkg.currency }} {{ pkg.effective_price|floatformat:0 }}</span>
+                            {% if pkg.discounted_price %}<span class="pkg-price-orig">{{ pkg.currency }} {{ pkg.price|floatformat:0 }}</span>{% endif %}
+                        </div>
+                        <a href="{{ directory_base }}/packages/{{ pkg.slug }}/" class="pkg-btn">
+                            View Details <i class="fa-solid fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="view-all-wrap fade-up">
+            <a href="{{ directory_base }}/packages/" class="btn-outline-brand">
+                <i class="fa-solid fa-grid-2"></i> View All Packages
+            </a>
+        </div>
+        {% else %}
+        <div class="empty-state fade-up">
+            <i class="fa-solid fa-map-location-dot"></i>
+            <p>No tour packages available yet. Check back soon!</p>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- ── VISA SERVICES ────────────────────────────────────────────────── -->
+<section class="section section-alt" id="visa">
+    <div class="container">
+        <div class="section-header fade-up">
+            <div class="section-pill"><i class="fa-solid fa-passport me-1"></i> Visa Services</div>
+            <h2 class="section-title">Hassle-Free Visa Processing</h2>
+            <p class="section-sub">Expert assistance for tourist, business, student and work visas to destinations worldwide.</p>
+        </div>
+
+        {% if visa_services %}
+        <div class="visa-grid">
+            {% for visa in visa_services %}
+            <div class="visa-card fade-up">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <div class="visa-icon">
+                        {% if visa.visa_type == 'tourist' %}<i class="fa-solid fa-umbrella-beach"></i>
+                        {% elif visa.visa_type == 'business' %}<i class="fa-solid fa-briefcase"></i>
+                        {% elif visa.visa_type == 'student' %}<i class="fa-solid fa-graduation-cap"></i>
+                        {% elif visa.visa_type == 'work' %}<i class="fa-solid fa-hard-hat"></i>
+                        {% elif visa.visa_type == 'family' %}<i class="fa-solid fa-people-roof"></i>
+                        {% else %}<i class="fa-solid fa-passport"></i>{% endif %}
+                    </div>
+                    <div>
+                        <div class="visa-type">{{ visa.get_visa_type_display }}</div>
+                        <div class="visa-name">{{ visa.name }}</div>
+                    </div>
+                </div>
+                {% if visa.country %}
+                <div class="visa-country">
+                    <i class="fa-solid fa-globe"></i>
+                    {{ visa.country.name }}
+                </div>
+                {% endif %}
+                {% if visa.description %}
+                <p style="font-size:.84rem;color:var(--muted);line-height:1.6;margin:0;">{{ visa.description|truncatewords:18 }}</p>
+                {% endif %}
+                <div class="visa-meta">
+                    <span class="visa-badge">
+                        <i class="fa-regular fa-clock"></i>{{ visa.processing_time }}
+                    </span>
+                    {% if visa.is_featured %}
+                    <span class="visa-badge" style="background:var(--brand-light);border-color:var(--brand);color:var(--brand);">
+                        <i class="fa-solid fa-star"></i> Featured
+                    </span>
+                    {% endif %}
+                </div>
+                <div class="visa-footer">
+                    <span class="visa-price">{{ visa.price|floatformat:0 }} ৳</span>
+                    <a href="#contact" class="visa-apply">Apply Now</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state fade-up">
+            <i class="fa-solid fa-passport"></i>
+            <p>Visa services coming soon. Contact us for inquiries.</p>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- ── ABOUT ────────────────────────────────────────────────────────── -->
+<section class="section" id="about">
+    <div class="container">
+        <div class="about-grid">
+            <div class="about-img-wrap fade-up">
+                {% if about and about.image %}
+                    <img src="{{ about.image.url }}" alt="{{ tenant.agency_name }}">
+                {% else %}
+                    <div class="about-img-placeholder">
+                        <i class="fa-solid fa-building-user"></i>
+                        <span style="font-size:.95rem;font-weight:600;">{{ tenant.agency_name }}</span>
+                    </div>
+                {% endif %}
+                <div class="about-stats-tag">
+                    <span>{{ packages_count }}+</span>
+                    <small>Packages</small>
+                </div>
+            </div>
+            <div class="about-content fade-up">
+                <div class="section-pill"><i class="fa-solid fa-circle-info me-1"></i> About Us</div>
+                <h2>{% if about %}{{ about.title }}{% else %}About {{ tenant.agency_name }}{% endif %}</h2>
+                <p>{% if about %}{{ about.content }}{% else %}We are a dedicated travel agency committed to providing exceptional travel experiences and seamless visa processing services for our clients.{% endif %}</p>
+                {% if about.mission or about.vision %}
+                <div class="about-values">
+                    {% if about.mission %}
+                    <div class="value-card">
+                        <h4><i class="fa-solid fa-bullseye"></i> Our Mission</h4>
+                        <p>{{ about.mission }}</p>
+                    </div>
+                    {% endif %}
+                    {% if about.vision %}
+                    <div class="value-card">
+                        <h4><i class="fa-solid fa-eye"></i> Our Vision</h4>
+                        <p>{{ about.vision }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="about-values">
+                    <div class="value-card">
+                        <h4><i class="fa-solid fa-bullseye"></i> Our Mission</h4>
+                        <p>To deliver unforgettable travel experiences with trusted, professional service.</p>
+                    </div>
+                    <div class="value-card">
+                        <h4><i class="fa-solid fa-shield-halved"></i> Our Promise</h4>
+                        <p>Transparent pricing, expert guidance, and 24/7 support every step of the way.</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── TESTIMONIALS ─────────────────────────────────────────────────── -->
+{% if testimonials %}
+<section class="section section-alt" id="testimonials">
+    <div class="container">
+        <div class="section-header fade-up">
+            <div class="section-pill"><i class="fa-solid fa-star me-1"></i> Testimonials</div>
+            <h2 class="section-title">What Our Travelers Say</h2>
+            <p class="section-sub">Real experiences from our happy clients around the world.</p>
+        </div>
+        <div class="testimonials-grid">
+            {% for t in testimonials %}
+            <div class="testi-card fade-up">
+                <div class="testi-stars">
+                    {% for i in "12345" %}
+                        {% if forloop.counter <= t.rating %}
+                            <i class="fa-solid fa-star"></i>
+                        {% else %}
+                            <i class="fa-regular fa-star"></i>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <p class="testi-text">"{{ t.content }}"</p>
+                <div class="testi-author">
+                    <div class="testi-avatar">
+                        {% if t.customer_photo %}
+                            <img src="{{ t.customer_photo.url }}" alt="{{ t.customer_name }}">
+                        {% else %}
+                            {{ t.customer_name|first|upper }}
+                        {% endif %}
+                    </div>
+                    <div>
+                        <div class="testi-name">{{ t.customer_name }}</div>
+                        {% if t.destination %}<div class="testi-destination"><i class="fa-solid fa-location-dot me-1"></i>{{ t.destination }}</div>{% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- ── CONTACT ──────────────────────────────────────────────────────── -->
+<section class="section" id="contact">
+    <div class="container">
+        <div class="section-header fade-up">
+            <div class="section-pill"><i class="fa-solid fa-envelope me-1"></i> Contact</div>
+            <h2 class="section-title">Get In Touch With Us</h2>
+            <p class="section-sub">Ready to plan your next adventure? We'd love to hear from you.</p>
+        </div>
+        <div class="contact-grid">
+            <div class="fade-up">
+                <div class="contact-info">
+                    <h3>Let's Plan Your<br>Dream Trip Together</h3>
+                    <p>{{ cms.contact_address|default:"Reach out to us for any travel inquiries, package bookings, or visa assistance. Our team is ready to help you." }}</p>
+                </div>
+                <div class="contact-items">
+                    {% if cms.contact_phone %}
+                    <div class="contact-item">
+                        <div class="contact-item-icon"><i class="fa-solid fa-phone"></i></div>
+                        <div class="contact-item-text">
+                            <strong>Phone</strong>
+                            <span><a href="tel:{{ cms.contact_phone }}">{{ cms.contact_phone }}</a></span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if cms.contact_email %}
+                    <div class="contact-item">
+                        <div class="contact-item-icon"><i class="fa-solid fa-envelope"></i></div>
+                        <div class="contact-item-text">
+                            <strong>Email</strong>
+                            <span><a href="mailto:{{ cms.contact_email }}">{{ cms.contact_email }}</a></span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if cms.contact_address %}
+                    <div class="contact-item">
+                        <div class="contact-item-icon"><i class="fa-solid fa-location-dot"></i></div>
+                        <div class="contact-item-text">
+                            <strong>Address</strong>
+                            <span>{{ cms.contact_address }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if not cms.contact_phone and not cms.contact_email %}
+                    <div class="contact-item">
+                        <div class="contact-item-icon"><i class="fa-solid fa-envelope"></i></div>
+                        <div class="contact-item-text">
+                            <strong>Email</strong>
+                            <span><a href="mailto:{{ tenant.email }}">{{ tenant.email }}</a></span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% if cms.map_embed_url %}
+                <div class="map-wrap" style="margin-top:24px;">
+                    <iframe src="{{ cms.map_embed_url }}" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                </div>
+                {% endif %}
+            </div>
+            <div class="fade-up">
+                <div class="contact-form-card">
+                    <h3><i class="fa-solid fa-paper-plane me-2" style="color:var(--brand);"></i>Send Us a Message</h3>
+                    <form method="POST" action="{{ directory_base }}/contact/">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label>Your Name</label>
+                            <input type="text" name="name" placeholder="John Doe" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <input type="email" name="email" placeholder="john@example.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Phone Number</label>
+                            <input type="text" name="phone" placeholder="+880 ..." >
+                        </div>
+                        <div class="form-group">
+                            <label>Message</label>
+                            <textarea name="message" placeholder="Tell us about your travel plans or inquiry..." required></textarea>
+                        </div>
+                        <button type="submit" class="btn-submit">
+                            <i class="fa-solid fa-paper-plane"></i> Send Message
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── FOOTER ───────────────────────────────────────────────────────── -->
+<footer class="footer">
+    <div class="footer-inner">
+        <div class="footer-top">
+            <div>
+                <div class="footer-brand">
+                    {% if tenant.logo %}<img src="{{ tenant.logo.url }}" alt="" style="width:32px;height:32px;border-radius:8px;object-fit:cover;">{% endif %}
+                    {{ tenant.agency_name }}
+                </div>
+                <p class="footer-desc">Your trusted travel partner for unforgettable journeys and seamless visa services. We make travel easy, memorable, and accessible.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="#packages"><i class="fa-solid fa-angle-right me-1"></i>Tour Packages</a></li>
+                    <li><a href="#visa"><i class="fa-solid fa-angle-right me-1"></i>Visa Services</a></li>
+                    <li><a href="#about"><i class="fa-solid fa-angle-right me-1"></i>About Us</a></li>
+                    <li><a href="#contact"><i class="fa-solid fa-angle-right me-1"></i>Contact</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Contact</h4>
+                <ul>
+                    {% if cms.contact_phone %}<li><a href="tel:{{ cms.contact_phone }}"><i class="fa-solid fa-phone me-1"></i>{{ cms.contact_phone }}</a></li>{% endif %}
+                    {% if cms.contact_email %}<li><a href="mailto:{{ cms.contact_email }}"><i class="fa-solid fa-envelope me-1"></i>{{ cms.contact_email }}</a></li>{% endif %}
+                    <li><a href="mailto:{{ tenant.email }}"><i class="fa-solid fa-envelope me-1"></i>{{ tenant.email }}</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <span>&copy; {% now "Y" %} {{ tenant.agency_name }}. All rights reserved.</span>
+            <span class="footer-badge">Powered by Travel.SoftoBro</span>
+        </div>
+    </div>
+</footer>
+
+<script>
+// Nav scroll effect
+const nav = document.getElementById('mainNav');
+window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 20);
+});
+
+// Mobile menu
+function toggleMenu() {
+    document.getElementById('mobileMenu').classList.toggle('open');
+}
+function closeMenu() {
+    document.getElementById('mobileMenu').classList.remove('open');
+}
+
+// Scroll animations
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+        if (e.isIntersecting) {
+            e.target.classList.add('visible');
+        }
+    });
+}, { threshold: 0.1 });
+document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>

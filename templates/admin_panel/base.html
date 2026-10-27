@@ -365,7 +365,7 @@
             <i class="fa-solid fa-sliders"></i><span>Agency Settings</span>
         </a>
         <a href="{% url 'admin_panel:cms_settings' %}" class="nav-link {% if 'cms' in request.path %}active{% endif %}">
-            <i class="fa-solid fa-paintbrush"></i><span>CMS & Branding</span>
+            <i class="fa-solid fa-globe"></i><span>Website</span>
         </a>
         <a href="{% url 'admin_panel:domain_settings' %}" class="nav-link {% if 'domain' in request.path %}active{% endif %}">
             <i class="fa-solid fa-globe"></i><span>Domain & Website</span>
@@ -386,9 +386,12 @@
         </a>
 
         <div class="mt-auto p-3 border-top border-secondary border-opacity-25">
-            <a href="/" target="_blank" class="btn btn-sm btn-outline-light w-100 mb-2">
-                <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Preview Agency Site
+            {% if request.user.tenant_id %}
+            <a href="{% url 'directory:home' request.user.tenant_id %}" target="_blank"
+               class="btn btn-sm btn-outline-light w-100 mb-2">
+                <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Preview My Website
             </a>
+            {% endif %}
         </div>
     </nav>
 
