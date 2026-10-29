@@ -1,189 +1,513 @@
 {% extends 'website/base.html' %}
+{% load static %}
 
 {% block title %}
-{% if is_platform_home %}Launch Your Travel Agency — Softobro Travel SaaS{% else %}Explore Tours &amp; Visa Services{% endif %}
+{% if is_platform_home %}Travel SoftoBro — All-in-One Travel Management Software{% else %}Explore Tours &amp; Visa Services{% endif %}
 {% endblock %}
 
 {% block content %}
 
 {% if is_platform_home %}
 {# ─────────────────────────────────────────────────────────────────────────── #}
-{# MAIN PLATFORM HOME — Softobro Travel SaaS Marketing Page                   #}
+{# MAIN PLATFORM HOME — Travel SoftoBro SaaS Marketing Page                    #}
+{# Pixel-perfect implementation matching user's reference mockup              #}
 {# ─────────────────────────────────────────────────────────────────────────── #}
 
-<!-- Hero Section -->
-<section class="hero-section text-center py-6" style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #312e81 100%); color:#fff; min-height: 78vh; display:flex; align-items:center;">
-    <div class="container py-5">
-        <span class="badge rounded-pill px-4 py-2 fw-bold mb-4 d-inline-block"
-              style="background: rgba(99,102,241,0.25); color:#a5b4fc; border:1px solid rgba(99,102,241,0.4); font-size: 0.88rem;">
-            <i class="fa-solid fa-rocket me-2"></i>The #1 SaaS Platform for Travel Agencies
-        </span>
-        <h1 class="display-3 fw-extrabold mb-4" style="line-height:1.15;">
-            Launch Your Own<br>
-            <span style="background: linear-gradient(90deg,#818cf8,#a78bfa,#f472b6); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Travel Agency Website</span>
-        </h1>
-        <p class="lead mb-5 mx-auto" style="max-width:620px; color: rgba(255,255,255,0.75); font-size:1.2rem;">
-            Softobro Travel gives every agency its own branded website — with tour packages, visa services, bookings, and customer management, all ready in minutes.
-        </p>
-        <div class="d-flex justify-content-center gap-3 flex-wrap">
-            <a href="{% url 'accounts:agency_register' %}" class="btn btn-lg px-5 py-3 fw-bold rounded-pill shadow-lg"
-               style="background: linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border:none;">
-                <i class="fa-solid fa-star me-2"></i> Start Free Trial
-            </a>
-            <a href="#pricing" class="btn btn-outline-light btn-lg px-5 py-3 fw-bold rounded-pill">
-                <i class="fa-solid fa-tag me-2"></i> View Pricing
-            </a>
-        </div>
+<!-- 1. HERO SECTION -->
+<section class="hero-softobro">
+    <div class="container position-relative">
+        <div class="row align-items-center g-4">
+            
+            <!-- Left Column: Typography & CTAs -->
+            <div class="col-lg-6">
+                <span class="hero-badge-overline">
+                    <i class="fa-solid fa-sparkles me-1 text-primary"></i> ALL-IN-ONE TRAVEL MANAGEMENT SOFTWARE
+                </span>
+                
+                <h1 class="hero-main-title">
+                    Grow Your Travel<br>
+                    Business with <span class="hero-brand-highlight">Travel SoftoBro</span>
+                </h1>
+                
+                <p class="hero-lead-text">
+                    Manage bookings, customers, agents, visas and more &mdash; all from one powerful platform. Simple. Secure. <strong>Smart.</strong>
+                </p>
 
-        <!-- Stats Row -->
-        <div class="mt-5 pt-3 d-flex justify-content-center gap-5 flex-wrap" style="color: rgba(255,255,255,0.6);">
-            <div class="text-center">
-                <div class="fw-extrabold fs-3 text-white">500+</div>
-                <div class="small">Agencies</div>
+                <!-- Value Proposition Pills -->
+                <div class="hero-value-pills">
+                    <div class="value-pill-item">
+                        <i class="fa-regular fa-clock"></i> Save Time
+                    </div>
+                    <div class="value-pill-item">
+                        <i class="fa-solid fa-bolt"></i> Boost Productivity
+                    </div>
+                    <div class="value-pill-item">
+                        <i class="fa-solid fa-chart-line"></i> Grow Revenue
+                    </div>
+                </div>
+
+                <!-- Call to Action Buttons -->
+                <div class="hero-cta-group">
+                    <a href="{% url 'accounts:agency_register' %}" class="btn-hero-primary">
+                        Start Your Free Trial <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+                    <a href="#demoModal" data-bs-toggle="modal" class="btn-hero-demo">
+                        <span class="demo-play-circle"><i class="fa-solid fa-play"></i></span>
+                        <span>Watch Demo<br><small class="text-muted fw-normal" style="font-size:0.75rem;">(1 Min)</small></span>
+                    </a>
+                </div>
             </div>
-            <div class="text-center">
-                <div class="fw-extrabold fs-3 text-white">50K+</div>
-                <div class="small">Bookings Handled</div>
+
+            <!-- Right Column: Realistic Live Device Showcase -->
+            <div class="col-lg-6">
+                <!-- Handwritten Tag at top right -->
+                <div class="d-flex justify-content-end align-items-center pe-3 mb-2">
+                    <span class="hero-handwritten-priority">
+                        Your Travel Business<br>Our Priority <i class="fa-solid fa-paper-plane fs-6 ms-1"></i>
+                    </span>
+                </div>
+
+                <div class="hero-devices-wrapper">
+                    <!-- Laptop Mockup Frame -->
+                    <div class="laptop-mockup-frame">
+                        <div class="laptop-screen">
+                            <div class="laptop-camera-notch"></div>
+                            
+                            <!-- Inside Laptop Dashboard UI -->
+                            <div class="laptop-ui-screen">
+                                <!-- Laptop Mini Sidebar -->
+                                <div class="laptop-sidebar">
+                                    <div class="brand-mini">
+                                        <i class="fa-solid fa-plane-departure text-primary"></i> SoftoBro
+                                    </div>
+                                    <div class="nav-item-mini active"><i class="fa-solid fa-chart-pie"></i> Dashboard</div>
+                                    <div class="nav-item-mini"><i class="fa-solid fa-users"></i> Customers</div>
+                                    <div class="nav-item-mini"><i class="fa-solid fa-user-tie"></i> Agents</div>
+                                    <div class="nav-item-mini"><i class="fa-solid fa-calendar-check"></i> Bookings</div>
+                                    <div class="nav-item-mini"><i class="fa-solid fa-passport"></i> Visa</div>
+                                    <div class="nav-item-mini"><i class="fa-solid fa-earth-asia"></i> Tour Pkg</div>
+                                    <div class="nav-item-mini"><i class="fa-solid fa-file-invoice-dollar"></i> Invoice</div>
+                                    <div class="nav-item-mini"><i class="fa-solid fa-chart-column"></i> Reports</div>
+                                    <div class="nav-item-mini"><i class="fa-solid fa-gear"></i> Settings</div>
+                                </div>
+
+                                <!-- Laptop Mini Main Dashboard -->
+                                <div class="laptop-main-panel">
+                                    <div class="laptop-topbar">
+                                        <div class="laptop-search-mini">
+                                            <i class="fa-solid fa-magnifying-glass"></i> Search bookings, clients...
+                                        </div>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="fa-regular fa-bell text-muted" style="font-size:0.65rem;"></i>
+                                            <div style="width:16px;height:16px;border-radius:50%;background:#0b63e5;color:#fff;display:flex;align-items:center;justify-content:center;font-size:0.5rem;font-weight:700;">A</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 4 Stat Counters -->
+                                    <div class="laptop-stats-grid">
+                                        <div class="stat-box-mini green">
+                                            <div class="stat-label-mini">Total Bookings</div>
+                                            <div class="stat-value-mini">248</div>
+                                        </div>
+                                        <div class="stat-box-mini cyan">
+                                            <div class="stat-label-mini">Total Customers</div>
+                                            <div class="stat-value-mini">162</div>
+                                        </div>
+                                        <div class="stat-box-mini purple">
+                                            <div class="stat-label-mini">Total Agents</div>
+                                            <div class="stat-value-mini">28</div>
+                                        </div>
+                                        <div class="stat-box-mini blue">
+                                            <div class="stat-label-mini">Total Revenue</div>
+                                            <div class="stat-value-mini">৳ 3,45,000</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Split: Recent Bookings Table & Chart -->
+                                    <div class="laptop-screen-split">
+                                        <!-- Recent Bookings Table -->
+                                        <div class="mini-card-box">
+                                            <div class="mini-card-title">
+                                                <span>Recent Bookings</span>
+                                                <i class="fa-solid fa-ellipsis text-muted"></i>
+                                            </div>
+                                            <table class="mini-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Customer</th>
+                                                        <th>Destination</th>
+                                                        <th>Status</th>
+                                                        <th>Amount</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td>Md. Rahman</td>
+                                                        <td>Dubai</td>
+                                                        <td><span class="badge-mini-status confirmed">Confirmed</span></td>
+                                                        <td>৳ 45,000</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Sadia Akter</td>
+                                                        <td>Saudi Arabia</td>
+                                                        <td><span class="badge-mini-status pending">Pending</span></td>
+                                                        <td>৳ 32,000</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Tariq Hasan</td>
+                                                        <td>Turkey</td>
+                                                        <td><span class="badge-mini-status confirmed">Confirmed</span></td>
+                                                        <td>৳ 68,000</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Nusrat Jahan</td>
+                                                        <td>Malaysia</td>
+                                                        <td><span class="badge-mini-status pending">Pending</span></td>
+                                                        <td>৳ 25,000</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <!-- Booking Overview Bar Chart -->
+                                        <div class="mini-card-box">
+                                            <div class="mini-card-title">
+                                                <span>Booking Overview</span>
+                                            </div>
+                                            <div class="mini-chart-bars">
+                                                <div class="chart-bar-col">
+                                                    <div class="bar-pill" style="height: 42%;"></div>
+                                                    <span class="bar-month-name">Jan</span>
+                                                </div>
+                                                <div class="chart-bar-col">
+                                                    <div class="bar-pill" style="height: 60%;"></div>
+                                                    <span class="bar-month-name">Feb</span>
+                                                </div>
+                                                <div class="chart-bar-col">
+                                                    <div class="bar-pill" style="height: 52%;"></div>
+                                                    <span class="bar-month-name">Mar</span>
+                                                </div>
+                                                <div class="chart-bar-col">
+                                                    <div class="bar-pill" style="height: 85%;"></div>
+                                                    <span class="bar-month-name">Apr</span>
+                                                </div>
+                                                <div class="chart-bar-col">
+                                                    <div class="bar-pill" style="height: 70%;"></div>
+                                                    <span class="bar-month-name">May</span>
+                                                </div>
+                                                <div class="chart-bar-col">
+                                                    <div class="bar-pill" style="height: 95%;"></div>
+                                                    <span class="bar-month-name">Jun</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Aluminum Base Chin -->
+                        <div class="laptop-base-chin"></div>
+                    </div>
+
+                    <!-- Floating Mobile Phone Mockup -->
+                    <div class="phone-mockup-frame">
+                        <div class="phone-notch-bar">
+                            <div class="phone-island"></div>
+                        </div>
+                        <div class="phone-screen-inner">
+                            <div class="phone-app-header">
+                                <i class="fa-solid fa-plane-departure me-1"></i> Travel SoftoBro
+                            </div>
+                            <div class="phone-grid-tiles">
+                                <div class="phone-tile">
+                                    <i class="fa-solid fa-calendar-check text-primary"></i>
+                                    <span>Bookings</span>
+                                </div>
+                                <div class="phone-tile">
+                                    <i class="fa-solid fa-users text-success"></i>
+                                    <span>Customers</span>
+                                </div>
+                                <div class="phone-tile">
+                                    <i class="fa-solid fa-user-tie text-warning"></i>
+                                    <span>Agents</span>
+                                </div>
+                                <div class="phone-tile">
+                                    <i class="fa-solid fa-passport text-info"></i>
+                                    <span>Visa</span>
+                                </div>
+                                <div class="phone-tile">
+                                    <i class="fa-solid fa-earth-americas text-danger"></i>
+                                    <span>Tour Pkg</span>
+                                </div>
+                                <div class="phone-tile">
+                                    <i class="fa-solid fa-chart-pie" style="color:#8b5cf6;"></i>
+                                    <span>Reports</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Travel Passport Decorative Graphic -->
+                    <div class="hero-passport-badge">
+                        <i class="fa-solid fa-passport fs-5"></i>
+                        <span>PASSPORT<br><small style="font-size:0.55rem;opacity:0.8;">VISA APPROVED</small></span>
+                    </div>
+                </div>
             </div>
-            <div class="text-center">
-                <div class="fw-extrabold fs-3 text-white">99.9%</div>
-                <div class="small">Uptime</div>
+
+        </div>
+    </div>
+</section>
+
+<!-- 2. 6 FEATURE ICON CARDS ROW -->
+<section class="features-strip-section">
+    <div class="container">
+        <div class="row g-3 g-lg-4">
+            <!-- 1. Customer Management -->
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="feature-pill-card">
+                    <div class="feature-icon-circle blue">
+                        <i class="fa-solid fa-user-group"></i>
+                    </div>
+                    <h5 class="feature-card-heading">Customer Management</h5>
+                    <p class="feature-card-text">Keep all customer data in one place</p>
+                </div>
+            </div>
+
+            <!-- 2. Agent Management -->
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="feature-pill-card">
+                    <div class="feature-icon-circle green">
+                        <i class="fa-solid fa-users-gear"></i>
+                    </div>
+                    <h5 class="feature-card-heading">Agent Management</h5>
+                    <p class="feature-card-text">Work with your agents smoothly</p>
+                </div>
+            </div>
+
+            <!-- 3. Booking Management -->
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="feature-pill-card">
+                    <div class="feature-icon-circle cyan">
+                        <i class="fa-solid fa-calendar-check"></i>
+                    </div>
+                    <h5 class="feature-card-heading">Booking Management</h5>
+                    <p class="feature-card-text">Handle flight, hotel &amp; tour bookings</p>
+                </div>
+            </div>
+
+            <!-- 4. Visa Management -->
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="feature-pill-card">
+                    <div class="feature-icon-circle teal">
+                        <i class="fa-solid fa-passport"></i>
+                    </div>
+                    <h5 class="feature-card-heading">Visa Management</h5>
+                    <p class="feature-card-text">Track visa process &amp; documents</p>
+                </div>
+            </div>
+
+            <!-- 5. Tour Package -->
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="feature-pill-card">
+                    <div class="feature-icon-circle purple">
+                        <i class="fa-solid fa-map-location-dot"></i>
+                    </div>
+                    <h5 class="feature-card-heading">Tour Package</h5>
+                    <p class="feature-card-text">Create &amp; manage tour packages easily</p>
+                </div>
+            </div>
+
+            <!-- 6. Invoice & Payment -->
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="feature-pill-card">
+                    <div class="feature-icon-circle pink">
+                        <i class="fa-solid fa-file-invoice-dollar"></i>
+                    </div>
+                    <h5 class="feature-card-heading">Invoice &amp; Payment</h5>
+                    <p class="feature-card-text">Generate invoices, track payments &amp; dues</p>
+                </div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- Features Section -->
-<section class="py-6 bg-light" id="features">
-    <div class="container py-4">
-        <div class="text-center mb-5">
-            <span class="badge bg-primary-subtle text-primary fw-bold px-3 py-2 rounded-pill mb-3">Platform Features</span>
-            <h2 class="fw-extrabold display-6 text-dark mb-2">Everything Your Agency Needs</h2>
-            <p class="text-muted mx-auto" style="max-width: 520px;">One platform. Your own branded website. Full control over packages, visas, bookings, and customers.</p>
+<!-- 3. WHY CHOOSE SECTION -->
+<section class="why-choose-section" id="features">
+    <div class="container">
+        <!-- Section Header -->
+        <div class="mb-4">
+            <span class="why-choose-overline">WHY CHOOSE TRAVEL SOFTOBRO?</span>
+            <h2 class="why-choose-title">Everything You Need for a Smarter Travel Business</h2>
         </div>
-        <div class="row g-4">
-            <div class="col-md-4">
-                <div class="card border-0 shadow-sm h-100 p-4 rounded-4">
-                    <div class="mb-3" style="width:52px;height:52px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:14px;display:flex;align-items:center;justify-content:center;">
-                        <i class="fa-solid fa-globe text-white fs-5"></i>
+
+        <div class="row g-4 align-items-stretch">
+            <!-- Left Large Feature Card with Santorini Scenery -->
+            <div class="col-lg-8">
+                <div class="why-choose-large-card">
+                    <!-- Left Content -->
+                    <div class="why-choose-content-side">
+                        <p class="why-choose-p-text">
+                            Travel SoftoBro is designed for travel agencies, agents and tour operators. Simplify your operations, reduce manual work and focus on what really matters &mdash; growing your business.
+                        </p>
+                        
+                        <ul class="why-choose-checklist">
+                            <li><i class="fa-solid fa-circle-check"></i> Easy to Use &amp; Manage</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Secure &amp; Reliable Cloud Hosting</li>
+                            <li><i class="fa-solid fa-circle-check"></i> 24/7 Customer Support</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Affordable Pricing</li>
+                        </ul>
+
+                        <div>
+                            <a href="{% url 'accounts:agency_register' %}" class="btn-pill-get-started">
+                                Get Started Now <i class="fa-solid fa-arrow-right"></i>
+                            </a>
+                        </div>
                     </div>
-                    <h5 class="fw-bold text-dark mb-2">Branded Agency Website</h5>
-                    <p class="text-muted small mb-0">Your own subdomain and custom domain. Full CMS control over hero banners, content, and branding colors.</p>
+
+                    <!-- Right Image with Santorini View & Script Watermark -->
+                    <div class="why-choose-image-side" style="background-image: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(11,99,229,0.2)), url('{% static 'images/santorini.jpg' %}');">
+                        <div class="script-explore-world">
+                            Explore<br>the World <i class="fa-solid fa-plane fs-4 ms-1"></i>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="card border-0 shadow-sm h-100 p-4 rounded-4">
-                    <div class="mb-3" style="width:52px;height:52px;background:linear-gradient(135deg,#0ea5e9,#06b6d4);border-radius:14px;display:flex;align-items:center;justify-content:center;">
-                        <i class="fa-solid fa-compass text-white fs-5"></i>
+
+            <!-- Right Column: 4 Stacked Mini Feature Cards -->
+            <div class="col-lg-4">
+                <div class="side-feature-stack">
+                    <!-- Card 1: Multi-Branch Support -->
+                    <div class="side-feature-card">
+                        <div class="side-feature-icon-box green">
+                            <i class="fa-solid fa-building-user"></i>
+                        </div>
+                        <div>
+                            <h5 class="side-feature-heading">Multi-Branch Support</h5>
+                            <p class="side-feature-desc">Manage multiple branches from a single platform.</p>
+                        </div>
                     </div>
-                    <h5 class="fw-bold text-dark mb-2">Tour Package Management</h5>
-                    <p class="text-muted small mb-0">Add unlimited tour packages with pricing, seat limits, galleries, and descriptions. Published directly on your website.</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card border-0 shadow-sm h-100 p-4 rounded-4">
-                    <div class="mb-3" style="width:52px;height:52px;background:linear-gradient(135deg,#f59e0b,#f97316);border-radius:14px;display:flex;align-items:center;justify-content:center;">
-                        <i class="fa-solid fa-passport text-white fs-5"></i>
+
+                    <!-- Card 2: B2B Agent Portal -->
+                    <div class="side-feature-card">
+                        <div class="side-feature-icon-box purple">
+                            <i class="fa-solid fa-user-tie"></i>
+                        </div>
+                        <div>
+                            <h5 class="side-feature-heading">B2B Agent Portal</h5>
+                            <p class="side-feature-desc">Give your agents their own login &amp; booking access.</p>
+                        </div>
                     </div>
-                    <h5 class="fw-bold text-dark mb-2">Visa Services</h5>
-                    <p class="text-muted small mb-0">Offer tourist, business, student visa services. Customers apply online and track their applications in real-time.</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card border-0 shadow-sm h-100 p-4 rounded-4">
-                    <div class="mb-3" style="width:52px;height:52px;background:linear-gradient(135deg,#10b981,#059669);border-radius:14px;display:flex;align-items:center;justify-content:center;">
-                        <i class="fa-solid fa-users text-white fs-5"></i>
+
+                    <!-- Card 3: WhatsApp Notification -->
+                    <div class="side-feature-card">
+                        <div class="side-feature-icon-box whatsapp">
+                            <i class="fa-brands fa-whatsapp"></i>
+                        </div>
+                        <div>
+                            <h5 class="side-feature-heading">WhatsApp Notification</h5>
+                            <p class="side-feature-desc">Get instant updates &amp; alerts on WhatsApp.</p>
+                        </div>
                     </div>
-                    <h5 class="fw-bold text-dark mb-2">Customer CRM</h5>
-                    <p class="text-muted small mb-0">Manage all customers, their bookings, KYC verification, wallets, and support tickets from one place.</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card border-0 shadow-sm h-100 p-4 rounded-4">
-                    <div class="mb-3" style="width:52px;height:52px;background:linear-gradient(135deg,#ec4899,#db2777);border-radius:14px;display:flex;align-items:center;justify-content:center;">
-                        <i class="fa-solid fa-user-tie text-white fs-5"></i>
+
+                    <!-- Card 4: Cloud Based -->
+                    <div class="side-feature-card">
+                        <div class="side-feature-icon-box blue">
+                            <i class="fa-solid fa-cloud"></i>
+                        </div>
+                        <div>
+                            <h5 class="side-feature-heading">Cloud Based</h5>
+                            <p class="side-feature-desc">Access your data anytime, anywhere.</p>
+                        </div>
                     </div>
-                    <h5 class="fw-bold text-dark mb-2">Staff Accounts</h5>
-                    <p class="text-muted small mb-0">Add multiple staff members to help run your agency. Each staff gets their own login and access to the agency panel.</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card border-0 shadow-sm h-100 p-4 rounded-4">
-                    <div class="mb-3" style="width:52px;height:52px;background:linear-gradient(135deg,#6366f1,#4338ca);border-radius:14px;display:flex;align-items:center;justify-content:center;">
-                        <i class="fa-solid fa-chart-line text-white fs-5"></i>
-                    </div>
-                    <h5 class="fw-bold text-dark mb-2">Analytics &amp; Reports</h5>
-                    <p class="text-muted small mb-0">Track revenue, bookings, visa applications, and customer growth with a real-time agency analytics dashboard.</p>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- Pricing Section -->
-<section class="py-6" id="pricing">
-    <div class="container py-4">
-        <div class="text-center mb-5">
-            <span class="badge bg-primary-subtle text-primary fw-bold px-3 py-2 rounded-pill mb-3">Subscription Plans</span>
-            <h2 class="fw-extrabold display-6 text-dark mb-2">Simple, Transparent Pricing</h2>
-            <p class="text-muted mx-auto" style="max-width:480px;">Choose the plan that fits your agency. No hidden fees. Cancel anytime.</p>
+<!-- 4. PRICING SECTION -->
+<section class="pricing-section-softobro" id="pricing">
+    <div class="container">
+        <!-- Section Header -->
+        <div class="pricing-title-wrap">
+            <h2 class="pricing-main-title">Our Pricing Plans</h2>
+            <p class="pricing-sub-desc">Choose the plan that fits your business needs</p>
         </div>
 
         {% if subscription_packages %}
+        <!-- Dynamic Packages from Database (Preserving All Pricing Details) -->
         <div class="row g-4 justify-content-center">
             {% for plan in subscription_packages %}
-            <div class="col-md-4">
-                <div class="card border-0 shadow h-100 rounded-4 position-relative {% if plan.is_recommended %}border border-primary border-2{% endif %}" style="overflow:hidden;">
+            <div class="col-lg-4 col-md-6">
+                <div class="pricing-plan-card {% if plan.is_recommended %}popular-highlight{% endif %}">
                     {% if plan.is_recommended %}
-                    <div class="position-absolute top-0 end-0 m-0">
-                        <span class="badge rounded-0 rounded-bottom-start px-3 py-2 fw-bold"
-                              style="background: linear-gradient(135deg,#6366f1,#8b5cf6); font-size:0.76rem;">
-                            ⭐ Most Popular
-                        </span>
+                    <div class="pricing-popular-badge">
+                        <i class="fa-solid fa-star text-warning"></i> Most Popular
                     </div>
                     {% endif %}
-                    <div class="card-body p-4">
-                        <div class="mb-4">
-                            <span class="badge bg-{{ plan.badge_color }}-subtle text-{{ plan.badge_color }} rounded-pill fw-bold px-3 mb-2">{{ plan.get_package_type_display }}</span>
-                            <h4 class="fw-extrabold text-dark mb-1">{{ plan.name }}</h4>
-                            <p class="text-muted small mb-0">{{ plan.description|default:"Perfect for growing agencies." }}</p>
-                        </div>
-
-                        <div class="mb-4">
-                            <span class="display-5 fw-extrabold text-dark">৳{{ plan.monthly_price }}</span>
-                            <span class="text-muted">/month</span>
-                            {% if plan.yearly_price %}
-                            <div class="small text-muted mt-1">or ৳{{ plan.yearly_price }}/year
-                                {% if plan.yearly_savings > 0 %}
-                                <span class="text-success fw-bold">(Save ৳{{ plan.yearly_savings }})</span>
-                                {% endif %}
-                            </div>
+                    
+                    <!-- Card Header Banner: 1st=Green, 2nd=Blue/Popular, 3rd=Purple -->
+                    <div class="pricing-header-banner {% if forloop.counter == 1 %}green-theme{% elif forloop.counter == 2 or plan.is_recommended %}blue-theme{% else %}purple-theme{% endif %}">
+                        <div class="pricing-badge-icon">
+                            {% if forloop.counter == 1 %}
+                                <i class="fa-solid fa-envelope-open-text"></i>
+                            {% elif forloop.counter == 2 or plan.is_recommended %}
+                                <i class="fa-solid fa-award"></i>
+                            {% else %}
+                                <i class="fa-solid fa-briefcase"></i>
                             {% endif %}
                         </div>
+                        <div>
+                            <h4 class="pricing-plan-title">{{ plan.name }}</h4>
+                            <p class="pricing-plan-tagline">{{ plan.description|default:"For growing travel agencies" }}</p>
+                        </div>
+                    </div>
 
-                        <ul class="list-unstyled mb-4">
-                            <li class="mb-2 small"><i class="fa-solid fa-check-circle text-success me-2"></i>
-                                {% if plan.max_users == -1 %}Unlimited{% else %}Up to {{ plan.max_users }}{% endif %} Customer Accounts
-                            </li>
-                            <li class="mb-2 small"><i class="fa-solid fa-check-circle text-success me-2"></i>
-                                {% if plan.max_travel_packages == -1 %}Unlimited{% else %}{{ plan.max_travel_packages }}{% endif %} Tour Packages
-                            </li>
-                            <li class="mb-2 small"><i class="fa-solid fa-check-circle text-success me-2"></i>
-                                {% if plan.max_visa_services == -1 %}Unlimited{% else %}{{ plan.max_visa_services }}{% endif %} Visa Services
-                            </li>
-                            <li class="mb-2 small"><i class="fa-solid fa-check-circle text-success me-2"></i>
-                                {% if plan.max_staff == -1 %}Unlimited{% else %}{{ plan.max_staff }}{% endif %} Staff Members
-                            </li>
-                            {% if plan.custom_domain %}<li class="mb-2 small"><i class="fa-solid fa-check-circle text-success me-2"></i>Custom Domain</li>{% endif %}
-                            {% if plan.advanced_analytics %}<li class="mb-2 small"><i class="fa-solid fa-check-circle text-success me-2"></i>Advanced Analytics</li>{% endif %}
-                            {% if plan.priority_support %}<li class="mb-2 small"><i class="fa-solid fa-check-circle text-success me-2"></i>Priority Support</li>{% endif %}
-                            {% if plan.white_label %}<li class="mb-2 small"><i class="fa-solid fa-check-circle text-success me-2"></i>White Label</li>{% endif %}
-                            <li class="mb-2 small"><i class="fa-solid fa-check-circle text-success me-2"></i>{{ plan.trial_days }}-day Free Trial</li>
+                    <!-- Card Body -->
+                    <div class="pricing-card-body">
+                        <div class="pricing-rate-display">
+                            <span class="price-currency">৳</span>
+                            <span class="price-number">{{ plan.monthly_price }}</span>
+                            <span class="price-period">/month</span>
+                        </div>
+
+                        {% if plan.yearly_price %}
+                        <div class="text-center small text-muted mb-3" style="margin-top: -1rem;">
+                            or ৳{{ plan.yearly_price }}/year
+                            {% if plan.yearly_savings > 0 %}
+                            <span class="text-success fw-bold">(Save ৳{{ plan.yearly_savings }})</span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <ul class="pricing-feature-list">
+                            <li><i class="fa-solid fa-circle-check"></i> Customer Management {% if plan.max_users != -1 %}(Up to {{ plan.max_users }}){% else %}(Unlimited){% endif %}</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Agent Management</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Booking Management</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Visa Management {% if plan.max_visa_services != -1 %}({{ plan.max_visa_services }} Services){% endif %}</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Tour Package {% if plan.max_travel_packages != -1 %}({{ plan.max_travel_packages }} Packages){% endif %}</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Invoice &amp; Payment</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Income / Expense</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Basic Reports</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Customer Due</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Staff Accounts ({% if plan.max_staff == -1 %}Unlimited{% else %}{{ plan.max_staff }}{% endif %})</li>
+                            {% if plan.advanced_analytics %}
+                            <li><i class="fa-solid fa-circle-check"></i> Advanced Reports &amp; Analytics</li>
+                            {% endif %}
+                            {% if plan.custom_domain %}
+                            <li><i class="fa-solid fa-circle-check"></i> Custom Domain</li>
+                            {% endif %}
+                            {% if plan.white_label %}
+                            <li><i class="fa-solid fa-circle-check"></i> B2B Agent Portal &amp; White Label</li>
+                            {% endif %}
+                            <li><i class="fa-solid fa-circle-check"></i> Cloud Hosting &amp; Security</li>
+                            <li><i class="fa-solid fa-circle-check"></i> {{ plan.trial_days }}-day Free Trial</li>
                         </ul>
 
-                        <a href="{% url 'accounts:agency_register' %}" class="btn w-100 fw-bold rounded-pill py-2
-                            {% if plan.is_recommended %}btn-primary{% else %}btn-outline-primary{% endif %}">
-                            Get Started <i class="fa-solid fa-arrow-right ms-1"></i>
+                        <a href="{% url 'accounts:agency_register' %}" class="btn-pricing-action {% if forloop.counter == 1 %}outline-green{% elif forloop.counter == 2 or plan.is_recommended %}solid-blue{% else %}outline-purple{% endif %}">
+                            Get Started <i class="fa-solid fa-arrow-right"></i>
                         </a>
                     </div>
                 </div>
@@ -191,53 +515,140 @@
             {% endfor %}
         </div>
         {% else %}
-        <!-- Fallback if no subscription packages are defined yet -->
+        <!-- Mockup Fallback Pricing Cards (Starter, Business, Professional) -->
         <div class="row g-4 justify-content-center">
-            <!-- Starter -->
-            <div class="col-md-4">
-                <div class="card border-0 shadow h-100 rounded-4 p-4">
-                    <span class="badge bg-secondary-subtle text-secondary rounded-pill fw-bold px-3 mb-3">Starter</span>
-                    <h4 class="fw-extrabold">Basic</h4>
-                    <div class="display-5 fw-extrabold text-dark mb-2">৳19<span class="fs-6 text-muted fw-normal">/mo</span></div>
-                    <ul class="list-unstyled small text-muted mb-4">
-                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>Up to 100 Customers</li>
-                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>10 Tour Packages</li>
-                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>5 Visa Services</li>
-                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>14-day Free Trial</li>
-                    </ul>
-                    <a href="{% url 'accounts:agency_register' %}" class="btn btn-outline-primary rounded-pill fw-bold">Get Started</a>
+            <!-- 1. Starter Plan (৳999/mo) -->
+            <div class="col-lg-4 col-md-6">
+                <div class="pricing-plan-card">
+                    <div class="pricing-header-banner green-theme">
+                        <div class="pricing-badge-icon">
+                            <i class="fa-solid fa-envelope-open-text"></i>
+                        </div>
+                        <div>
+                            <h4 class="pricing-plan-title">Starter</h4>
+                            <p class="pricing-plan-tagline">Perfect for new travel agencies</p>
+                        </div>
+                    </div>
+
+                    <div class="pricing-card-body">
+                        <div class="pricing-rate-display">
+                            <span class="price-currency">৳</span>
+                            <span class="price-number">999</span>
+                            <span class="price-period">/month</span>
+                        </div>
+
+                        <ul class="pricing-feature-list">
+                            <li><i class="fa-solid fa-circle-check"></i> Customer Management</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Agent Management</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Booking Management</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Visa Management</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Tour Package</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Invoice</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Income / Expense</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Basic Reports</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Customer Due</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Payment Management</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Advanced Reports</li>
+                            <li><i class="fa-solid fa-circle-check"></i> WhatsApp Notification</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Cloud Hosting</li>
+                        </ul>
+
+                        <a href="{% url 'accounts:agency_register' %}" class="btn-pricing-action outline-green">
+                            Get Started <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                    </div>
                 </div>
             </div>
-            <!-- Pro -->
-            <div class="col-md-4">
-                <div class="card border-2 border-primary shadow-lg h-100 rounded-4 p-4 position-relative">
-                    <span class="badge bg-primary rounded-pill fw-bold px-3 mb-3 position-absolute top-0 end-0 m-3">Popular</span>
-                    <span class="badge bg-primary-subtle text-primary rounded-pill fw-bold px-3 mb-3">Professional</span>
-                    <h4 class="fw-extrabold">Pro</h4>
-                    <div class="display-5 fw-extrabold text-dark mb-2">৳49<span class="fs-6 text-muted fw-normal">/mo</span></div>
-                    <ul class="list-unstyled small text-muted mb-4">
-                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>Unlimited Customers</li>
-                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>Unlimited Packages</li>
-                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>Custom Domain</li>
-                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>Advanced Analytics</li>
-                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>Priority Support</li>
-                    </ul>
-                    <a href="{% url 'accounts:agency_register' %}" class="btn btn-primary rounded-pill fw-bold">Get Started</a>
+
+            <!-- 2. Business Plan (৳1,500/mo - Most Popular) -->
+            <div class="col-lg-4 col-md-6">
+                <div class="pricing-plan-card popular-highlight">
+                    <div class="pricing-popular-badge">
+                        <i class="fa-solid fa-star text-warning"></i> Most Popular
+                    </div>
+
+                    <div class="pricing-header-banner blue-theme">
+                        <div class="pricing-badge-icon">
+                            <i class="fa-solid fa-award"></i>
+                        </div>
+                        <div>
+                            <h4 class="pricing-plan-title">Business</h4>
+                            <p class="pricing-plan-tagline">For growing travel agencies</p>
+                        </div>
+                    </div>
+
+                    <div class="pricing-card-body">
+                        <div class="pricing-rate-display">
+                            <span class="price-currency">৳</span>
+                            <span class="price-number">1,500</span>
+                            <span class="price-period">/month</span>
+                        </div>
+
+                        <ul class="pricing-feature-list">
+                            <li><i class="fa-solid fa-circle-check"></i> Customer Management</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Agent Management</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Booking Management</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Visa Management</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Tour Package</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Invoice</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Income / Expense</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Basic Reports</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Customer Due</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Payment Management</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Advanced Reports</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Staff / User Management</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Cloud Hosting</li>
+                        </ul>
+
+                        <a href="{% url 'accounts:agency_register' %}" class="btn-pricing-action solid-blue">
+                            Get Started <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                    </div>
                 </div>
             </div>
-            <!-- Enterprise -->
-            <div class="col-md-4">
-                <div class="card border-0 shadow h-100 rounded-4 p-4">
-                    <span class="badge bg-dark text-white rounded-pill fw-bold px-3 mb-3">Enterprise</span>
-                    <h4 class="fw-extrabold">Business</h4>
-                    <div class="display-5 fw-extrabold text-dark mb-2">৳99<span class="fs-6 text-muted fw-normal">/mo</span></div>
-                    <ul class="list-unstyled small text-muted mb-4">
-                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>Everything in Pro</li>
-                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>White Label</li>
-                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>API Access</li>
-                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i>Unlimited Staff</li>
-                    </ul>
-                    <a href="{% url 'accounts:agency_register' %}" class="btn btn-outline-dark rounded-pill fw-bold">Get Started</a>
+
+            <!-- 3. Professional Plan (৳2,000/mo) -->
+            <div class="col-lg-4 col-md-6">
+                <div class="pricing-plan-card">
+                    <div class="pricing-header-banner purple-theme">
+                        <div class="pricing-badge-icon">
+                            <i class="fa-solid fa-briefcase"></i>
+                        </div>
+                        <div>
+                            <h4 class="pricing-plan-title">Professional</h4>
+                            <p class="pricing-plan-tagline">For large agencies &amp; B2B agents</p>
+                        </div>
+                    </div>
+
+                    <div class="pricing-card-body">
+                        <div class="pricing-rate-display">
+                            <span class="price-currency">৳</span>
+                            <span class="price-number">2,000</span>
+                            <span class="price-period">/month</span>
+                        </div>
+
+                        <ul class="pricing-feature-list">
+                            <li><i class="fa-solid fa-circle-check"></i> Customer Management</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Agent Management</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Booking Management</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Visa Management</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Tour Package</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Invoice</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Income / Expense</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Basic Reports</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Customer Due</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Payment Management</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Advanced Reports</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Staff / User Management</li>
+                            <li><i class="fa-solid fa-circle-check"></i> <strong>B2B Agent Portal</strong></li>
+                            <li><i class="fa-solid fa-circle-check"></i> Destination Management</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Cloud Hosting</li>
+                        </ul>
+
+                        <a href="{% url 'accounts:agency_register' %}" class="btn-pricing-action outline-purple">
+                            Get Started <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -245,19 +656,92 @@
     </div>
 </section>
 
-<!-- CTA Banner -->
-<section class="py-5" style="background: linear-gradient(135deg,#1e1b4b 0%,#312e81 100%);">
-    <div class="container py-4 text-center text-white">
-        <h2 class="fw-extrabold display-6 mb-3">Ready to Launch Your Agency?</h2>
-        <p class="mb-4 mx-auto" style="max-width:500px; color:rgba(255,255,255,0.7);">
-            Register today and get your agency website live within minutes. Free trial included.
-        </p>
-        <a href="{% url 'accounts:agency_register' %}" class="btn btn-lg px-5 py-3 fw-bold rounded-pill shadow"
-           style="background: linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border:none;">
-            <i class="fa-solid fa-rocket me-2"></i> Register Your Agency — It's Free
-        </a>
+<!-- 5. CALL TO ACTION BANNER -->
+<section class="cta-banner-softobro">
+    <div class="container">
+        <div class="row align-items-center g-4">
+            <!-- Left Side: Plane Icon + Heading + Button -->
+            <div class="col-lg-6">
+                <div class="cta-left-content">
+                    <div class="cta-plane-icon-box">
+                        <i class="fa-solid fa-plane-departure"></i>
+                    </div>
+                    <div>
+                        <h3 class="cta-heading">
+                            Ready to Take Your<br>
+                            Travel Business to the <span class="text-lime-accent">Next Level?</span>
+                        </h3>
+                        <p class="cta-subtext">Join thousands of travel agencies already using Travel SoftoBro.</p>
+                        <a href="{% url 'accounts:agency_register' %}" class="btn-cta-lime">
+                            Get Started Now <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Trust Badges & Script Watermark -->
+            <div class="col-lg-6">
+                <div class="cta-trust-badges-wrap">
+                    <div class="cta-trust-badge">
+                        <i class="fa-solid fa-handshake-simple"></i>
+                        <div class="cta-trust-text">
+                            <span class="small-sub">Trusted by</span>
+                            <span class="bold-main">500+ Agencies</span>
+                        </div>
+                    </div>
+                    
+                    <div class="cta-trust-badge">
+                        <i class="fa-solid fa-headset"></i>
+                        <div class="cta-trust-text">
+                            <span class="small-sub">24/7</span>
+                            <span class="bold-main">Support</span>
+                        </div>
+                    </div>
+                    
+                    <div class="cta-trust-badge">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <div class="cta-trust-text">
+                            <span class="small-sub">Secure</span>
+                            <span class="bold-main">Cloud Hosting</span>
+                        </div>
+                    </div>
+
+                    <div class="script-more-bookings">
+                        More Bookings<br>More Growth <i class="fa-solid fa-paper-plane fs-6 ms-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </section>
+
+<!-- Demo Video / Walkthrough Modal -->
+<div class="modal fade" id="demoModal" tabindex="-1" aria-labelledby="demoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-dark text-white border-0 py-3">
+                <h5 class="modal-title fw-bold" id="demoModalLabel">
+                    <i class="fa-solid fa-circle-play text-primary me-2"></i> Travel SoftoBro Platform Demo
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 bg-light text-center">
+                <div class="ratio ratio-16x9 rounded-3 shadow-sm overflow-hidden mb-3" style="background:#0f172a;">
+                    <iframe src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0" title="Travel SoftoBro Platform Overview" allowfullscreen></iframe>
+                </div>
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-2">
+                    <div class="text-start">
+                        <h6 class="fw-bold mb-1">Ready to explore for yourself?</h6>
+                        <p class="text-muted small mb-0">Create your agency account in less than 2 minutes. Free trial included.</p>
+                    </div>
+                    <a href="{% url 'accounts:agency_register' %}" class="btn btn-pill-get-started px-4">
+                        Start Free Trial <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 {% else %}
 {# ─────────────────────────────────────────────────────────────────────────── #}
