@@ -1781,36 +1781,46 @@ def agency_notifications(request):
     type_filter = request.GET.get('type', '')
     status_filter = request.GET.get('status', '')
 
-    notifications_qs = Notification.objects.filter(tenant=tenant).order_by('-created_at')
+    try:
+        notifications_qs = Notification.objects.filter(tenant=tenant).order_by('-created_at')
 
-    if type_filter == 'subscription':
-        notifications_qs = notifications_qs.filter(notification_type__in=['subscription', 'payment'])
-    elif type_filter == 'maintenance':
-        notifications_qs = notifications_qs.filter(notification_type='maintenance')
-    elif type_filter == 'server_update':
-        notifications_qs = notifications_qs.filter(notification_type='server_update')
-    elif type_filter == 'work_update':
-        notifications_qs = notifications_qs.filter(notification_type='work_update')
-    elif type_filter:
-        notifications_qs = notifications_qs.filter(notification_type=type_filter)
+        if type_filter == 'subscription':
+            notifications_qs = notifications_qs.filter(notification_type__in=['subscription', 'payment'])
+        elif type_filter == 'maintenance':
+            notifications_qs = notifications_qs.filter(notification_type='maintenance')
+        elif type_filter == 'server_update':
+            notifications_qs = notifications_qs.filter(notification_type='server_update')
+        elif type_filter == 'work_update':
+            notifications_qs = notifications_qs.filter(notification_type='work_update')
+        elif type_filter:
+            notifications_qs = notifications_qs.filter(notification_type=type_filter)
 
-    if status_filter == 'unread':
-        notifications_qs = notifications_qs.filter(is_read=False)
-    elif status_filter == 'read':
-        notifications_qs = notifications_qs.filter(is_read=True)
+        if status_filter == 'unread':
+            notifications_qs = notifications_qs.filter(is_read=False)
+        elif status_filter == 'read':
+            notifications_qs = notifications_qs.filter(is_read=True)
 
-    # Category counts for filter pills
-    base_qs = Notification.objects.filter(tenant=tenant)
-    total_count = base_qs.count()
-    unread_count = base_qs.filter(is_read=False).count()
-    sub_count = base_qs.filter(notification_type__in=['subscription', 'payment']).count()
-    maint_count = base_qs.filter(notification_type='maintenance').count()
-    server_count = base_qs.filter(notification_type='server_update').count()
-    work_count = base_qs.filter(notification_type='work_update').count()
+        # Category counts for filter pills
+        base_qs = Notification.objects.filter(tenant=tenant)
+        total_count = base_qs.count()
+        unread_count = base_qs.filter(is_read=False).count()
+        sub_count = base_qs.filter(notification_type__in=['subscription', 'payment']).count()
+        maint_count = base_qs.filter(notification_type='maintenance').count()
+        server_count = base_qs.filter(notification_type='server_update').count()
+        work_count = base_qs.filter(notification_type='work_update').count()
+        items = list(notifications_qs[:80])
+    except Exception:
+        items = []
+        total_count = 0
+        unread_count = 0
+        sub_count = 0
+        maint_count = 0
+        server_count = 0
+        work_count = 0
 
     context = {
         'tenant': tenant,
-        'notifications': notifications_qs[:80],
+        'notifications': items,
         'type_filter': type_filter,
         'status_filter': status_filter,
         'total_count': total_count,

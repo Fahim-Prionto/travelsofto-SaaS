@@ -807,21 +807,34 @@ def superadmin_notifications(request):
     type_filter = request.GET.get('type', '')
     target_filter = request.GET.get('tenant', '')
 
-    notifications = Notification.objects.select_related('tenant').order_by('-created_at')
+    try:
+        notifications = Notification.objects.select_related('tenant').order_by('-created_at')
 
-    if type_filter:
-        notifications = notifications.filter(notification_type=type_filter)
-    if target_filter:
-        notifications = notifications.filter(tenant_id=target_filter)
+        if type_filter:
+            notifications = notifications.filter(notification_type=type_filter)
+        if target_filter:
+            notifications = notifications.filter(tenant_id=target_filter)
 
-    total_count = Notification.objects.count()
-    maintenance_count = Notification.objects.filter(notification_type='maintenance').count()
-    server_count = Notification.objects.filter(notification_type='server_update').count()
-    work_count = Notification.objects.filter(notification_type='work_update').count()
-    subscription_count = Notification.objects.filter(notification_type__in=['subscription', 'payment']).count()
+        total_count = Notification.objects.count()
+        maintenance_count = Notification.objects.filter(notification_type='maintenance').count()
+        server_count = Notification.objects.filter(notification_type='server_update').count()
+        work_count = Notification.objects.filter(notification_type='work_update').count()
+        subscription_count = Notification.objects.filter(notification_type__in=['subscription', 'payment']).count()
+        notification_items = list(notifications[:100])
+    except Exception as e:
+        notification_items = []
+        total_count = 0
+        maintenance_count = 0
+        server_count = 0
+        work_count = 0
+        subscription_count = 0
+        messages.warning(
+            request,
+            '⚠️ Notification tables need to be migrated. Please run "python manage.py migrate notifications" on your server.'
+        )
 
     context = {
-        'notifications': notifications[:100],
+        'notifications': notification_items,
         'type_filter': type_filter,
         'target_filter': target_filter,
         'total_count': total_count,
