@@ -29,6 +29,7 @@ MAIN_DB_APPS = {
     'contenttypes',
     'sessions',
     'sites',
+    'notifications',
 }
 
 # These models are inside the 'tenants' app but must route to their isolated tenant DB
@@ -101,7 +102,7 @@ class TenantDatabaseRouter:
             if app_label == 'tenants':
                 return True
             # Prevent pure tenant-specific apps from migrating to the default database
-            tenant_apps = {'travel_packages', 'visa', 'bookings', 'payments', 'destinations', 'cms', 'support', 'coupons', 'notifications', 'kyc', 'bus', 'analytics', 'reviews'}
+            tenant_apps = {'travel_packages', 'visa', 'bookings', 'payments', 'destinations', 'cms', 'support', 'coupons', 'kyc', 'bus', 'analytics', 'reviews'}
             if app_label in tenant_apps:
                 return False
             return True

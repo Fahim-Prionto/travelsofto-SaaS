@@ -93,6 +93,10 @@
                 <i class="fa-solid fa-credit-card"></i>
                 <span>SaaS Payments</span>
             </a>
+            <a href="{% url 'superadmin:notifications' %}" class="nav-link {% if 'notifications' in request.path %}active{% endif %}">
+                <i class="fa-solid fa-bullhorn"></i>
+                <span>Agency Broadcasts</span>
+            </a>
             <a href="{% url 'superadmin:support_tickets' %}" class="nav-link {% if 'support' in request.path %}active{% endif %}">
                 <i class="fa-solid fa-headset"></i>
                 <span>Support Tickets</span>

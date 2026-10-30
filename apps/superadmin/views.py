@@ -608,12 +608,21 @@ def approve_saas_payment(request, payment_id):
         # Extend end_date by 30 days or 365 days based on billing cycle
         days = 365 if payment.billing_cycle == 'yearly' else 30
         subscription.end_date = timezone.now() + timezone.timedelta(days=days)
+        # Reset expiry notifications for the new cycle
+        subscription.expiry_7day_notified = False
+        subscription.expiry_3day_notified = False
+        subscription.expiry_1day_notified = False
+        subscription.expired_notified = False
         subscription.save()
 
     # Ensure Tenant status is active
     tenant = payment.tenant
     tenant.status = Tenant.Status.ACTIVE
     tenant.save()
+
+    # 🔔 Send Confirmation Notification to Agency Admin
+    from apps.notifications.services import notify_payment_approved
+    notify_payment_approved(payment)
 
     messages.success(request, f'✅ Payment for "{tenant.agency_name}" APPROVED! Subscription activated automatically.')
     return redirect('superadmin:saas_payments')
@@ -630,6 +639,10 @@ def reject_saas_payment(request, payment_id):
     if payment.subscription:
         payment.subscription.status = Subscription.Status.PENDING_PAYMENT
         payment.subscription.save()
+
+    # 🔔 Send Rejection Notification to Agency Admin
+    from apps.notifications.services import notify_payment_rejected
+    notify_payment_rejected(payment)
 
     messages.warning(request, f'⚠️ Payment for "{payment.tenant.agency_name}" rejected.')
     return redirect('superadmin:saas_payments')
@@ -782,3 +795,93 @@ def global_settings(request):
         'bkash_number': bkash_obj.value,
     }
     return render(request, 'superadmin/global_settings.html', context)
+
+
+# ── SUPER ADMIN AGENCY NOTIFICATIONS & BROADCASTS ─────────────────────────────
+@login_required
+@user_passes_test(superadmin_required)
+def superadmin_notifications(request):
+    """Super Admin view for managing and inspecting agency notifications & broadcasts."""
+    from apps.notifications.models import Notification
+
+    type_filter = request.GET.get('type', '')
+    target_filter = request.GET.get('tenant', '')
+
+    notifications = Notification.objects.select_related('tenant').order_by('-created_at')
+
+    if type_filter:
+        notifications = notifications.filter(notification_type=type_filter)
+    if target_filter:
+        notifications = notifications.filter(tenant_id=target_filter)
+
+    total_count = Notification.objects.count()
+    maintenance_count = Notification.objects.filter(notification_type='maintenance').count()
+    server_count = Notification.objects.filter(notification_type='server_update').count()
+    work_count = Notification.objects.filter(notification_type='work_update').count()
+    subscription_count = Notification.objects.filter(notification_type__in=['subscription', 'payment']).count()
+
+    context = {
+        'notifications': notifications[:100],
+        'type_filter': type_filter,
+        'target_filter': target_filter,
+        'total_count': total_count,
+        'maintenance_count': maintenance_count,
+        'server_count': server_count,
+        'work_count': work_count,
+        'subscription_count': subscription_count,
+    }
+    return render(request, 'superadmin/notifications/list.html', context)
+
+
+@login_required
+@user_passes_test(superadmin_required)
+def superadmin_notification_create(request):
+    """Super Admin creates and sends notifications/broadcasts to agencies."""
+    from apps.notifications.models import Notification
+    from apps.notifications.services import broadcast_superadmin_notification
+
+    tenants = Tenant.objects.order_by('agency_name')
+
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        message = request.POST.get('message', '').strip()
+        notification_type = request.POST.get('notification_type', 'maintenance')
+        priority = request.POST.get('priority', 'normal')
+        target_type = request.POST.get('target_type', 'all')
+        target_tenant_id = request.POST.get('tenant_id') if target_type == 'specific' else None
+        action_url = request.POST.get('action_url', '').strip()
+
+        if not title or not message:
+            messages.error(request, 'Please provide both title and message.')
+            return redirect('superadmin:notification_create')
+
+        count = broadcast_superadmin_notification(
+            notification_type=notification_type,
+            title=title,
+            message=message,
+            priority=priority,
+            action_url=action_url,
+            target_tenant_id=target_tenant_id
+        )
+
+        messages.success(request, f'📢 Notification dispatched successfully to {count} agency account(s)!')
+        return redirect('superadmin:notifications')
+
+    context = {
+        'tenants': tenants,
+        'notification_types': Notification.NotificationType.choices,
+        'priorities': Notification.Priority.choices,
+    }
+    return render(request, 'superadmin/notifications/create.html', context)
+
+
+@login_required
+@user_passes_test(superadmin_required)
+def superadmin_notification_delete(request, uid):
+    """Delete a sent notification record."""
+    from apps.notifications.models import Notification
+    notification = get_object_or_404(Notification, uid=uid)
+    notification.delete()
+    messages.info(request, 'Notification deleted.')
+    return redirect('superadmin:notifications')
+

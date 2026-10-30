@@ -105,5 +105,11 @@ urlpatterns = [
     path('subscription/checkout/', admin_views.subscription_checkout, name='subscription_checkout'),
     path('subscription/pending/', admin_views.subscription_pending, name='subscription_pending'),
 
+    # Agency Notifications System
+    path('notifications/', admin_views.agency_notifications, name='agency_notifications'),
+    path('notifications/<uuid:uid>/read/', admin_views.agency_notification_mark_read, name='agency_notification_mark_read'),
+    path('notifications/read-all/', admin_views.agency_notification_mark_all_read, name='agency_notification_mark_all_read'),
+    path('notifications/<uuid:uid>/delete/', admin_views.agency_notification_delete, name='agency_notification_delete'),
+
     path('support/', admin_views.agency_support, name='agency_support'),
 ]

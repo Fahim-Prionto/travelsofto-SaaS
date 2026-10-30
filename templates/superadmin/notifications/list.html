@@ -1,0 +1,175 @@
+{% extends 'superadmin/base.html' %}
+
+{% block title %}Agency Broadcasts & Notifications - Super Admin{% endblock %}
+{% block header_title %}Agency Notifications & Broadcasts{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <!-- Top Action Bar -->
+    <div class="col-12">
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon bg-primary text-white rounded-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px; font-size: 1.5rem;">
+                        <i class="fa-solid fa-bullhorn"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-extrabold text-dark mb-1">Agency Broadcasts & Announcements</h4>
+                        <p class="text-muted small mb-0">Send maintenance alerts, server update notices, work/feature releases, and subscription warnings to agencies.</p>
+                    </div>
+                </div>
+                <div>
+                    <a href="{% url 'superadmin:notification_create' %}" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm">
+                        <i class="fa-solid fa-plus me-1"></i> New Broadcast / Notification
+                    </a>
+                </div>
+            </div>
+
+            <!-- Stats Metric Cards -->
+            <div class="row g-3 mt-3 pt-3 border-top">
+                <div class="col-6 col-md-3">
+                    <div class="p-3 bg-light rounded-3 border">
+                        <small class="text-muted fw-semibold d-block mb-1">Total Dispatched</small>
+                        <h4 class="fw-extrabold text-dark mb-0">{{ total_count }}</h4>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-3 bg-warning-subtle rounded-3 border border-warning-subtle">
+                        <small class="text-warning-emphasis fw-semibold d-block mb-1"><i class="fa-solid fa-screwdriver-wrench me-1"></i> Maintenance</small>
+                        <h4 class="fw-extrabold text-dark mb-0">{{ maintenance_count }}</h4>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-3 bg-info-subtle rounded-3 border border-info-subtle">
+                        <small class="text-info-emphasis fw-semibold d-block mb-1"><i class="fa-solid fa-server me-1"></i> Server Updates</small>
+                        <h4 class="fw-extrabold text-dark mb-0">{{ server_count }}</h4>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-3 bg-primary-subtle rounded-3 border border-primary-subtle">
+                        <small class="text-primary fw-semibold d-block mb-1"><i class="fa-solid fa-rocket me-1"></i> Work & Features</small>
+                        <h4 class="fw-extrabold text-dark mb-0">{{ work_count }}</h4>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter Badges -->
+            <div class="d-flex flex-wrap gap-2 pt-3 mt-3 border-top">
+                <a href="{% url 'superadmin:notifications' %}"
+                   class="btn btn-sm rounded-pill px-3 fw-semibold {% if not type_filter %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+                    All
+                </a>
+                <a href="{% url 'superadmin:notifications' %}?type=maintenance"
+                   class="btn btn-sm rounded-pill px-3 fw-semibold {% if type_filter == 'maintenance' %}btn-warning text-dark{% else %}btn-outline-warning text-dark{% endif %}">
+                    <i class="fa-solid fa-screwdriver-wrench me-1"></i> Maintenance
+                </a>
+                <a href="{% url 'superadmin:notifications' %}?type=server_update"
+                   class="btn btn-sm rounded-pill px-3 fw-semibold {% if type_filter == 'server_update' %}btn-info text-dark{% else %}btn-outline-info text-dark{% endif %}">
+                    <i class="fa-solid fa-server me-1"></i> Server Updates
+                </a>
+                <a href="{% url 'superadmin:notifications' %}?type=work_update"
+                   class="btn btn-sm rounded-pill px-3 fw-semibold {% if type_filter == 'work_update' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    <i class="fa-solid fa-rocket me-1"></i> Work & Feature Updates
+                </a>
+                <a href="{% url 'superadmin:notifications' %}?type=subscription"
+                   class="btn btn-sm rounded-pill px-3 fw-semibold {% if type_filter == 'subscription' %}btn-success{% else %}btn-outline-success{% endif %}">
+                    <i class="fa-solid fa-arrows-rotate me-1"></i> Subscription Notices
+                </a>
+                <a href="{% url 'superadmin:notifications' %}?type=payment"
+                   class="btn btn-sm rounded-pill px-3 fw-semibold {% if type_filter == 'payment' %}btn-success{% else %}btn-outline-success{% endif %}">
+                    <i class="fa-solid fa-credit-card me-1"></i> Payment Approvals
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table of Sent Notifications -->
+    <div class="col-12">
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0 table-hover">
+                    <thead class="table-light">
+                        <tr class="text-uppercase small fw-bold text-muted" style="font-size:0.75rem;">
+                            <th class="ps-4">Target Agency</th>
+                            <th>Type & Category</th>
+                            <th>Title & Message</th>
+                            <th>Priority</th>
+                            <th>Sent Date</th>
+                            <th>Status</th>
+                            <th class="text-end pe-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if notifications %}
+                            {% for n in notifications %}
+                            <tr>
+                                <td class="ps-4">
+                                    {% if n.tenant %}
+                                        <div class="fw-bold text-dark">{{ n.tenant.agency_name }}</div>
+                                        <small class="text-muted">{{ n.tenant.slug }}</small>
+                                    {% elif n.is_broadcast %}
+                                        <span class="badge bg-dark rounded-pill px-2.5 py-1">
+                                            <i class="fa-solid fa-bullhorn me-1"></i> All Agencies
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted small">{{ n.recipient_email|default:"Global" }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge {{ n.badge_info.bg }} {{ n.badge_info.text }} border {{ n.badge_info.border }} rounded-pill px-2.5 py-1 fw-bold" style="font-size:0.75rem;">
+                                        <i class="{{ n.badge_info.icon }} me-1"></i> {{ n.badge_info.label }}
+                                    </span>
+                                </td>
+                                <td style="max-width: 380px;">
+                                    <div class="fw-bold text-dark text-truncate mb-1">{{ n.title }}</div>
+                                    <p class="text-muted small text-truncate mb-0" style="font-size:0.8rem;">{{ n.message }}</p>
+                                    {% if n.action_url %}
+                                    <small class="text-primary d-block mt-0.5" style="font-size:0.72rem;">URL: {{ n.action_url }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if n.priority == 'urgent' %}
+                                        <span class="badge bg-danger rounded-pill px-2 py-0.5">Urgent</span>
+                                    {% elif n.priority == 'high' %}
+                                        <span class="badge bg-warning text-dark rounded-pill px-2 py-0.5">High</span>
+                                    {% else %}
+                                        <span class="badge bg-light text-secondary border rounded-pill px-2 py-0.5">Normal</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="small fw-semibold text-dark">{{ n.created_at|date:"M d, Y" }}</div>
+                                    <small class="text-muted">{{ n.created_at|date:"h:i A" }}</small>
+                                </td>
+                                <td>
+                                    {% if n.is_read %}
+                                        <span class="badge bg-success-subtle text-success rounded-pill px-2 py-0.5">Read</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary-subtle text-secondary rounded-pill px-2 py-0.5">Unread</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end pe-4">
+                                    <a href="{% url 'superadmin:notification_delete' n.uid %}"
+                                       class="btn btn-sm btn-outline-danger border-0 rounded-circle"
+                                       onclick="return confirm('Delete this notification record?');"
+                                       title="Delete" style="width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="py-5 text-center text-muted">
+                                    <i class="fa-regular fa-bell-slash fs-2 mb-2 d-block opacity-50"></i>
+                                    <span class="fw-semibold">No notifications found in this category.</span>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

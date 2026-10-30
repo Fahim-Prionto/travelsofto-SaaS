@@ -1,0 +1,149 @@
+{% extends 'admin_panel/base.html' %}
+
+{% block title %}Agency Notifications & System Updates{% endblock %}
+{% block header_title %}Notifications & Announcements{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <!-- Header Banner & Stats -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon bg-primary text-white rounded-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px; font-size: 1.5rem;">
+                        <i class="fa-solid fa-bell"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-extrabold text-dark mb-1">Agency Notification Center</h4>
+                        <p class="text-muted small mb-0">Stay informed about your subscription status, payment approvals, server maintenance & platform updates.</p>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    {% if unread_count > 0 %}
+                    <a href="{% url 'admin_panel:agency_notification_mark_all_read' %}" class="btn btn-outline-primary rounded-pill px-3 fw-bold btn-sm">
+                        <i class="fa-solid fa-check-double me-1"></i> Mark All as Read
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'admin_panel:my_subscription' %}" class="btn btn-primary rounded-pill px-3 fw-bold btn-sm">
+                        <i class="fa-solid fa-box-archive me-1"></i> Subscription Overview
+                    </a>
+                </div>
+            </div>
+
+            <!-- Filter Badges / Navigation Tabs -->
+            <div class="d-flex flex-wrap gap-2 pt-4 border-top mt-3">
+                <a href="{% url 'admin_panel:agency_notifications' %}"
+                   class="btn btn-sm rounded-pill px-3 fw-semibold {% if not type_filter and not status_filter %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+                    All <span class="badge bg-secondary ms-1 rounded-pill">{{ total_count }}</span>
+                </a>
+                <a href="{% url 'admin_panel:agency_notifications' %}?status=unread"
+                   class="btn btn-sm rounded-pill px-3 fw-semibold {% if status_filter == 'unread' %}btn-danger{% else %}btn-outline-danger{% endif %}">
+                    <i class="fa-solid fa-circle-dot me-1"></i> Unread <span class="badge bg-danger ms-1 rounded-pill">{{ unread_count }}</span>
+                </a>
+                <a href="{% url 'admin_panel:agency_notifications' %}?type=subscription"
+                   class="btn btn-sm rounded-pill px-3 fw-semibold {% if type_filter == 'subscription' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    <i class="fa-solid fa-arrows-rotate me-1"></i> Subscription & Billing <span class="badge bg-primary ms-1 rounded-pill">{{ sub_count }}</span>
+                </a>
+                <a href="{% url 'admin_panel:agency_notifications' %}?type=maintenance"
+                   class="btn btn-sm rounded-pill px-3 fw-semibold {% if type_filter == 'maintenance' %}btn-warning{% else %}btn-outline-warning text-dark{% endif %}">
+                    <i class="fa-solid fa-screwdriver-wrench me-1"></i> Maintenance <span class="badge bg-warning text-dark ms-1 rounded-pill">{{ maint_count }}</span>
+                </a>
+                <a href="{% url 'admin_panel:agency_notifications' %}?type=server_update"
+                   class="btn btn-sm rounded-pill px-3 fw-semibold {% if type_filter == 'server_update' %}btn-info{% else %}btn-outline-info text-dark{% endif %}">
+                    <i class="fa-solid fa-server me-1"></i> Server Updates <span class="badge bg-info text-dark ms-1 rounded-pill">{{ server_count }}</span>
+                </a>
+                <a href="{% url 'admin_panel:agency_notifications' %}?type=work_update"
+                   class="btn btn-sm rounded-pill px-3 fw-semibold {% if type_filter == 'work_update' %}" style="background:#7c3aed;color:#fff;"{% else %}btn-outline-secondary{% endif %}">
+                    <i class="fa-solid fa-rocket me-1"></i> Feature & Work Updates <span class="badge bg-secondary ms-1 rounded-pill">{{ work_count }}</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Notification Items List -->
+        <div class="d-flex flex-column gap-3">
+            {% if notifications %}
+                {% for n in notifications %}
+                <div class="card border-0 shadow-sm rounded-4 p-3 p-md-4 position-relative transition-hover {% if not n.is_read %}border-start border-4 border-primary bg-white{% else %}bg-light bg-opacity-50{% endif %}"
+                     style="transition: transform 0.2s ease, box-shadow 0.2s ease;">
+                    <div class="d-flex align-items-start gap-3">
+                        <!-- Icon Circle -->
+                        <div class="stat-icon {{ n.badge_info.bg }} {{ n.badge_info.text }} border {{ n.badge_info.border }} rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                             style="width: 48px; height: 48px; font-size: 1.25rem;">
+                            <i class="{{ n.badge_info.icon }}"></i>
+                        </div>
+
+                        <!-- Content Block -->
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-1">
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    <span class="badge {{ n.badge_info.bg }} {{ n.badge_info.text }} border {{ n.badge_info.border }} rounded-pill px-2.5 py-1 fw-bold" style="font-size:0.75rem;">
+                                        {{ n.badge_info.label }}
+                                    </span>
+                                    {% if n.priority == 'urgent' %}
+                                        <span class="badge bg-danger rounded-pill px-2 py-0.5" style="font-size:0.7rem;">
+                                            <i class="fa-solid fa-triangle-exclamation me-1"></i> Urgent
+                                        </span>
+                                    {% elif n.priority == 'high' %}
+                                        <span class="badge bg-warning text-dark rounded-pill px-2 py-0.5" style="font-size:0.7rem;">
+                                            <i class="fa-solid fa-bolt me-1"></i> High Priority
+                                        </span>
+                                    {% endif %}
+                                    {% if not n.is_read %}
+                                        <span class="badge bg-primary rounded-pill px-2 py-0.5" style="font-size:0.68rem;">New</span>
+                                    {% endif %}
+                                    <h6 class="fw-bold mb-0 text-dark {% if not n.is_read %}fw-extrabold{% endif %}">{{ n.title }}</h6>
+                                </div>
+                                <div class="text-muted small" style="font-size:0.8rem;">
+                                    <i class="fa-regular fa-clock me-1"></i> {{ n.created_at|timesince }} ago
+                                    <span class="d-none d-sm-inline">({{ n.created_at|date:"M d, Y h:i A" }})</span>
+                                </div>
+                            </div>
+
+                            <!-- Message Text -->
+                            <p class="text-secondary mb-3 mt-1" style="font-size: 0.92rem; line-height: 1.55; white-space: pre-line;">
+                                {{ n.message }}
+                            </p>
+
+                            <!-- Bottom Action Row -->
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 pt-2 border-top border-light-subtle">
+                                <div>
+                                    {% if n.action_url %}
+                                    <a href="{{ n.action_url }}" class="btn btn-sm btn-primary rounded-pill px-3 fw-bold">
+                                        View Details / Act Now <i class="fa-solid fa-arrow-right ms-1"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    {% if not n.is_read %}
+                                    <a href="{% url 'admin_panel:agency_notification_mark_read' n.uid %}" class="btn btn-sm btn-light border rounded-pill px-3 text-secondary" title="Mark as Read">
+                                        <i class="fa-solid fa-check me-1 text-success"></i> Mark Read
+                                    </a>
+                                    {% endif %}
+                                    <a href="{% url 'admin_panel:agency_notification_delete' n.uid %}"
+                                       class="btn btn-sm btn-outline-danger border-0 rounded-circle"
+                                       onclick="return confirm('Delete this notification?');"
+                                       title="Delete Notification" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="card border-0 shadow-sm rounded-4 p-5 text-center bg-white">
+                    <div class="mb-3 text-muted" style="font-size: 3.5rem;">
+                        <i class="fa-regular fa-bell-slash"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark">No Notifications Found</h5>
+                    <p class="text-muted small mx-auto mb-0" style="max-width: 420px;">
+                        You have no notifications in this category. System updates, subscription notices, and payment approvals will appear here.
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

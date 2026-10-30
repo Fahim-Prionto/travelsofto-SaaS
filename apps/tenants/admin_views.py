@@ -72,9 +72,14 @@ def check_agency_subscription(request):
         tenant = Tenant.objects.get(slug=request.user.tenant_id)
         sub = tenant.subscriptions.order_by('-created_at').first()
 
-        # Auto-expire subscription if end_date has passed
+        # Auto-expire subscription if end_date has passed & evaluate notifications
         if sub:
             sub.check_and_update_status()
+            try:
+                from apps.notifications.services import check_and_notify_subscription_time
+                check_and_notify_subscription_time(tenant, sub)
+            except Exception:
+                pass
 
         # If subscription is pending payment or tenant inactive, block access
         if tenant.status in (Tenant.Status.PENDING, Tenant.Status.INACTIVE, Tenant.Status.SUSPENDED) or (sub and sub.status in ('pending_payment', 'expired', 'suspended')):
@@ -1008,7 +1013,7 @@ def subscription_checkout(request):
         sub.save()
 
         # Create Pending SaaS Payment Record for Super Admin Approval
-        SaaSPayment.objects.create(
+        payment = SaaSPayment.objects.create(
             tenant=tenant,
             subscription=sub,
             package=package,
@@ -1019,6 +1024,13 @@ def subscription_checkout(request):
             billing_cycle='monthly',
             status=SaaSPayment.Status.PENDING,
         )
+
+        # 🔔 Send subscription renewal submitted notification
+        try:
+            from apps.notifications.services import notify_subscription_renewal_submitted
+            notify_subscription_renewal_submitted(payment)
+        except Exception:
+            pass
 
         messages.info(request, '📩 Payment submitted! Awaiting Super Admin review and approval.')
         return redirect('admin_panel:subscription_pending')
@@ -1753,5 +1765,111 @@ def air_booking_update_status(request, pk, status):
     booking.save(using=db)
     messages.success(request, f'Air Ticket Booking {booking.booking_code} status set to {status}.')
     return redirect('admin_panel:air_booking_list')
+
+
+# ── AGENCY NOTIFICATIONS VIEWS ───────────────────────────────────────────────
+@login_required
+def agency_notifications(request):
+    """Agency Notification Center: View all subscription, payment, maintenance, and system alerts."""
+    if not request.user.tenant_id:
+        return redirect('admin_panel:dashboard')
+
+    tenant = get_object_or_404(Tenant, slug=request.user.tenant_id)
+    from apps.notifications.models import Notification
+
+    # Optional query filter
+    type_filter = request.GET.get('type', '')
+    status_filter = request.GET.get('status', '')
+
+    notifications_qs = Notification.objects.filter(tenant=tenant).order_by('-created_at')
+
+    if type_filter == 'subscription':
+        notifications_qs = notifications_qs.filter(notification_type__in=['subscription', 'payment'])
+    elif type_filter == 'maintenance':
+        notifications_qs = notifications_qs.filter(notification_type='maintenance')
+    elif type_filter == 'server_update':
+        notifications_qs = notifications_qs.filter(notification_type='server_update')
+    elif type_filter == 'work_update':
+        notifications_qs = notifications_qs.filter(notification_type='work_update')
+    elif type_filter:
+        notifications_qs = notifications_qs.filter(notification_type=type_filter)
+
+    if status_filter == 'unread':
+        notifications_qs = notifications_qs.filter(is_read=False)
+    elif status_filter == 'read':
+        notifications_qs = notifications_qs.filter(is_read=True)
+
+    # Category counts for filter pills
+    base_qs = Notification.objects.filter(tenant=tenant)
+    total_count = base_qs.count()
+    unread_count = base_qs.filter(is_read=False).count()
+    sub_count = base_qs.filter(notification_type__in=['subscription', 'payment']).count()
+    maint_count = base_qs.filter(notification_type='maintenance').count()
+    server_count = base_qs.filter(notification_type='server_update').count()
+    work_count = base_qs.filter(notification_type='work_update').count()
+
+    context = {
+        'tenant': tenant,
+        'notifications': notifications_qs[:80],
+        'type_filter': type_filter,
+        'status_filter': status_filter,
+        'total_count': total_count,
+        'unread_count': unread_count,
+        'sub_count': sub_count,
+        'maint_count': maint_count,
+        'server_count': server_count,
+        'work_count': work_count,
+    }
+    return render(request, 'admin_panel/notifications/list.html', context)
+
+
+@login_required
+def agency_notification_mark_read(request, uid):
+    """Mark a single notification as read."""
+    if not request.user.tenant_id:
+        return redirect('admin_panel:dashboard')
+
+    tenant = get_object_or_404(Tenant, slug=request.user.tenant_id)
+    from apps.notifications.models import Notification
+    from django.http import JsonResponse
+
+    notification = get_object_or_404(Notification, uid=uid, tenant=tenant)
+    notification.mark_read()
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('ajax') == '1':
+        return JsonResponse({'status': 'ok', 'unread_count': Notification.objects.filter(tenant=tenant, is_read=False).count()})
+
+    next_url = request.GET.get('next') or request.META.get('HTTP_REFERER') or 'admin_panel:agency_notifications'
+    return redirect(next_url)
+
+
+@login_required
+def agency_notification_mark_all_read(request):
+    """Mark all notifications for this agency as read."""
+    if not request.user.tenant_id:
+        return redirect('admin_panel:dashboard')
+
+    tenant = get_object_or_404(Tenant, slug=request.user.tenant_id)
+    from apps.notifications.models import Notification
+
+    Notification.objects.filter(tenant=tenant, is_read=False).update(is_read=True, read_at=timezone.now())
+    messages.success(request, 'All notifications marked as read.')
+    return redirect('admin_panel:agency_notifications')
+
+
+@login_required
+def agency_notification_delete(request, uid):
+    """Delete a notification from agency inbox."""
+    if not request.user.tenant_id:
+        return redirect('admin_panel:dashboard')
+
+    tenant = get_object_or_404(Tenant, slug=request.user.tenant_id)
+    from apps.notifications.models import Notification
+
+    notification = get_object_or_404(Notification, uid=uid, tenant=tenant)
+    notification.delete()
+    messages.info(request, 'Notification deleted.')
+    return redirect('admin_panel:agency_notifications')
+
 
 

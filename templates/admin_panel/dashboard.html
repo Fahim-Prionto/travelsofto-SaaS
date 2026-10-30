@@ -5,6 +5,42 @@
 
 {% block content %}
 
+{# ── URGENT MAINTENANCE / SERVER UPDATE / SYSTEM ANNOUNCEMENT BANNER ── #}
+{% if urgent_agency_announcement %}
+<div class="alert alert-warning border-0 shadow-sm mb-4 rounded-4 px-4 py-3 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 position-relative"
+     style="border-left: 5px solid #f59e0b !important; background: #fffbeb;">
+    <div class="d-flex align-items-start gap-3">
+        <div class="flex-shrink-0 fs-3 text-warning mt-1">
+            <i class="{{ urgent_agency_announcement.badge_info.icon }}"></i>
+        </div>
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                <span class="badge bg-warning text-dark fw-bold text-uppercase" style="font-size:0.7rem;">
+                    {{ urgent_agency_announcement.badge_info.label }}
+                </span>
+                {% if urgent_agency_announcement.priority == 'urgent' %}
+                <span class="badge bg-danger rounded-pill" style="font-size:0.65rem;">URGENT</span>
+                {% endif %}
+                <strong class="text-dark fs-6">{{ urgent_agency_announcement.title }}</strong>
+                <span class="text-muted small">({{ urgent_agency_announcement.created_at|timesince }} ago)</span>
+            </div>
+            <p class="mb-0 text-secondary small lh-base" style="max-width: 850px;">{{ urgent_agency_announcement.message }}</p>
+        </div>
+    </div>
+    <div class="d-flex align-items-center gap-2 flex-shrink-0 ms-auto ms-md-0">
+        {% if urgent_agency_announcement.action_url %}
+        <a href="{{ urgent_agency_announcement.action_url }}" class="btn btn-sm btn-dark rounded-pill px-3 fw-bold">
+            View Details
+        </a>
+        {% endif %}
+        <a href="{% url 'admin_panel:agency_notification_mark_read' urgent_agency_announcement.uid %}"
+           class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-semibold" title="Dismiss Notice">
+            <i class="fa-solid fa-check me-1"></i> Got it
+        </a>
+    </div>
+</div>
+{% endif %}
+
 {% if sub_info %}
 {% with sub_info as s %}
 {% if s.days_remaining <= 7 or s.status == 'trial' or s.status == 'expired' %}

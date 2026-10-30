@@ -22,6 +22,9 @@ urlpatterns = [
     path('support/', views.support_tickets, name='support_tickets'),
     path('support/chat/<int:ticket_id>/', views.support_chat, name='support_chat'),
     path('support/members/', views.support_members, name='support_members'),
+    path('notifications/', views.superadmin_notifications, name='notifications'),
+    path('notifications/create/', views.superadmin_notification_create, name='notification_create'),
+    path('notifications/<uuid:uid>/delete/', views.superadmin_notification_delete, name='notification_delete'),
     path('profile/', views.profile, name='profile'),
     path('global-settings/', views.global_settings, name='global_settings'),
 ]
