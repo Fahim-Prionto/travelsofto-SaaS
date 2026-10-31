@@ -6,11 +6,15 @@
 <div class="animate-fade-in">
 
   <!-- Top Toolbar -->
-  <div class="d-flex justify-content-between align-items-center mb-3 no-print">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 no-print">
     <a href="{% url 'admin_panel:candidate_list' %}" class="btn btn-sm btn-outline-secondary">
       <i class="fa-solid fa-arrow-left me-1"></i> Back to Candidates
     </a>
-    <div class="d-flex gap-2">
+    <div class="d-flex align-items-center gap-2">
+      <div class="form-check form-switch me-2 mb-0 d-none d-sm-block">
+        <input class="form-check-input" type="checkbox" id="toggleFullPrint" onchange="togglePrintMode(this.checked)">
+        <label class="form-check-label small text-muted user-select-none" for="toggleFullPrint">Print Full (with History & Notes)</label>
+      </div>
       <button class="btn btn-sm btn-success" onclick="saveInvoice()">
         <i class="fa-solid fa-floppy-disk me-1"></i> Save Changes
       </button>
@@ -26,7 +30,7 @@
 
       <!-- Invoice Header -->
       <div class="row align-items-start mb-4">
-        <div class="col-md-7">
+        <div class="col-7 col-md-7">
           {% if request.tenant.logo %}
             <img src="{{ request.tenant.logo.url }}" alt="Agency Logo" style="max-height:60px;" class="mb-2">
           {% else %}
@@ -35,34 +39,34 @@
           <div class="text-muted small">{{ request.tenant.address|default:"" }}</div>
           <div class="text-muted small">{{ request.tenant.email|default:"" }}</div>
         </div>
-        <div class="col-md-5 text-md-end mt-3 mt-md-0">
+        <div class="col-5 col-md-5 text-end mt-0">
           <div class="fs-3 fw-bold text-primary">INVOICE</div>
           <div class="text-muted small"># <span class="fw-semibold text-dark">{{ invoice_number }}</span></div>
           <div class="text-muted small mt-1">Date: <span class="fw-semibold text-dark">{{ candidate.created_at|date:"d M Y" }}</span></div>
         </div>
       </div>
 
-      <hr>
+      <hr class="my-4">
 
       <!-- Billed To / Candidate Info -->
       <div class="row mb-4">
-        <div class="col-md-6">
+        <div class="col-6 col-md-6">
           <div class="small text-muted fw-semibold mb-1 text-uppercase">Billed To</div>
-          <div class="fw-bold fs-6">{{ candidate.name }}</div>
+          <div class="fw-bold fs-6 text-dark">{{ candidate.name }}</div>
           <div class="small text-muted">Reg ID: {{ candidate.registration_id }}</div>
           <div class="small text-muted">Passport: {{ candidate.passport_number }}</div>
           {% if candidate.mobile %}<div class="small text-muted">Mobile: {{ candidate.mobile }}</div>{% endif %}
           {% if candidate.email %}<div class="small text-muted">Email: {{ candidate.email }}</div>{% endif %}
         </div>
-        <div class="col-md-6 mt-3 mt-md-0">
+        <div class="col-6 col-md-6">
           <div class="small text-muted fw-semibold mb-1 text-uppercase">Service Details</div>
           {% if candidate.visa_lot %}
-            <div class="fw-semibold">{{ candidate.visa_lot.title }}</div>
+            <div class="fw-semibold text-dark">{{ candidate.visa_lot.title }}</div>
             <div class="small text-muted">Country: {{ candidate.visa_lot.country }}</div>
             <div class="small text-muted">Visa Type: {{ candidate.visa_lot.get_visa_type_display }}</div>
             <div class="small text-muted">Lot #: {{ candidate.visa_lot.lot_number }}</div>
           {% else %}
-            <div class="fw-semibold">Visa / Recruitment Service</div>
+            <div class="fw-semibold text-dark">Visa / Recruitment Service</div>
           {% endif %}
           {% if candidate.company %}
             <div class="small text-muted mt-1">Sponsor: {{ candidate.company.name }}</div>
@@ -77,12 +81,12 @@
       <div class="mb-4">
         <div class="small text-muted fw-semibold mb-2 text-uppercase">Service Fee Summary</div>
         <div class="table-responsive">
-          <table class="table table-bordered table-sm align-middle" id="invoiceItemsTable">
+          <table class="table table-bordered table-sm align-middle mb-0" id="invoiceItemsTable">
             <thead class="table-light">
               <tr>
-                <th>#</th>
+                <th style="width: 50px;">#</th>
                 <th>Description</th>
-                <th class="text-end">Amount (৳)</th>
+                <th class="text-end" style="width: 180px;">Amount (৳)</th>
               </tr>
             </thead>
             <tbody id="invoiceItemsBody">
@@ -92,12 +96,12 @@
                   {% if candidate.visa_lot %}{{ candidate.visa_lot.title }} — {{ candidate.visa_lot.get_visa_type_display }}
                   {% else %}Visa / Manpower Processing Fee{% endif %}
                 </td>
-                <td class="text-end fw-semibold">৳{{ candidate.total_amount|floatformat:2 }}</td>
+                <td class="text-end fw-bold text-dark">৳{{ candidate.total_amount|floatformat:2 }}</td>
               </tr>
             </tbody>
             <tfoot class="table-light">
               <tr>
-                <td colspan="2" class="text-end fw-bold">Total Package Fee</td>
+                <td colspan="2" class="text-end fw-bold text-dark">Total Package Fee</td>
                 <td class="text-end fw-bold text-primary">৳{{ candidate.total_amount|floatformat:2 }}</td>
               </tr>
               <tr>
@@ -113,9 +117,9 @@
         </div>
       </div>
 
-      <!-- Payment History -->
+      <!-- Payment History (Hidden in print unless opted in) -->
       {% if payments %}
-      <div class="mb-4">
+      <div class="mb-4 print-hide" id="paymentHistorySection">
         <div class="small text-muted fw-semibold mb-2 text-uppercase">Payment History</div>
         <div class="table-responsive">
           <table class="table table-sm table-bordered align-middle">
@@ -144,8 +148,8 @@
       </div>
       {% endif %}
 
-      <!-- Editable Notes -->
-      <div class="mb-4" id="invoiceNotesSection">
+      <!-- Editable Notes (Hidden in print unless opted in) -->
+      <div class="mb-4 print-hide" id="invoiceNotesSection">
         <div class="small text-muted fw-semibold mb-1 text-uppercase">Notes / Terms</div>
         <div id="invoiceNotesDisplay" class="border rounded p-2 bg-light small text-muted" style="min-height:48px; cursor:pointer;" onclick="editNotes()" title="Click to edit notes">
           {% if candidate.notes %}{{ candidate.notes }}{% else %}<span class="fst-italic">Click to add notes or terms & conditions...</span>{% endif %}
@@ -173,19 +177,21 @@
         </div>
       </div>
 
-      <!-- Footer / Signature -->
-      <hr>
-      <div class="row mt-4">
-        <div class="col-md-5 text-center">
-          <div style="border-top: 1px solid #ccc; padding-top: 4px; margin-top: 40px;" class="small text-muted">Authorized Signature</div>
+      <!-- Footer / Signature (Hidden in print unless opted in) -->
+      <div class="print-hide" id="invoiceFooterSection">
+        <hr>
+        <div class="row mt-4">
+          <div class="col-md-5 col-5 text-center">
+            <div style="border-top: 1px solid #ccc; padding-top: 4px; margin-top: 40px;" class="small text-muted">Authorized Signature</div>
+          </div>
+          <div class="col-md-2 col-2"></div>
+          <div class="col-md-5 col-5 text-center">
+            <div style="border-top: 1px solid #ccc; padding-top: 4px; margin-top: 40px;" class="small text-muted">Candidate Signature</div>
+          </div>
         </div>
-        <div class="col-md-2"></div>
-        <div class="col-md-5 text-center">
-          <div style="border-top: 1px solid #ccc; padding-top: 4px; margin-top: 40px;" class="small text-muted">Candidate Signature</div>
+        <div class="text-center mt-4 small text-muted fst-italic">
+          This is a computer-generated invoice by {{ request.tenant.agency_name|default:"Agency" }}.
         </div>
-      </div>
-      <div class="text-center mt-4 small text-muted fst-italic">
-        This is a computer-generated invoice by {{ request.tenant.agency_name|default:"Agency" }}.
       </div>
 
     </div>
@@ -201,14 +207,132 @@
 
 <style>
   @media print {
-    .no-print, .sidebar, nav, .topbar, .breadcrumb { display: none !important; }
-    .card { border: none !important; box-shadow: none !important; }
-    body { background: white !important; }
-    #invoiceCard { margin: 0; }
+    /* Hide all app shells, navigation, header, sidebar, buttons, alerts */
+    #sidebar,
+    #sidebar-overlay,
+    .top-nav,
+    header.top-nav,
+    header,
+    nav,
+    .no-print,
+    .btn,
+    .alert,
+    footer {
+      display: none !important;
+    }
+
+    /* Reset page canvas */
+    html, body {
+      background: #ffffff !important;
+      color: #0f172a !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      font-size: 11pt !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    #main-content {
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+      min-height: auto !important;
+    }
+
+    .container, .container-fluid {
+      max-width: 100% !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+
+    #invoiceCard {
+      border: none !important;
+      box-shadow: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+      background: transparent !important;
+    }
+
+    #invoiceCard .card-body {
+      padding: 0 !important;
+    }
+
+    /* By default: ONLY print top to service fee summary */
+    .print-hide {
+      display: none !important;
+    }
+
+    /* When opted into full print */
+    body.print-full-invoice .print-hide {
+      display: block !important;
+    }
+
+    /* Maintain 2-column layout in print */
+    .row {
+      display: flex !important;
+      flex-wrap: nowrap !important;
+    }
+    .col-7 {
+      width: 58.33333333% !important;
+      flex: 0 0 58.33333333% !important;
+      max-width: 58.33333333% !important;
+    }
+    .col-5 {
+      width: 41.66666667% !important;
+      flex: 0 0 41.66666667% !important;
+      max-width: 41.66666667% !important;
+    }
+    .col-6 {
+      width: 50% !important;
+      flex: 0 0 50% !important;
+      max-width: 50% !important;
+    }
+
+    /* Crisp table borders and backgrounds */
+    .table-responsive {
+      overflow: visible !important;
+    }
+    .table {
+      border-collapse: collapse !important;
+      width: 100% !important;
+      page-break-inside: avoid !important;
+      margin-bottom: 0 !important;
+    }
+    .table-bordered th,
+    .table-bordered td {
+      border: 1px solid #cbd5e1 !important;
+      padding: 6px 10px !important;
+    }
+    .table-light {
+      background-color: #f8fafc !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    /* Text & summary colors in print */
+    .text-primary { color: #2563eb !important; }
+    .text-success { color: #16a34a !important; }
+    .text-danger  { color: #dc2626 !important; }
+    .text-dark    { color: #0f172a !important; }
+    .text-muted   { color: #64748b !important; }
+
+    @page {
+      size: A4 portrait;
+      margin: 15mm 15mm 15mm 15mm;
+    }
   }
 </style>
 
 <script>
+function togglePrintMode(includeFull) {
+  if (includeFull) {
+    document.body.classList.add('print-full-invoice');
+  } else {
+    document.body.classList.remove('print-full-invoice');
+  }
+}
+
 function saveInvoice() {
   const total = document.getElementById('totalAmountInput').value;
   const notes = document.getElementById('notesInput').value;
