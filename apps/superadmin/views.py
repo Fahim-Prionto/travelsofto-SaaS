@@ -7,7 +7,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.conf import settings
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count, Q
 from django.http import JsonResponse
 from django.utils import timezone
 
@@ -25,21 +25,58 @@ def superadmin_required(user):
 @user_passes_test(superadmin_required)
 def dashboard(request):
     """Super Admin Global SaaS Dashboard."""
+    now = timezone.now()
 
-    # Key Platform Metrics
+    # 1. Auto-sync expired subscriptions so dashboard statuses are 100% live in real time
+    try:
+        stale_subs = Subscription.objects.filter(
+            status__in=[Subscription.Status.ACTIVE, Subscription.Status.TRIAL],
+            end_date__lte=now
+        )
+        for sub in stale_subs:
+            sub.check_and_update_status()
+    except Exception:
+        pass
+
+    # 2. Key Platform Metrics
     total_tenants = Tenant.objects.count()
-    active_tenants = Tenant.objects.filter(status=Tenant.Status.ACTIVE).count()
+
+    # Active trial subscriptions (ongoing trial period)
+    trial_tenant_ids = set(
+        Subscription.objects.filter(
+            Q(status=Subscription.Status.TRIAL) | Q(billing_cycle=Subscription.BillingCycle.TRIAL),
+            end_date__gt=now
+        ).values_list('tenant_id', flat=True)
+    )
+
+    trial_tenants = Tenant.objects.filter(
+        Q(status=Tenant.Status.TRIAL) | Q(id__in=trial_tenant_ids)
+    ).distinct().count()
+
+    active_tenants = Tenant.objects.filter(
+        Q(status=Tenant.Status.ACTIVE) | Q(id__in=trial_tenant_ids)
+    ).distinct().count()
+
     inactive_tenants = Tenant.objects.filter(status=Tenant.Status.INACTIVE).count()
     suspended_tenants = Tenant.objects.filter(status=Tenant.Status.SUSPENDED).count()
-    trial_tenants = Tenant.objects.filter(status=Tenant.Status.TRIAL).count()
-    expired_subscriptions = Subscription.objects.filter(status=Subscription.Status.EXPIRED).count()
 
-    total_customers = User.objects.filter(role=User.Role.CUSTOMER).count()
+    # Expired Subscriptions: status is expired OR end_date has passed
+    expired_subscriptions = Subscription.objects.filter(
+        Q(status=Subscription.Status.EXPIRED) | Q(end_date__lte=now)
+    ).count()
+
+    # Total Platform Users: Registered customer users across agencies + agency candidate users
+    customer_users_count = User.objects.filter(role=User.Role.CUSTOMER).count()
+    try:
+        from apps.tenants.agency_models import Candidate
+        candidates_count = Candidate.objects.count()
+    except Exception:
+        candidates_count = 0
+    total_customers = customer_users_count + candidates_count
 
     # Revenue Stats
     total_revenue = SaaSPayment.objects.filter(status='paid').aggregate(total=Sum('amount'))['total'] or 0
 
-    now = timezone.now()
     monthly_revenue = SaaSPayment.objects.filter(
         status='paid',
         paid_at__month=now.month,
@@ -76,19 +113,31 @@ def tenant_list(request):
     """List all registered tenants with filtering. Also auto-syncs stale tenant statuses."""
     status_filter = request.GET.get('status', '')
     query = request.GET.get('q', '')
+    now = timezone.now()
+
+    # Auto-sync first: check subscriptions and fix stale statuses
+    try:
+        for sub in Subscription.objects.filter(status__in=[Subscription.Status.ACTIVE, Subscription.Status.TRIAL], end_date__lte=now):
+            sub.check_and_update_status()
+    except Exception:
+        pass
 
     tenants = Tenant.objects.select_related('admin_user').all()
 
     if status_filter:
-        tenants = tenants.filter(status=status_filter)
+        if status_filter == 'trial':
+            trial_tenant_ids = set(
+                Subscription.objects.filter(
+                    Q(status=Subscription.Status.TRIAL) | Q(billing_cycle=Subscription.BillingCycle.TRIAL),
+                    end_date__gt=now
+                ).values_list('tenant_id', flat=True)
+            )
+            tenants = tenants.filter(Q(status=Tenant.Status.TRIAL) | Q(id__in=trial_tenant_ids))
+        else:
+            tenants = tenants.filter(status=status_filter)
+
     if query:
         tenants = tenants.filter(agency_name__icontains=query) | tenants.filter(email__icontains=query)
-
-    # Auto-sync: check every tenant's subscription and fix stale Tenant.status
-    for tenant in tenants:
-        sub = tenant.subscriptions.order_by('-created_at').first()
-        if sub:
-            sub.check_and_update_status()
 
     context = {
         'tenants': tenants,
@@ -270,7 +319,12 @@ def tenant_approve(request, slug):
         messages.info(request, f'Agency "{tenant.agency_name}" is already active.')
         return redirect('superadmin:tenant_list')
 
-    tenant.status = Tenant.Status.ACTIVE
+    sub = tenant.subscriptions.order_by('-created_at').first()
+    now = timezone.now()
+    if sub and (sub.status == Subscription.Status.TRIAL or sub.billing_cycle == Subscription.BillingCycle.TRIAL) and sub.end_date > now:
+        tenant.status = Tenant.Status.TRIAL
+    else:
+        tenant.status = Tenant.Status.ACTIVE
     tenant.save(update_fields=['status'])
 
     # Notify the agency owner

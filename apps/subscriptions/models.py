@@ -141,6 +141,9 @@ class Subscription(models.Model):
             if new_status == self.Status.EXPIRED and tenant.status != 'expired':
                 tenant.status = 'expired'
                 tenant.save(update_fields=['status'])
+            elif new_status == self.Status.TRIAL and tenant.status != 'trial':
+                tenant.status = 'trial'
+                tenant.save(update_fields=['status'])
             elif new_status == self.Status.ACTIVE and tenant.status not in ('active',):
                 tenant.status = 'active'
                 tenant.save(update_fields=['status'])
