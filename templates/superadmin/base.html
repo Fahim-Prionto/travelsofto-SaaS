@@ -19,31 +19,41 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     {% block extra_css %}{% endblock %}
     <style>
-    /* ── Mobile Sidebar – inline so no collectstatic needed ── */
+    /* ── Mobile Sidebar & Topnav Overlay Hierarchy ── */
     #sidebar-overlay {
         display: none; position: fixed; inset: 0;
-        background: rgba(0,0,0,0.55); z-index: 999;
+        background: rgba(0,0,0,0.55); z-index: 1040 !important;
         backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
     }
     #sidebar-overlay.show { display: block !important; }
 
     @media (max-width: 991.98px) {
         #sidebar {
+            z-index: 1050 !important;
             transform: translateX(-260px) !important;
-            transition: transform 0.3s ease !important;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
             margin-left: 0 !important;
         }
         #sidebar.show {
             transform: translateX(0) !important;
-            box-shadow: 6px 0 24px rgba(0,0,0,0.5) !important;
+            box-shadow: 6px 0 28px rgba(0,0,0,0.6) !important;
         }
         #main-content { margin-left: 0 !important; padding: 0.85rem !important; }
+        .top-nav {
+            overflow: visible !important;
+            position: relative !important;
+            z-index: 1020 !important;
+        }
         .top-nav h4 {
             font-size: 1rem !important;
             white-space: nowrap; overflow: hidden;
-            text-overflow: ellipsis; max-width: 42vw;
+            text-overflow: ellipsis; max-width: 38vw;
         }
         .user-email-text { display: none !important; }
+        .top-nav .dropdown-menu {
+            z-index: 1030 !important;
+            max-width: calc(100vw - 24px) !important;
+        }
     }
     </style>
 </head>
@@ -54,9 +64,12 @@
 
 <!-- Super Admin Sidebar -->
     <nav id="sidebar">
-        <div class="brand d-flex align-items-center justify-content-center py-2">
+        <div class="brand d-flex align-items-center justify-content-between py-2 px-3 border-bottom border-secondary border-opacity-25" style="min-height: 64px;">
             <img src="{% static 'images/logo.png' %}" alt="Travel.SoftoBro"
-                 style="max-width:180px; height:auto; object-fit:contain;">
+                 style="max-width:160px; height:auto; object-fit:contain;">
+            <button type="button" class="btn btn-sm text-white-50 d-lg-none p-1 ms-2 border-0 bg-transparent" id="sidebarCloseBtn" aria-label="Close sidebar">
+                <i class="fa-solid fa-xmark fs-5"></i>
+            </button>
         </div>
 
         <div class="nav-section-title">Core Management</div>
@@ -116,7 +129,7 @@
     <!-- Main Content Area -->
     <div id="main-content">
         <!-- Top Glass Navigation Bar -->
-        <header class="top-nav d-flex justify-content-between align-items-center position-relative" style="z-index: 1050;">
+        <header class="top-nav d-flex justify-content-between align-items-center position-relative" style="z-index: 1020; overflow: visible;">
             <div class="d-flex align-items-center gap-3">
                 <button id="sidebarToggle" class="btn btn-sm btn-outline-custom d-lg-none">
                     <i class="fa-solid fa-bars"></i>
@@ -135,7 +148,7 @@
                         </div>
                         <span class="fw-semibold small user-email-text">{{ request.user.email }}</span>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3 mt-2 p-2" style="background:#ffffff !important; border:1px solid #cbd5e1 !important; min-width:220px; z-index:99999 !important;">
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3 mt-2 p-2" style="background:#ffffff !important; border:1px solid #cbd5e1 !important; min-width:220px; max-width:calc(100vw - 24px); z-index:1030 !important;">
                         <li><h6 class="dropdown-header text-uppercase fs-8 fw-bold text-secondary px-3 py-1">Super Admin Account</h6></li>
                         <li><a class="dropdown-item rounded-2 py-2 px-3 fw-medium text-dark d-flex align-items-center" href="{% url 'superadmin:profile' %}"><i class="fa-solid fa-user-gear me-2 text-primary"></i> Account Profile</a></li>
                         <li><hr class="dropdown-divider my-1"></li>
@@ -164,35 +177,51 @@
     {% block extra_js %}{% endblock %}
     <script>
     (function(){
-        var toggle  = document.getElementById('sidebarToggle');
-        var sidebar = document.getElementById('sidebar');
-        var overlay = document.getElementById('sidebar-overlay');
-        var isOpen = false;
+        var toggle   = document.getElementById('sidebarToggle');
+        var closeBtn = document.getElementById('sidebarCloseBtn');
+        var sidebar  = document.getElementById('sidebar');
+        var overlay  = document.getElementById('sidebar-overlay');
+        var isOpen   = false;
         function isMobile(){ return window.innerWidth < 992; }
         function initSidebar(){
             if(isMobile() && sidebar){
                 sidebar.style.setProperty('transform','translateX(-260px)','important');
-                sidebar.style.setProperty('transition','transform 0.3s ease','important');
+                sidebar.style.setProperty('transition','transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)','important');
             }
         }
         function openSidebar(){
             isOpen = true;
-            if(sidebar) sidebar.style.setProperty('transform','translateX(0)','important');
-            if(overlay) overlay.style.cssText = 'display:block!important;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:999;';
+            if(sidebar) {
+                sidebar.style.setProperty('transform','translateX(0)','important');
+                sidebar.style.setProperty('z-index','1050','important');
+                sidebar.classList.add('show');
+            }
+            if(overlay) overlay.style.cssText = 'display:block!important;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1040;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);';
             document.body.style.overflow = 'hidden';
         }
         function closeSidebar(){
             isOpen = false;
-            if(sidebar) sidebar.style.setProperty('transform','translateX(-260px)','important');
+            if(sidebar) {
+                sidebar.style.setProperty('transform','translateX(-260px)','important');
+                sidebar.classList.remove('show');
+            }
             if(overlay) overlay.style.display = 'none';
             document.body.style.overflow = '';
         }
         initSidebar();
         window.addEventListener('resize', function(){
-            if(!isMobile() && sidebar){ sidebar.style.removeProperty('transform'); isOpen = false; }
-            else if(isMobile() && !isOpen){ initSidebar(); }
+            if(!isMobile() && sidebar){
+                sidebar.style.removeProperty('transform');
+                sidebar.classList.remove('show');
+                isOpen = false;
+                if(overlay) overlay.style.display = 'none';
+                document.body.style.overflow = '';
+            } else if(isMobile() && !isOpen){
+                initSidebar();
+            }
         });
         if(toggle) toggle.addEventListener('click', function(){ isOpen ? closeSidebar() : openSidebar(); });
+        if(closeBtn) closeBtn.addEventListener('click', closeSidebar);
         if(overlay) overlay.addEventListener('click', closeSidebar);
     })();
     </script>

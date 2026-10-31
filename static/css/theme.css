@@ -166,14 +166,15 @@ a:hover {
   border: 1px solid var(--glass-border);
   box-shadow: var(--shadow-sm);
   position: relative;
-  z-index: 1050 !important;
+  z-index: 1020 !important;
+  overflow: visible !important;
 }
 
 .top-nav .dropdown-menu {
   background-color: #ffffff !important;
   border: 1px solid #cbd5e1 !important;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
-  z-index: 9999 !important;
+  z-index: 1030 !important;
   min-width: 220px;
 }
 
@@ -498,28 +499,31 @@ a:hover {
 
 /* ── Mobile & Responsive Fixes ─────────────────────────────────────────── */
 
-/* Sidebar overlay backdrop — must stay BELOW sidebar z-index (1000) */
+/* Sidebar overlay backdrop — sits ABOVE page and top-nav, BELOW mobile sidebar */
 #sidebar-overlay {
   display: none;
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.55);
-  z-index: 999;       /* sidebar inline style locks it at 1000, so 999 = behind sidebar */
+  z-index: 1040 !important;
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
 }
 #sidebar-overlay.show {
-  display: block;
+  display: block !important;
 }
 
 @media (max-width: 991.98px) {
-  /* Sidebar slides in from left — !important needed to override inline styles */
+  /* Mobile Sidebar — must be ABOVE overlay (1040) and top-nav (1020) so logo is never covered */
   #sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100vh !important;
+    z-index: 1050 !important;
     transform: translateX(-100%) !important;
     margin-left: 0 !important;
-    left: 0 !important;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    /* Do NOT override z-index here — inline 1000 > overlay 999 = sidebar on top ✅ */
   }
   #sidebar.show {
     transform: translateX(0) !important;
@@ -533,13 +537,36 @@ a:hover {
     min-height: 100vh;
   }
 
-  /* Top nav compact on mobile */
+  /* Top nav compact on mobile - NEVER overflow hidden so dropdowns display properly */
   .top-nav {
     padding: 0.65rem 1rem;
     margin-bottom: 1rem;
     border-radius: var(--radius-sm);
     flex-wrap: nowrap;
-    overflow: hidden;
+    overflow: visible !important;
+    position: relative !important;
+    z-index: 1020 !important;
+  }
+
+  /* Top nav dropdowns on mobile */
+  .top-nav .dropdown-menu {
+    z-index: 1030 !important;
+    max-width: calc(100vw - 24px) !important;
+  }
+
+  .top-nav .dropdown-menu-end {
+    right: 0 !important;
+    left: auto !important;
+  }
+
+  /* Notification dropdown on mobile phones */
+  .notification-dropdown-menu {
+    position: absolute !important;
+    width: min(350px, calc(100vw - 28px)) !important;
+    max-width: calc(100vw - 28px) !important;
+    right: -50px !important;
+    left: auto !important;
+    top: calc(100% + 8px) !important;
   }
 
   /* Header title shrinks gracefully */
@@ -548,7 +575,7 @@ a:hover {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 40vw;
+    max-width: 38vw;
   }
 
   /* Hide email text, keep avatar icon only on mobile */
@@ -754,15 +781,15 @@ a:hover {
 
 /* Modal Stacking & Backdrop Fixes */
 .modal-backdrop {
-  z-index: 1050 !important;
-}
-
-.modal {
   z-index: 1060 !important;
 }
 
-.modal-dialog {
+.modal {
   z-index: 1070 !important;
+}
+
+.modal-dialog {
+  z-index: 1080 !important;
 }
 
 
