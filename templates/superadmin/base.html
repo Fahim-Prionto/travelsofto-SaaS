@@ -64,10 +64,12 @@
 
 <!-- Super Admin Sidebar -->
     <nav id="sidebar">
-        <div class="brand d-flex align-items-center justify-content-between py-2 px-3 border-bottom border-secondary border-opacity-25" style="min-height: 64px;">
-            <img src="{% static 'images/logo.png' %}" alt="Travel.SoftoBro"
-                 style="max-width:160px; height:auto; object-fit:contain;">
-            <button type="button" class="btn btn-sm text-white-50 d-lg-none p-1 ms-2 border-0 bg-transparent" id="sidebarCloseBtn" aria-label="Close sidebar">
+        <div class="brand d-flex align-items-center justify-content-between p-3 border-bottom border-secondary border-opacity-25" style="min-height: 72px;">
+            <div class="bg-white rounded-2 px-3 py-2 d-flex align-items-center justify-content-center flex-grow-1 shadow-sm" style="min-height: 48px;">
+                <img src="{% static 'images/logo.png' %}" alt="Travel.SoftoBro"
+                     style="max-width: 175px; max-height: 42px; width: 100%; object-fit: contain; display: block; margin: 0 auto;">
+            </div>
+            <button type="button" class="btn btn-sm text-white-50 d-lg-none p-1 ms-2 border-0 bg-transparent flex-shrink-0" id="sidebarCloseBtn" aria-label="Close sidebar">
                 <i class="fa-solid fa-xmark fs-5"></i>
             </button>
         </div>
