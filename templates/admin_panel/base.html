@@ -418,12 +418,10 @@
         </a>
 
         <div class="mt-auto p-3 border-top border-secondary border-opacity-25">
-            {% if request.user.tenant_id %}
-            <a href="{% url 'directory:home' request.user.tenant_id %}" target="_blank"
+            <a href="{% if current_tenant.slug %}{% url 'directory:home' current_tenant.slug %}{% elif request.tenant.slug %}{% url 'directory:home' request.tenant.slug %}{% elif request.user.tenant_id %}{% url 'directory:home' request.user.tenant_id %}{% else %}#{% endif %}" target="_blank"
                class="btn btn-sm btn-outline-light w-100 mb-2">
                 <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Preview My Website
             </a>
-            {% endif %}
         </div>
     </nav>
 
@@ -442,6 +440,15 @@
             </div>
 
             <div class="d-flex align-items-center gap-2 gap-sm-3">
+                <!-- Preview My Website Button -->
+                <a href="{% if current_tenant.slug %}{% url 'directory:home' current_tenant.slug %}{% elif request.tenant.slug %}{% url 'directory:home' request.tenant.slug %}{% elif request.user.tenant_id %}{% url 'directory:home' request.user.tenant_id %}{% else %}#{% endif %}"
+                   target="_blank"
+                   class="btn btn-sm btn-outline-primary rounded-pill px-2.5 px-sm-3 py-1.5 d-inline-flex align-items-center gap-1.5 fw-bold shadow-xs text-nowrap"
+                   title="Preview My Public Website">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    <span class="d-none d-sm-inline">Preview My Website</span>
+                </a>
+
                 <!-- Notifications Bell Dropdown -->
                 <div class="dropdown">
                     <button class="btn btn-outline-custom btn-sm rounded-circle p-0 position-relative d-flex align-items-center justify-content-center"
@@ -519,6 +526,8 @@
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3 mt-2" style="z-index: 1030; min-width: 200px; max-width: calc(100vw - 24px);">
                         <li><h6 class="dropdown-header text-uppercase fs-8 text-muted">Agency Admin</h6></li>
+                        <li><a class="dropdown-item py-2" href="{% if current_tenant.slug %}{% url 'directory:home' current_tenant.slug %}{% elif request.tenant.slug %}{% url 'directory:home' request.tenant.slug %}{% elif request.user.tenant_id %}{% url 'directory:home' request.user.tenant_id %}{% else %}#{% endif %}" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square me-2 text-primary"></i> Preview My Website</a></li>
+                        <li><hr class="dropdown-divider my-1"></li>
                         <li><a class="dropdown-item py-2" href="{% url 'accounts:logout' %}"><i class="fa-solid fa-right-from-bracket me-2 text-danger"></i> Logout</a></li>
                     </ul>
                 </div>

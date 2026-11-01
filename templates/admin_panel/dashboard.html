@@ -102,9 +102,15 @@
 {% endif %}
 
 <!-- ── SECTION 1: Agency Overview ───────────────────────────────── -->
-<div class="d-flex align-items-center mb-2 gap-2">
-    <span class="fw-bold text-muted small text-uppercase" style="letter-spacing:.08em;"><i class="fa-solid fa-chart-bar me-1"></i>Agency Overview</span>
-    <div class="flex-grow-1 border-top"></div>
+<div class="d-flex align-items-center justify-content-between mb-3 gap-2 flex-wrap">
+    <div class="d-flex align-items-center gap-2">
+        <span class="fw-bold text-muted small text-uppercase" style="letter-spacing:.08em;"><i class="fa-solid fa-chart-bar me-1"></i>Agency Overview</span>
+    </div>
+    <a href="{% if current_tenant.slug %}{% url 'directory:home' current_tenant.slug %}{% elif request.tenant.slug %}{% url 'directory:home' request.tenant.slug %}{% elif request.user.tenant_id %}{% url 'directory:home' request.user.tenant_id %}{% else %}#{% endif %}"
+       target="_blank"
+       class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold d-inline-flex align-items-center gap-1.5 shadow-xs">
+        <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Preview My Website
+    </a>
 </div>
 <div class="row g-3 mb-2">
     <div class="col-6 col-lg-3">

@@ -20,8 +20,12 @@ logger = logging.getLogger(__name__)
 
 
 def _resolve_tenant(agency_slug):
-    """Look up an active Tenant by slug. Returns the Tenant or None."""
-    return Tenant.objects.filter(slug=agency_slug, status__in=[
+    """Look up an active Tenant by slug or ID. Returns the Tenant or None."""
+    from django.db.models import Q
+    lookup = Q(slug=agency_slug)
+    if str(agency_slug).isdigit():
+        lookup |= Q(id=int(agency_slug))
+    return Tenant.objects.filter(lookup, status__in=[
         Tenant.Status.ACTIVE, Tenant.Status.TRIAL
     ]).first()
 
