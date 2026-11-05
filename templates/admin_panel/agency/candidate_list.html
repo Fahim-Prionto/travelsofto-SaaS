@@ -56,14 +56,28 @@
   <!-- Toolbar -->
   <div class="card mb-4">
     <div class="card-body py-3">
-      <form method="get" class="row g-2 align-items-center">
-        <div class="col-12 col-md-4">
+      <form method="get" class="row g-2 align-items-end">
+        <!-- Search -->
+        <div class="col-12 col-md-3">
+          <label class="form-label small fw-semibold text-muted mb-1">Search</label>
           <div class="input-group">
             <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-search text-muted"></i></span>
-            <input type="text" name="q" value="{{ query }}" class="form-control border-start-0 ps-0" placeholder="Search name, passport, reg ID...">
+            <input type="text" name="q" value="{{ query }}" class="form-control border-start-0 ps-0" placeholder="Name, passport, reg ID...">
           </div>
         </div>
+        <!-- Country Filter -->
         <div class="col-6 col-md-2">
+          <label class="form-label small fw-semibold text-muted mb-1">Country</label>
+          <select name="country" class="form-select">
+            <option value="">All Countries</option>
+            {% for ctry in countries %}
+            <option value="{{ ctry.name }}" {% if selected_country == ctry.name %}selected{% endif %}>{{ ctry.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <!-- Selection Status -->
+        <div class="col-6 col-md-2">
+          <label class="form-label small fw-semibold text-muted mb-1">Selection</label>
           <select name="selection_status" class="form-select">
             <option value="">All Selection</option>
             <option value="pending" {% if request.GET.selection_status == 'pending' %}selected{% endif %}>Pending</option>
@@ -72,7 +86,9 @@
             <option value="rejected" {% if request.GET.selection_status == 'rejected' %}selected{% endif %}>Rejected</option>
           </select>
         </div>
-        <div class="col-6 col-md-2">
+        <!-- Medical Status -->
+        <div class="col-6 col-md-1">
+          <label class="form-label small fw-semibold text-muted mb-1">Medical</label>
           <select name="medical_status" class="form-select">
             <option value="">All Medical</option>
             <option value="pending" {% if request.GET.medical_status == 'pending' %}selected{% endif %}>Pending</option>
@@ -80,10 +96,22 @@
             <option value="unfit" {% if request.GET.medical_status == 'unfit' %}selected{% endif %}>Unfit</option>
           </select>
         </div>
+        <!-- Date From -->
         <div class="col-6 col-md-2">
-          <button type="submit" class="btn btn-primary w-100"><i class="fa-solid fa-filter me-1"></i>Filter</button>
+          <label class="form-label small fw-semibold text-muted mb-1">Reg. Date From</label>
+          <input type="date" name="date_from" value="{{ date_from }}" class="form-control">
         </div>
-        <div class="col-6 col-md-2">
+        <!-- Date To -->
+        <div class="col-6 col-md-1">
+          <label class="form-label small fw-semibold text-muted mb-1">To</label>
+          <input type="date" name="date_to" value="{{ date_to }}" class="form-control">
+        </div>
+        <!-- Buttons -->
+        <div class="col-6 col-md-1 d-flex gap-1">
+          <button type="submit" class="btn btn-primary w-100" title="Filter"><i class="fa-solid fa-filter"></i></button>
+          <a href="{% url 'admin_panel:candidate_list' %}" class="btn btn-outline-secondary w-100" title="Clear"><i class="fa-solid fa-xmark"></i></a>
+        </div>
+        <div class="col-12 col-md-auto ms-md-auto">
           <button type="button" class="btn btn-accent w-100" data-bs-toggle="modal" data-bs-target="#addCandidateModal">
             <i class="fa-solid fa-user-plus me-1"></i>Add New
           </button>
@@ -109,10 +137,12 @@
               <th>Reg ID</th>
               <th>Candidate</th>
               <th>Passport No</th>
+              <th>Country</th>
               <th>Visa Lot</th>
               <th>Total Fee</th>
               <th>Paid Amount</th>
               <th>Due Balance</th>
+              <th>Reg. Date</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -138,6 +168,15 @@
               </td>
               <td class="small fw-mono">{{ c.passport_number }}</td>
               <td>
+                {% if c.country %}
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-1 small">
+                  <i class="fa-solid fa-earth-asia me-1"></i>{{ c.country }}
+                </span>
+                {% else %}
+                <span class="text-muted small">—</span>
+                {% endif %}
+              </td>
+              <td>
                 {% if c.visa_lot %}
                   <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-1 small">
                     <i class="fa-solid fa-passport me-1"></i>{{ c.visa_lot.title }}
@@ -158,6 +197,10 @@
                     <i class="fa-solid fa-check me-1"></i>Paid
                   </span>
                 {% endif %}
+              </td>
+              <td style="white-space:nowrap;">
+                <div class="small text-muted">{{ c.created_at|date:"d M Y" }}</div>
+                <div class="text-muted" style="font-size:0.7rem;">{{ c.created_at|date:"H:i" }}</div>
               </td>
               <td style="white-space:nowrap;">
                 <div class="d-flex flex-nowrap gap-1">
@@ -190,7 +233,7 @@
               </td>
             </tr>
             {% empty %}
-            <tr><td colspan="9" class="text-center py-5 text-muted">
+            <tr><td colspan="11" class="text-center py-5 text-muted">
               <i class="fa-solid fa-users fa-3x mb-3 opacity-25 d-block"></i>
               No candidates found. <a href="#" data-bs-toggle="modal" data-bs-target="#addCandidateModal">Register the first candidate</a>.
             </td></tr>
@@ -231,7 +274,15 @@
               <option value="male">Male</option><option value="female">Female</option><option value="other">Other</option>
             </select></div>
           <div class="col-md-4"><label class="form-label fw-semibold small">Destination Country</label>
+            {% if countries %}
+            <select name="country" class="form-select">
+            {% for ctry in countries %}
+              <option value="{{ ctry.name }}" {% if ctry.name == 'Saudi Arabia' %}selected{% endif %}>{{ ctry.name }}</option>
+              {% endfor %}
+            </select>
+            {% else %}
             <input name="country" class="form-control" value="Saudi Arabia">
+            {% endif %}
           </div>
           <div class="col-md-4"><label class="form-label fw-semibold small">Interview Slot</label>
             <input name="interview_slot" class="form-control" placeholder="e.g. Slot A-01"></div>
@@ -463,6 +514,21 @@
             <div class="p-2 border rounded bg-light">
               <div class="small text-muted">Total Package Fee</div>
               <div class="fw-bold fs-6">৳{{ c.total_amount|floatformat:2 }}</div>
+              <button type="button" class="btn btn-xs btn-link text-primary p-0 mt-1 small" style="font-size:0.72rem;"
+                data-bs-toggle="collapse" data-bs-target="#editFeeCollapse{{ c.id }}">
+                <i class="fa-solid fa-pen me-1"></i>Edit Fee
+              </button>
+              <div class="collapse mt-2" id="editFeeCollapse{{ c.id }}">
+                <form method="post" action="{% url 'admin_panel:candidate_update_package_fee' c.id %}">
+                  {% csrf_token %}
+                  <div class="input-group input-group-sm">
+                    <input type="number" step="0.01" min="0" name="total_amount"
+                           class="form-control" value="{{ c.total_amount|floatformat:2 }}" required>
+                    <button type="submit" class="btn btn-success btn-sm fw-bold">Save</button>
+                  </div>
+                  <div class="text-muted mt-1" style="font-size:0.68rem;">Recalculates due balance.</div>
+                </form>
+              </div>
             </div>
           </div>
           <div class="col-4">
@@ -594,7 +660,16 @@
             <div class="col-md-6"><label class="form-label small fw-semibold">Mobile</label>
               <input name="mobile" value="{{ c.mobile }}" class="form-control"></div>
             <div class="col-md-6"><label class="form-label small fw-semibold">Destination Country</label>
-              <input name="country" value="{{ c.country }}" class="form-control"></div>
+              {% if countries %}
+              <select name="country" class="form-select">
+                {% for ctry in countries %}
+                <option value="{{ ctry.name }}" {% if ctry.name == c.country %}selected{% endif %}>{{ ctry.name }}</option>
+                {% endfor %}
+              </select>
+              {% else %}
+              <input name="country" value="{{ c.country }}" class="form-control">
+              {% endif %}
+            </div>
             <div class="col-md-4"><label class="form-label small fw-semibold">Position</label>
               <select name="position" class="form-select">
                 <option value="">— Select —</option>

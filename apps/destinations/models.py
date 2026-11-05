@@ -20,6 +20,25 @@ class Country(models.Model):
     def __str__(self):
         return self.name
 
+    def save(self, *args, **kwargs):
+        if not self.code:
+            import string, random
+            db = kwargs.get('using') or getattr(getattr(self, '_state', None), 'db', None) or 'default'
+            clean = ''.join(c for c in (self.name or '').upper() if c.isalnum())
+            base = clean[:3] if len(clean) >= 3 else clean.ljust(3, 'X')
+            code_candidate = base
+            qs = Country.objects.using(db)
+            if self.pk:
+                qs = qs.exclude(pk=self.pk)
+            attempts = 0
+            while qs.filter(code=code_candidate).exists() and attempts < 100:
+                code_candidate = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
+                attempts += 1
+            self.code = code_candidate
+        else:
+            self.code = self.code.strip().upper()[:3]
+        super().save(*args, **kwargs)
+
 
 class City(models.Model):
     name = models.CharField(max_length=100)
@@ -60,6 +79,25 @@ class Destination(models.Model):
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            import string, random
+            db = kwargs.get('using') or getattr(getattr(self, '_state', None), 'db', None) or 'default'
+            clean = ''.join(c for c in (self.name or '').upper() if c.isalnum())
+            base = clean[:3] if len(clean) >= 3 else clean.ljust(3, 'X')
+            code_candidate = base
+            qs = Country.objects.using(db)
+            if self.pk:
+                qs = qs.exclude(pk=self.pk)
+            attempts = 0
+            while qs.filter(code=code_candidate).exists() and attempts < 100:
+                code_candidate = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
+                attempts += 1
+            self.code = code_candidate
+        else:
+            self.code = self.code.strip().upper()[:3]
+        super().save(*args, **kwargs)
 
 
 class DestinationImage(models.Model):

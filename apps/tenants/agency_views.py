@@ -34,6 +34,7 @@ from .agency_models import (
     VisaLot, Candidate, CandidatePayment, CandidateDocument, Requisition, AccountHeadGroup,
     ChartOfAccount, AccountVoucher, DailyMovement, LeaveSubmission, OfficeExpense
 )
+from apps.destinations.models import Country
 
 from django.conf import settings
 from apps.tenants.models import Tenant
@@ -68,8 +69,29 @@ def get_tenant_db(request):
 
 # ── HELPER: Seed Default Settings Data if Empty ──────────────────────────────
 def ensure_default_settings(db='default'):
-    """Ensure basic positions, grades, account heads, and agents exist for new agency tenant."""
+    """Ensure basic positions, grades, account heads, agents, and destination countries exist for agency tenant."""
     try:
+        # 1. Countries
+        if not Country.objects.using(db).exists():
+            default_countries = [
+                ('Saudi Arabia', 'SAU'),
+                ('United Arab Emirates', 'ARE'),
+                ('Qatar', 'QAT'),
+                ('Oman', 'OMN'),
+                ('Kuwait', 'KWT'),
+                ('Singapore', 'SGP'),
+                ('Malaysia', 'MYS'),
+                ('Bahrain', 'BHR'),
+                ('Jordan', 'JOR'),
+                ('Maldives', 'MDV'),
+            ]
+            for c_name, c_code in default_countries:
+                Country.objects.using(db).create(name=c_name, code=c_code, is_active=True)
+
+        for vl_country in VisaLot.objects.using(db).values_list('country', flat=True).distinct():
+            if vl_country and vl_country.strip() and not Country.objects.using(db).filter(name__iexact=vl_country.strip()).exists():
+                Country.objects.using(db).create(name=vl_country.strip(), is_active=True)
+
         if not AgencyPosition.objects.using(db).exists():
             positions = ['Electrician', 'Driver', 'Mason', 'Plumber', 'Construction Worker', 'Welder', 'Cook', 'Maid', 'General Worker']
             for p in positions:
@@ -116,11 +138,14 @@ def ensure_default_settings(db='default'):
 # ── 1. CANDIDATE REGISTRATION & LIST ─────────────────────────────────────────
 @login_required
 def candidate_list(request):
-    """Candidate master list with multi-filter and search."""
+    """Candidate master list with multi-filter, country-wise search, date-range search."""
     db = get_tenant_db(request)
     ensure_default_settings(db)
 
     query = request.GET.get('q', '').strip()
+    selected_country = request.GET.get('country', '').strip()
+    date_from = request.GET.get('date_from', '').strip()
+    date_to = request.GET.get('date_to', '').strip()
     sel_status = request.GET.get('selection_status', '')
     med_status = request.GET.get('medical_status', '')
     visa_status = request.GET.get('visa_status', '')
@@ -134,6 +159,15 @@ def candidate_list(request):
                 Q(registration_id__icontains=query) |
                 Q(mobile__icontains=query)
             )
+        if selected_country:
+            candidates_qs = candidates_qs.filter(
+                Q(country__iexact=selected_country) |
+                Q(visa_lot__country__iexact=selected_country)
+            )
+        if date_from:
+            candidates_qs = candidates_qs.filter(created_at__date__gte=date_from)
+        if date_to:
+            candidates_qs = candidates_qs.filter(created_at__date__lte=date_to)
         if sel_status:
             candidates_qs = candidates_qs.filter(selection_status=sel_status)
         if med_status:
@@ -142,6 +176,7 @@ def candidate_list(request):
             candidates_qs = candidates_qs.filter(visa_stamping_status=visa_status)
             
         candidates = list(candidates_qs)
+        countries = list(Country.objects.using(db).filter(is_active=True).order_by('name'))
         agents = list(AgencyAgent.objects.using(db).filter(is_active=True))
         positions = list(AgencyPosition.objects.using(db).filter(is_active=True))
         companies = list(AgencyCompany.objects.using(db).filter(is_active=True))
@@ -162,7 +197,7 @@ def candidate_list(request):
         next_cr_serial = AccountVoucher.get_next_serial('cr_cash')
 
     except Exception:
-        candidates = agents = positions = companies = grades = visa_lots = accounts = existing_vouchers = []
+        candidates = countries = agents = positions = companies = grades = visa_lots = accounts = existing_vouchers = []
         totals = {'total_value': 0, 'total_paid': 0, 'total_due': 0}
         total_candidates = selected_count = medical_fit_count = visa_completed_count = 0
         next_cr_serial = 'VCH-0001'
@@ -170,6 +205,10 @@ def candidate_list(request):
     context = {
         'candidates': candidates,
         'query': query,
+        'selected_country': selected_country,
+        'date_from': date_from,
+        'date_to': date_to,
+        'countries': countries,
         'agents': agents,
         'positions': positions,
         'companies': companies,
@@ -449,15 +488,31 @@ def candidate_edit(request, pk):
         candidate.country = request.POST.get('country', 'Saudi Arabia')
         candidate.interview_slot = request.POST.get('interview_slot', '').strip()
 
+        if 'total_amount' in request.POST:
+            try:
+                tot_val = Decimal(request.POST.get('total_amount', '0').strip() or '0')
+                candidate.total_amount = max(Decimal('0.00'), tot_val)
+                candidate.due_amount = max(Decimal('0.00'), candidate.total_amount - candidate.paid_amount)
+            except Exception:
+                pass
+
         agent_id = request.POST.get('agent')
         position_id = request.POST.get('position')
         company_id = request.POST.get('company')
         grade_id = request.POST.get('selection_grade')
+        visa_lot_id = request.POST.get('visa_lot')
 
         candidate.agent = AgencyAgent.objects.using(db).filter(pk=agent_id).first() if agent_id else None
         candidate.position = AgencyPosition.objects.using(db).filter(pk=position_id).first() if position_id else None
         candidate.company = AgencyCompany.objects.using(db).filter(pk=company_id).first() if company_id else None
         candidate.selection_grade = SelectionGrade.objects.using(db).filter(pk=grade_id).first() if grade_id else None
+        if visa_lot_id:
+            old_lot = candidate.visa_lot
+            candidate.visa_lot = VisaLot.objects.using(db).filter(pk=visa_lot_id).first()
+            if old_lot and old_lot != candidate.visa_lot:
+                old_lot.update_assigned_count()
+            if candidate.visa_lot:
+                candidate.visa_lot.update_assigned_count()
 
         if 'applicable_sectors' in request.POST:
             candidate.applicable_sectors = request.POST.getlist('applicable_sectors')
@@ -470,6 +525,27 @@ def candidate_edit(request, pk):
         return redirect('admin_panel:candidate_list')
 
     return redirect('admin_panel:candidate_list')
+
+
+@login_required
+def candidate_update_package_fee(request, pk):
+    """Update agreed total package fee for a candidate and recalculate due balance."""
+    db = get_tenant_db(request)
+    candidate = get_object_or_404(Candidate.objects.using(db), pk=pk)
+    if request.method == 'POST':
+        fee_raw = request.POST.get('total_amount', '').strip()
+        try:
+            new_fee = Decimal(fee_raw)
+            if new_fee < Decimal('0.00'):
+                new_fee = Decimal('0.00')
+            candidate.total_amount = new_fee
+            candidate.due_amount = max(Decimal('0.00'), new_fee - candidate.paid_amount)
+            candidate.save(using=db, update_fields=['total_amount', 'due_amount'])
+            messages.success(request, f'Total package fee for {candidate.registration_id} ({candidate.name}) updated to ৳{new_fee:,.2f}!')
+        except Exception as e:
+            messages.error(request, f'Invalid package fee amount: {e}')
+    next_url = request.META.get('HTTP_REFERER', 'admin_panel:candidate_list')
+    return redirect(next_url)
 
 
 @login_required
@@ -870,6 +946,7 @@ def stage_view(request, stage_name):
 def okala_list(request):
     """Manage Visa Lots (displayed on agency website when show_on_website=True)."""
     db = get_tenant_db(request)
+    ensure_default_settings(db)
     if request.method == 'POST':
         action = request.POST.get('action')
 
@@ -885,6 +962,9 @@ def okala_list(request):
             sponsor_name = request.POST.get('sponsor_name', '').strip()
             sponsor_id = request.POST.get('sponsor_id', '').strip()
             show_on_website = request.POST.get('show_on_website') == 'on'
+
+            if country and not Country.objects.using(db).filter(name__iexact=country).exists():
+                Country.objects.using(db).create(name=country, is_active=True)
 
             lot = VisaLot(
                 title=title,
@@ -905,6 +985,19 @@ def okala_list(request):
             lot.save(using=db)
             messages.success(request, f'Visa Lot "{title}" ({lot.lot_number}) added successfully!')
 
+        elif action == 'quick_add_country':
+            name = request.POST.get('name', '').strip()
+            code = request.POST.get('code', '').strip().upper()
+            if name:
+                if not Country.objects.using(db).filter(name__iexact=name).exists():
+                    Country.objects.using(db).create(name=name, code=code if code else None, is_active=True)
+                    messages.success(request, f'Country "{name}" added successfully! You can now select it.')
+                else:
+                    messages.info(request, f'Country "{name}" already exists.')
+            else:
+                messages.error(request, 'Country name is required.')
+            return redirect('admin_panel:okala_list')
+
         elif action == 'toggle_lot':
             lot_id = request.POST.get('lot_id')
             lot = VisaLot.objects.using(db).filter(pk=lot_id).first()
@@ -920,6 +1013,8 @@ def okala_list(request):
             if lot:
                 lot.title = request.POST.get('title', '').strip() or 'Visa Lot'
                 lot.country = request.POST.get('country', 'Saudi Arabia').strip()
+                if lot.country and not Country.objects.using(db).filter(name__iexact=lot.country).exists():
+                    Country.objects.using(db).create(name=lot.country, is_active=True)
                 quota = request.POST.get('quota', '1')
                 lot.quota = int(quota) if quota.isdigit() else 1
                 lot.visa_type = request.POST.get('visa_type', 'work')
@@ -953,7 +1048,11 @@ def okala_list(request):
     except Exception:
         visa_lots = []
     
-    return render(request, 'admin_panel/agency/okala_list.html', {'visa_lots': visa_lots})
+    countries = list(Country.objects.using(db).filter(is_active=True).order_by('name'))
+    return render(request, 'admin_panel/agency/okala_list.html', {
+        'visa_lots': visa_lots,
+        'countries': countries,
+    })
 
 
 # ── 4. FINANCIAL REQUISITIONS & ACCOUNTS ────────────────────────────────────

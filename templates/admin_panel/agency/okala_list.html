@@ -6,13 +6,13 @@
 <div class="animate-fade-in">
   <!-- Stats Row -->
   <div class="row g-3 mb-4">
-    <div class="col-sm-6">
+    <div class="col-sm-4">
       <div class="card text-center py-3">
         <div class="h3 fw-bold text-primary mb-0">{{ visa_lots|length }}</div>
         <div class="small text-muted">Total Visa Lots</div>
       </div>
     </div>
-    <div class="col-sm-6">
+    <div class="col-sm-4">
       <div class="card text-center py-3">
         <div class="h3 fw-bold text-success mb-0">
           {% if visa_lots %}{{ visa_lots|length }}{% else %}0{% endif %}
@@ -20,7 +20,24 @@
         <div class="small text-muted">Active Visa Lots</div>
       </div>
     </div>
+    <div class="col-sm-4">
+      <div class="card text-center py-3">
+        <div class="h3 fw-bold text-indigo mb-0" style="color:#6366f1;">{{ countries|length }}</div>
+        <div class="small text-muted">Countries</div>
+      </div>
+    </div>
   </div>
+
+  <!-- Quick Add Country Banner (if no countries yet) -->
+  {% if not countries %}
+  <div class="alert alert-warning d-flex align-items-center gap-2 mb-4">
+    <i class="fa-solid fa-circle-exclamation fa-lg"></i>
+    <div class="flex-grow-1"><strong>No countries added yet.</strong> Add a country first so you can select it when creating Visa Lots.</div>
+    <button class="btn btn-warning btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#addCountryModal">
+      <i class="fa-solid fa-plus me-1"></i>Add Country
+    </button>
+  </div>
+  {% endif %}
 
   <!-- Visa Lots Table Card -->
   <div class="card">
@@ -28,9 +45,14 @@
       <h6 class="mb-0 fw-bold">
         <i class="fa-solid fa-passport me-2 text-primary"></i>Visa Lots ({{ visa_lots|length }})
       </h6>
-      <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addLotModal">
-        <i class="fa-solid fa-plus me-1"></i>Add Visa
-      </button>
+      <div class="d-flex gap-2">
+        <button class="btn btn-sm btn-outline-custom" data-bs-toggle="modal" data-bs-target="#addCountryModal" title="Add Country">
+          <i class="fa-solid fa-earth-asia me-1 text-primary"></i><span class="d-none d-sm-inline">Countries ({{ countries|length }})</span>
+        </button>
+        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addLotModal">
+          <i class="fa-solid fa-plus me-1"></i>Add Visa
+        </button>
+      </div>
     </div>
     <div class="card-body p-0">
       <div class="table-responsive">
@@ -165,10 +187,26 @@
             </select>
           </div>
 
-          <!-- Row 2: Country + Quota -->
+          <!-- Row 2: Country (Dropdown) + Quota -->
           <div class="col-md-6">
-            <label class="form-label small fw-semibold">Country <span class="text-muted fw-normal">(optional)</span></label>
-            <input name="country" class="form-control" placeholder="e.g. Saudi Arabia" value="Saudi Arabia">
+            <label class="form-label small fw-semibold">Country <span class="text-muted fw-normal">(select or add new)</span></label>
+            {% if countries %}
+            <select name="country" class="form-select">
+              {% for c in countries %}
+              <option value="{{ c.name }}" {% if c.name == 'Saudi Arabia' %}selected{% endif %}>{{ c.name }}</option>
+              {% endfor %}
+            </select>
+            <div class="mt-1">
+              <a href="#" class="small text-primary" data-bs-toggle="modal" data-bs-target="#addCountryModal" onclick="document.getElementById('addLotModal') && bootstrap.Modal.getInstance(document.getElementById('addLotModal'))?.hide()">
+                <i class="fa-solid fa-plus me-1"></i>Add a new country
+              </a>
+            </div>
+            {% else %}
+            <div class="alert alert-warning p-2 small mb-0">
+              No countries yet. <a href="#" data-bs-toggle="modal" data-bs-target="#addCountryModal" onclick="bootstrap.Modal.getInstance(document.getElementById('addLotModal'))?.hide()">Add a country first</a>, then come back.
+            </div>
+            <input type="hidden" name="country" value="Saudi Arabia">
+            {% endif %}
           </div>
           <div class="col-md-6">
             <label class="form-label small fw-semibold">Quota (Number of Visas) <span class="text-muted fw-normal">(optional)</span></label>
@@ -234,6 +272,53 @@
   </div>
 </div>
 
+<!-- ── Add Country Modal ──────────────────────────────────────────────────── -->
+<div class="modal fade" id="addCountryModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title fw-bold"><i class="fa-solid fa-earth-asia me-2"></i>Manage Countries</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="quick_add_country">
+        <div class="modal-body">
+          <p class="text-muted small mb-3">Add destination countries that agencies can select when creating Visa Lots and registering candidates.</p>
+          <div class="row g-2 mb-3">
+            <div class="col-8">
+              <label class="form-label small fw-semibold">Country Name <span class="text-danger">*</span></label>
+              <input name="name" class="form-control" placeholder="e.g. Saudi Arabia" required>
+            </div>
+            <div class="col-4">
+              <label class="form-label small fw-semibold">Code <span class="text-muted">(optional)</span></label>
+              <input name="code" class="form-control" maxlength="3" placeholder="e.g. SAU">
+            </div>
+          </div>
+          {% if countries %}
+          <div class="border-top pt-3">
+            <div class="small fw-semibold text-muted mb-2">Existing Countries ({{ countries|length }})</div>
+            <div class="d-flex flex-wrap gap-2">
+              {% for c in countries %}
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-1 small">
+                <i class="fa-solid fa-globe me-1"></i>{{ c.name }}
+              </span>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="submit" class="btn btn-success fw-bold">
+            <i class="fa-solid fa-plus me-1"></i>Add Country
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 {% for lot in visa_lots %}
 <!-- ── Edit Visa Lot Modal ─────────────────────────────────────────────────── -->
 <div class="modal fade" id="editLotModal{{ lot.id }}" tabindex="-1">
@@ -267,10 +352,21 @@
             </select>
           </div>
 
-          <!-- Row 2: Country + Quota -->
+          <!-- Row 2: Country (Dropdown) + Quota -->
           <div class="col-md-6">
             <label class="form-label small fw-semibold">Country</label>
+            {% if countries %}
+            <select name="country" class="form-select">
+              {% for c in countries %}
+              <option value="{{ c.name }}" {% if c.name == lot.country %}selected{% endif %}>{{ c.name }}</option>
+              {% endfor %}
+              {% if lot.country and lot.country not in countries|join:"," %}
+              <option value="{{ lot.country }}" selected>{{ lot.country }} (current)</option>
+              {% endif %}
+            </select>
+            {% else %}
             <input name="country" class="form-control" value="{{ lot.country }}">
+            {% endif %}
           </div>
           <div class="col-md-6">
             <label class="form-label small fw-semibold">Quota (Number of Visas)</label>
