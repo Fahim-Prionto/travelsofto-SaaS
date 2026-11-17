@@ -28,10 +28,42 @@
         </div>
         <div class="col-12 col-md-3 text-md-end">
           <button type="button" class="btn btn-accent w-100 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#createStaffModal">
-            <i class="fa-solid fa-user-plus me-1.5"></i>Add New Staff
+            <i class="fa-solid fa-user-plus me-1"></i>Add New Staff
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Summary Stats -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="stat-card primary">
+        <span class="stat-label">Total Staff</span>
+        <div class="stat-value">{{ total_staff }}</div>
+        <small class="text-muted">All agents combined</small>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card success">
+        <span class="stat-label">Active Staff</span>
+        <div class="stat-value">{{ active_staff_count|default:0 }}</div>
+        <small class="text-muted">Currently operational</small>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card warning">
+        <span class="stat-label">Agents With Staff</span>
+        <div class="stat-value">{{ agents_with_staff|default:0 }}</div>
+        <small class="text-muted">Out of {{ agents|length }} agents</small>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card danger">
+        <span class="stat-label">Total Candidates Handled</span>
+        <div class="stat-value">{{ total_candidates_handled|default:0 }}</div>
+        <small class="text-muted">By all staff members</small>
+      </div>
     </div>
   </div>
 
@@ -39,10 +71,10 @@
   <div class="card border-0 shadow-sm">
     <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
       <div>
-        <h6 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-user-group text-primary me-2"></i>B2B Agent Staff Members</h6>
+        <h6 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-user-group text-primary me-2"></i>B2B Agent Staff Members ({{ staff_items|length }})</h6>
         <span class="text-muted small">Sub-agent personnel responsible for registration and client operations</span>
       </div>
-      <span class="badge bg-primary bg-opacity-10 text-primary">{{ staff_items|length }} Staff Accounts</span>
+      <span class="badge bg-primary bg-opacity-10 text-primary">{{ staff_items|length }} accounts</span>
     </div>
     <div class="card-body p-0">
       <div class="table-responsive">
@@ -54,7 +86,8 @@
               <th>B2B Agency Agent</th>
               <th>Designation</th>
               <th>Contact</th>
-              <th class="text-center">Candidates Handled</th>
+              <th class="text-center">Login</th>
+              <th class="text-center">Candidates</th>
               <th class="text-end">Revenue Handled</th>
               <th class="text-center">Status</th>
               <th class="text-center pe-3">Actions</th>
@@ -63,9 +96,12 @@
           <tbody>
             {% for item in staff_items %}
             <tr>
-              <td class="ps-3 fw-bold fw-mono text-primary">{{ item.staff.staff_code }}</td>
+              <td class="ps-3 fw-bold font-monospace text-primary small">{{ item.staff.staff_code }}</td>
               <td>
                 <div class="fw-bold text-dark">{{ item.staff.name }}</div>
+                {% if item.staff.nid_number %}
+                  <div class="text-muted small">NID: {{ item.staff.nid_number }}</div>
+                {% endif %}
               </td>
               <td>
                 <a href="{% url 'admin_panel:b2b_agent_detail' item.staff.agent.id %}" class="fw-semibold text-dark text-decoration-none">
@@ -73,40 +109,55 @@
                 </a>
                 <div class="text-muted" style="font-size:0.72rem;">{{ item.staff.agent.agent_code }}</div>
               </td>
-              <td>{{ item.staff.designation|default:"Visa Executive" }}</td>
-              <td>
+              <td class="small">{{ item.staff.designation|default:"Visa Executive" }}</td>
+              <td class="small">
                 <div><i class="fa-solid fa-phone me-1 text-muted"></i>{{ item.staff.phone|default:"—" }}</div>
-                {% if item.staff.email %}<div class="text-muted small"><i class="fa-solid fa-envelope me-1"></i>{{ item.staff.email }}</div>{% endif %}
+                {% if item.staff.email %}<div class="text-muted"><i class="fa-solid fa-envelope me-1"></i>{{ item.staff.email }}</div>{% endif %}
               </td>
               <td class="text-center">
-                <a href="{% url 'admin_panel:candidate_list' %}?client_type=b2b&staff_id={{ item.staff.id }}" class="badge bg-primary-subtle text-primary rounded-pill text-decoration-none px-2.5 py-1" title="View candidates">
+                {% if item.staff.username %}
+                  <span class="badge bg-info-subtle text-info rounded-pill px-2 py-1 small font-monospace" title="Login username">
+                    <i class="fa-solid fa-at me-1"></i>{{ item.staff.username }}
+                  </span>
+                {% else %}
+                  <span class="text-muted small">—</span>
+                {% endif %}
+                {% if item.staff.password_hash %}
+                  <div><span class="badge bg-success-subtle text-success" style="font-size:0.65rem;"><i class="fa-solid fa-lock me-1"></i>Password set</span></div>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                <a href="{% url 'admin_panel:candidate_list' %}?client_type=b2b&staff_id={{ item.staff.id }}" class="badge bg-primary-subtle text-primary rounded-pill text-decoration-none px-2 py-1" title="View candidates">
                   {{ item.candidates_count }}
                 </a>
               </td>
               <td class="text-end fw-semibold text-dark">৳{{ item.revenue_handled|floatformat:2 }}</td>
               <td class="text-center">
                 {% if item.staff.is_active %}
-                  <span class="badge bg-success-subtle text-success rounded-pill px-2 py-0.5">Active</span>
+                  <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1">Active</span>
                 {% else %}
-                  <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-0.5">Inactive</span>
+                  <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1">Inactive</span>
                 {% endif %}
               </td>
               <td class="text-center pe-3">
                 <div class="d-flex gap-1 justify-content-center">
-                  <button type="button" class="btn btn-xs btn-outline-secondary p-1 px-2" data-bs-toggle="modal" data-bs-target="#editStaffModal{{ item.staff.id }}" title="Edit">
+                  <button type="button" class="btn btn-xs btn-outline-secondary p-1 px-2" data-bs-toggle="modal" data-bs-target="#editStaffModal{{ item.staff.id }}" title="Edit Staff">
                     <i class="fa-solid fa-pen-to-square"></i>
                   </button>
-                  <a href="{% url 'admin_panel:b2b_staff_toggle' item.staff.id %}" class="btn btn-xs {% if item.staff.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %} p-1 px-2" title="Toggle Active">
+                  <a href="{% url 'admin_panel:b2b_staff_toggle' item.staff.id %}" class="btn btn-xs {% if item.staff.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %} p-1 px-2" title="{% if item.staff.is_active %}Deactivate{% else %}Activate{% endif %}">
                     <i class="fa-solid fa-power-off"></i>
                   </a>
+                  <button type="button" class="btn btn-xs btn-outline-danger p-1 px-2" data-bs-toggle="modal" data-bs-target="#deleteStaffModal{{ item.staff.id }}" title="Delete Staff">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
                 </div>
               </td>
             </tr>
             {% empty %}
             <tr>
-              <td colspan="9" class="text-center py-5 text-muted">
+              <td colspan="10" class="text-center py-5 text-muted">
                 <i class="fa-solid fa-user-group fa-3x mb-3 d-block opacity-25"></i>
-                No staff members registered. Create staff under an agent.
+                No staff members registered. Click <strong>Add New Staff</strong> above to create the first staff account.
               </td>
             </tr>
             {% endfor %}
@@ -118,26 +169,36 @@
 
 </div>
 
-<!-- Modal: Add New Staff Member -->
+<!-- ================================================================ -->
+<!-- MODAL: CREATE NEW STAFF MEMBER -->
+<!-- ================================================================ -->
 <div class="modal fade" id="createStaffModal" tabindex="-1">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-lg">
     <div class="modal-content border-0 shadow-lg">
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-plus me-2"></i>Add Staff Member</h5>
+      <div class="modal-header" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);">
+        <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-user-plus me-2"></i>Add Staff Member</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      <form method="post" id="dynamicStaffForm" action="{% if agents %}{% url 'admin_panel:b2b_staff_create' agents.0.id %}{% else %}#{% endif %}">
+      <form method="post" id="createStaffForm" action="{% url 'admin_panel:b2b_staff_create_direct' %}">
         {% csrf_token %}
         <div class="modal-body">
           <div class="row g-3">
+
+            <!-- Agent selector -->
             <div class="col-12">
               <label class="form-label small fw-semibold">Select Parent B2B Agent *</label>
-              <select name="agent_id" class="form-select" onchange="updateStaffFormAction(this.value)" required>
+              <select name="agent_id" class="form-select" id="createStaffAgentSelect" required>
+                <option value="">— Choose Agent —</option>
                 {% for ag in agents %}
                   <option value="{{ ag.id }}">{{ ag.name }} ({{ ag.agent_code }})</option>
                 {% endfor %}
               </select>
+              <div class="form-text text-muted small">Staff will be linked to this B2B partner agent.</div>
             </div>
+
+            <div class="col-12"><hr class="my-1"></div>
+
+            <!-- Basic Info -->
             <div class="col-12">
               <label class="form-label small fw-semibold">Staff Full Name *</label>
               <input type="text" name="name" class="form-control" placeholder="Staff Name" required>
@@ -150,41 +211,94 @@
               <label class="form-label small fw-semibold">Email Address</label>
               <input type="email" name="email" class="form-control" placeholder="staff@example.com">
             </div>
-            <div class="col-12">
+            <div class="col-md-6">
               <label class="form-label small fw-semibold">Designation / Role</label>
               <input type="text" name="designation" class="form-control" value="Visa Processing Executive">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">NID / Employee ID</label>
+              <input type="text" name="nid_number" class="form-control" placeholder="National ID or Staff ID">
+            </div>
+
+            <div class="col-12">
+              <div class="alert alert-info border-0 rounded-3 py-2 px-3 small mb-0">
+                <i class="fa-solid fa-circle-info me-1"></i>
+                <strong>Portal Login Credentials</strong> — Set a username and password so this staff can log in to the agent portal.
+              </div>
+            </div>
+
+            <!-- Login Credentials -->
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold"><i class="fa-solid fa-at me-1 text-primary"></i>Login Username</label>
+              <input type="text" name="username" class="form-control font-monospace" placeholder="e.g. staff_ali" autocomplete="off">
+              <div class="form-text small">Leave blank if no portal login needed</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold"><i class="fa-solid fa-lock me-1 text-primary"></i>Password</label>
+              <div class="input-group">
+                <input type="password" name="password" id="createPassword" class="form-control" placeholder="Min. 6 characters" autocomplete="new-password">
+                <button class="btn btn-outline-secondary btn-sm" type="button" onclick="togglePwd('createPassword','createPwdEye')">
+                  <i class="fa-solid fa-eye" id="createPwdEye"></i>
+                </button>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold"><i class="fa-solid fa-lock-open me-1 text-primary"></i>Confirm Password</label>
+              <div class="input-group">
+                <input type="password" name="confirm_password" id="createConfirmPassword" class="form-control" placeholder="Repeat password" autocomplete="new-password">
+                <button class="btn btn-outline-secondary btn-sm" type="button" onclick="togglePwd('createConfirmPassword','createConfirmPwdEye')">
+                  <i class="fa-solid fa-eye" id="createConfirmPwdEye"></i>
+                </button>
+              </div>
+              <div id="pwdMatchMsg" class="form-text small text-danger d-none">Passwords do not match.</div>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Internal Notes</label>
+              <textarea name="notes" class="form-control" rows="2" placeholder="Optional notes about this staff member..."></textarea>
             </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary fw-bold"><i class="fa-solid fa-save me-1"></i>Create Staff Account</button>
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary fw-bold" onclick="return validateCreateStaff()">
+            <i class="fa-solid fa-save me-1"></i>Create Staff Account
+          </button>
         </div>
       </form>
     </div>
   </div>
 </div>
 
-<!-- Per-Staff Edit Modals -->
+<!-- ================================================================ -->
+<!-- PER-STAFF: EDIT & DELETE MODALS -->
+<!-- ================================================================ -->
 {% for item in staff_items %}
-<div class="modal fade" id="editStaffModal{{ item.staff.id }}" tabindex="-1">
-  <div class="modal-dialog">
+
+<!-- EDIT MODAL -->
+<div class="modal fade" id="editStaffModal{{ item.staff.id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
     <form method="post" action="{% url 'admin_panel:b2b_staff_edit' item.staff.id %}" class="modal-content border-0 shadow-lg">
       {% csrf_token %}
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title fw-bold"><i class="fa-solid fa-pen-to-square me-2"></i>Edit Staff: {{ item.staff.name }}</h5>
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title fw-bold"><i class="fa-solid fa-pen-to-square me-2"></i>Edit Staff: {{ item.staff.name }} ({{ item.staff.staff_code }})</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <div class="row g-3">
+
+          <!-- Agent reassign -->
           <div class="col-12">
-            <label class="form-label small fw-semibold">B2B Agent</label>
+            <label class="form-label small fw-semibold">Parent B2B Agent</label>
             <select name="agent_id" class="form-select">
               {% for ag in agents %}
                 <option value="{{ ag.id }}" {% if item.staff.agent_id == ag.id %}selected{% endif %}>{{ ag.name }} ({{ ag.agent_code }})</option>
               {% endfor %}
             </select>
           </div>
+
+          <div class="col-12"><hr class="my-1"></div>
+
           <div class="col-12">
             <label class="form-label small fw-semibold">Full Name *</label>
             <input type="text" name="name" class="form-control" value="{{ item.staff.name }}" required>
@@ -197,28 +311,165 @@
             <label class="form-label small fw-semibold">Email Address</label>
             <input type="email" name="email" class="form-control" value="{{ item.staff.email }}">
           </div>
-          <div class="col-12">
+          <div class="col-md-6">
             <label class="form-label small fw-semibold">Designation</label>
             <input type="text" name="designation" class="form-control" value="{{ item.staff.designation }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">NID / Employee ID</label>
+            <input type="text" name="nid_number" class="form-control" value="{{ item.staff.nid_number }}">
+          </div>
+
+          <div class="col-12">
+            <div class="alert alert-secondary border-0 rounded-3 py-2 px-3 small mb-0">
+              <i class="fa-solid fa-key me-1"></i>
+              <strong>Portal Login</strong> — Update username or reset password below. Leave password fields empty to keep existing password.
+            </div>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold"><i class="fa-solid fa-at me-1 text-primary"></i>Login Username</label>
+            <input type="text" name="username" class="form-control font-monospace" value="{{ item.staff.username }}" placeholder="e.g. staff_ali">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold"><i class="fa-solid fa-lock me-1 text-primary"></i>New Password</label>
+            <div class="input-group">
+              <input type="password" name="new_password" id="editPwd{{ item.staff.id }}" class="form-control" placeholder="Leave blank to keep current" autocomplete="new-password">
+              <button class="btn btn-outline-secondary btn-sm" type="button" onclick="togglePwd('editPwd{{ item.staff.id }}','editPwdEye{{ item.staff.id }}')">
+                <i class="fa-solid fa-eye" id="editPwdEye{{ item.staff.id }}"></i>
+              </button>
+            </div>
+            {% if item.staff.password_hash %}
+              <div class="form-text small text-success"><i class="fa-solid fa-check me-1"></i>Password already set</div>
+            {% else %}
+              <div class="form-text small text-muted">No password set yet</div>
+            {% endif %}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold"><i class="fa-solid fa-lock-open me-1 text-primary"></i>Confirm Password</label>
+            <div class="input-group">
+              <input type="password" name="confirm_password" id="editConfirmPwd{{ item.staff.id }}" class="form-control" placeholder="Repeat new password" autocomplete="new-password">
+              <button class="btn btn-outline-secondary btn-sm" type="button" onclick="togglePwd('editConfirmPwd{{ item.staff.id }}','editConfirmPwdEye{{ item.staff.id }}')">
+                <i class="fa-solid fa-eye" id="editConfirmPwdEye{{ item.staff.id }}"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Internal Notes</label>
+            <textarea name="notes" class="form-control" rows="2">{{ item.staff.notes }}</textarea>
+          </div>
+
+          <div class="col-12">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" name="is_active" id="staffActive{{ item.staff.id }}" {% if item.staff.is_active %}checked{% endif %}>
+              <label class="form-check-label fw-semibold small" for="staffActive{{ item.staff.id }}">Active Staff Account</label>
+            </div>
           </div>
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="submit" class="btn btn-primary fw-bold"><i class="fa-solid fa-save me-1"></i>Update Staff</button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary fw-bold"><i class="fa-solid fa-save me-1"></i>Save Changes</button>
       </div>
     </form>
   </div>
 </div>
+
+<!-- DELETE MODAL -->
+<div class="modal fade" id="deleteStaffModal{{ item.staff.id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form method="post" action="{% url 'admin_panel:b2b_staff_delete' item.staff.id %}" class="modal-content border-0 shadow-lg">
+      {% csrf_token %}
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title fw-bold"><i class="fa-solid fa-triangle-exclamation me-2"></i>Delete Staff Member</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2">Are you sure you want to permanently delete staff member <strong>{{ item.staff.name }}</strong> (<code>{{ item.staff.staff_code }}</code>) under agent <strong>{{ item.staff.agent.name }}</strong>?</p>
+        {% if item.candidates_count > 0 %}
+          <div class="alert alert-danger small mb-0">
+            <i class="fa-solid fa-exclamation-triangle me-1"></i>
+            <strong>Cannot delete:</strong> This staff member has <strong>{{ item.candidates_count }} candidate(s)</strong> linked to them. Please reassign those candidates first.
+          </div>
+        {% else %}
+          <div class="alert alert-warning small mb-0">
+            <i class="fa-solid fa-circle-info me-1"></i>
+            This staff member has no linked candidates and can be safely deleted.
+          </div>
+        {% endif %}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        {% if item.candidates_count == 0 %}
+          <button type="submit" class="btn btn-danger fw-bold"><i class="fa-solid fa-trash me-1"></i>Confirm Delete</button>
+        {% else %}
+          <button type="button" class="btn btn-secondary" disabled><i class="fa-solid fa-ban me-1"></i>Cannot Delete</button>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+
 {% endfor %}
 
 <script>
-function updateStaffFormAction(agentId) {
-  if (!agentId) return;
-  const form = document.getElementById('dynamicStaffForm');
-  if (form) {
-    form.action = "{% url 'admin_panel:b2b_staff_create' 0 %}".replace('/0/', '/' + agentId + '/');
+// Toggle password visibility
+function togglePwd(inputId, iconId) {
+  const inp = document.getElementById(inputId);
+  const ico = document.getElementById(iconId);
+  if (!inp) return;
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    if (ico) ico.className = 'fa-solid fa-eye-slash';
+  } else {
+    inp.type = 'password';
+    if (ico) ico.className = 'fa-solid fa-eye';
   }
 }
+
+// Validate create staff form before submit
+function validateCreateStaff() {
+  const pwd = document.getElementById('createPassword').value;
+  const cpwd = document.getElementById('createConfirmPassword').value;
+  const msgEl = document.getElementById('pwdMatchMsg');
+
+  if (pwd && pwd !== cpwd) {
+    msgEl.classList.remove('d-none');
+    document.getElementById('createConfirmPassword').classList.add('is-invalid');
+    return false;
+  }
+  if (msgEl) msgEl.classList.add('d-none');
+  document.getElementById('createConfirmPassword').classList.remove('is-invalid');
+  return true;
+}
+
+// Live password match check on create modal
+document.addEventListener('DOMContentLoaded', function () {
+  const pwd = document.getElementById('createPassword');
+  const cpwd = document.getElementById('createConfirmPassword');
+  const msgEl = document.getElementById('pwdMatchMsg');
+
+  function checkMatch() {
+    if (!pwd || !cpwd || !msgEl) return;
+    if (cpwd.value.length > 0 && pwd.value !== cpwd.value) {
+      msgEl.classList.remove('d-none');
+      cpwd.classList.add('is-invalid');
+    } else {
+      msgEl.classList.add('d-none');
+      cpwd.classList.remove('is-invalid');
+    }
+  }
+
+  if (pwd) pwd.addEventListener('input', checkMatch);
+  if (cpwd) cpwd.addEventListener('input', checkMatch);
+
+  // Update form action when agent changes — dynamically switch POST to correct agent URL
+  const agentSel = document.getElementById('createStaffAgentSelect');
+  const form = document.getElementById('createStaffForm');
+  const baseUrl = "{% url 'admin_panel:b2b_staff_create_direct' %}";
+  // Form always posts to b2b_staff_create_direct, agent chosen from dropdown
+});
 </script>
+
 {% endblock %}

@@ -2397,19 +2397,51 @@ def b2b_agent_add_payment(request, pk):
 
 @login_required
 def b2b_staff_create(request, pk):
-    """Add a staff member under a specific B2B Agent."""
+    """Add a staff member under a specific B2B Agent (agent chosen from form or URL pk)."""
     db = get_tenant_db(request)
-    agent = get_object_or_404(AgencyAgent.objects.using(db), pk=pk)
+
+    # pk=0 means agent is chosen from the form field
+    if pk == 0:
+        agent_id = request.POST.get('agent_id') if request.method == 'POST' else None
+        agent = AgencyAgent.objects.using(db).filter(pk=agent_id).first() if agent_id else None
+        if not agent:
+            messages.error(request, 'Please select a valid B2B agent.')
+            return redirect('admin_panel:b2b_staff_list')
+    else:
+        agent = get_object_or_404(AgencyAgent.objects.using(db), pk=pk)
 
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
         phone = request.POST.get('phone', '').strip()
         email = request.POST.get('email', '').strip()
         designation = request.POST.get('designation', '').strip() or 'Visa Processing Executive'
+        username = request.POST.get('username', '').strip()
+        nid_number = request.POST.get('nid_number', '').strip()
+        notes = request.POST.get('notes', '').strip()
+        password = request.POST.get('password', '').strip()
+        confirm_password = request.POST.get('confirm_password', '').strip()
 
         if not name:
             messages.error(request, 'Staff member name is required.')
-            return redirect('admin_panel:b2b_agent_detail', pk=agent.id)
+            return redirect('admin_panel:b2b_agent_detail', pk=agent.id) if pk != 0 else redirect('admin_panel:b2b_staff_list')
+
+        # Password validation
+        password_hash = ''
+        if password:
+            if password != confirm_password:
+                messages.error(request, 'Password and confirm password do not match.')
+                return redirect('admin_panel:b2b_agent_detail', pk=agent.id) if pk != 0 else redirect('admin_panel:b2b_staff_list')
+            if len(password) < 6:
+                messages.error(request, 'Password must be at least 6 characters long.')
+                return redirect('admin_panel:b2b_agent_detail', pk=agent.id) if pk != 0 else redirect('admin_panel:b2b_staff_list')
+            import hashlib
+            password_hash = hashlib.sha256(password.encode()).hexdigest()
+
+        # Check username uniqueness if provided
+        if username:
+            if B2BAgentStaff.objects.using(db).filter(username=username).exists():
+                messages.error(request, f'Username "{username}" is already taken. Please choose another.')
+                return redirect('admin_panel:b2b_agent_detail', pk=agent.id) if pk != 0 else redirect('admin_panel:b2b_staff_list')
 
         staff = B2BAgentStaff.objects.using(db).create(
             agent=agent,
@@ -2417,12 +2449,21 @@ def b2b_staff_create(request, pk):
             phone=phone,
             email=email,
             designation=designation,
+            username=username,
+            password_hash=password_hash,
+            nid_number=nid_number,
+            notes=notes,
             is_active=True
         )
         messages.success(request, f'Staff member "{staff.name}" ({staff.staff_code}) added under {agent.name}!')
-        return redirect('admin_panel:b2b_agent_detail', pk=agent.id)
 
-    return redirect('admin_panel:b2b_agent_detail', pk=agent.id)
+        if pk != 0:
+            return redirect('admin_panel:b2b_agent_detail', pk=agent.id)
+        return redirect('admin_panel:b2b_staff_list')
+
+    if pk != 0:
+        return redirect('admin_panel:b2b_agent_detail', pk=agent.id)
+    return redirect('admin_panel:b2b_staff_list')
 
 
 @login_required
@@ -2461,12 +2502,21 @@ def b2b_staff_list(request):
 
     agents = list(AgencyAgent.objects.using(db).filter(agent_type='b2b', is_active=True).order_by('name'))
 
+    # Extra stats for summary cards
+    all_staff_qs = B2BAgentStaff.objects.using(db)
+    active_staff_count = all_staff_qs.filter(is_active=True).count()
+    agents_with_staff = all_staff_qs.values('agent_id').distinct().count()
+    total_candidates_handled = Candidate.objects.using(db).filter(b2b_staff__isnull=False).count()
+
     context = {
         'staff_items': staff_items,
         'agents': agents,
         'selected_agent_id': selected_agent_id,
         'query': query,
         'total_staff': len(staff_items),
+        'active_staff_count': active_staff_count,
+        'agents_with_staff': agents_with_staff,
+        'total_candidates_handled': total_candidates_handled,
     }
     return render(request, 'admin_panel/agency/b2b_staff_list.html', context)
 
@@ -2486,7 +2536,7 @@ def b2b_staff_toggle(request, pk):
 
 @login_required
 def b2b_staff_edit(request, pk):
-    """Update staff member profile."""
+    """Update staff member profile and optionally reset password."""
     db = get_tenant_db(request)
     staff = get_object_or_404(B2BAgentStaff.objects.using(db), pk=pk)
     if request.method == 'POST':
@@ -2494,15 +2544,71 @@ def b2b_staff_edit(request, pk):
         staff.phone = request.POST.get('phone', staff.phone).strip()
         staff.email = request.POST.get('email', staff.email).strip()
         staff.designation = request.POST.get('designation', staff.designation).strip()
+        staff.nid_number = request.POST.get('nid_number', staff.nid_number).strip()
+        staff.notes = request.POST.get('notes', staff.notes).strip()
+        staff.is_active = (request.POST.get('is_active') == 'on')
+
         new_agent_id = request.POST.get('agent_id')
         if new_agent_id:
             new_agent = AgencyAgent.objects.using(db).filter(pk=new_agent_id).first()
             if new_agent:
                 staff.agent = new_agent
+
+        # Username change
+        new_username = request.POST.get('username', '').strip()
+        if new_username and new_username != staff.username:
+            if B2BAgentStaff.objects.using(db).filter(username=new_username).exclude(pk=staff.pk).exists():
+                messages.error(request, f'Username "{new_username}" is already taken.')
+                next_url = request.META.get('HTTP_REFERER', 'admin_panel:b2b_staff_list')
+                return redirect(next_url)
+            staff.username = new_username
+        elif new_username:
+            staff.username = new_username
+
+        # Password reset (only if new password provided)
+        new_password = request.POST.get('new_password', '').strip()
+        if new_password:
+            confirm_password = request.POST.get('confirm_password', '').strip()
+            if new_password != confirm_password:
+                messages.error(request, 'New password and confirm password do not match.')
+                next_url = request.META.get('HTTP_REFERER', 'admin_panel:b2b_staff_list')
+                return redirect(next_url)
+            if len(new_password) < 6:
+                messages.error(request, 'Password must be at least 6 characters.')
+                next_url = request.META.get('HTTP_REFERER', 'admin_panel:b2b_staff_list')
+                return redirect(next_url)
+            import hashlib
+            staff.password_hash = hashlib.sha256(new_password.encode()).hexdigest()
+
         staff.save(using=db)
         messages.success(request, f'Staff member "{staff.name}" updated successfully!')
     next_url = request.META.get('HTTP_REFERER', 'admin_panel:b2b_staff_list')
     return redirect(next_url)
+
+
+@login_required
+def b2b_staff_delete(request, pk):
+    """Delete a B2B agent staff member safely."""
+    db = get_tenant_db(request)
+    staff = get_object_or_404(B2BAgentStaff.objects.using(db), pk=pk)
+
+    if request.method == 'POST':
+        # Check if any candidates are linked to this staff
+        cand_count = Candidate.objects.using(db).filter(b2b_staff=staff).count()
+        if cand_count > 0:
+            messages.error(
+                request,
+                f'Cannot delete staff member "{staff.name}" because {cand_count} candidate(s) are linked to them. '
+                'Please reassign those candidates first.'
+            )
+            return redirect('admin_panel:b2b_staff_list')
+
+        name = staff.name
+        staff.delete(using=db)
+        messages.success(request, f'Staff member "{name}" has been deleted successfully.')
+        return redirect('admin_panel:b2b_staff_list')
+
+    return redirect('admin_panel:b2b_staff_list')
 
 
 @login_required

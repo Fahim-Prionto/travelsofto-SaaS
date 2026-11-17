@@ -99,8 +99,14 @@ class B2BAgentStaff(models.Model):
     phone = models.CharField(max_length=50, blank=True)
     email = models.EmailField(blank=True)
     designation = models.CharField(max_length=100, blank=True)
+    # Login credentials for staff portal access
+    username = models.CharField(max_length=100, blank=True, help_text='Login username for staff portal')
+    password_hash = models.CharField(max_length=255, blank=True, help_text='Hashed password (bcrypt/sha256)')
+    nid_number = models.CharField(max_length=50, blank=True, help_text='National ID or employee ID')
+    notes = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['agent__name', 'name']

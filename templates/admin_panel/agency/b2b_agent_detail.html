@@ -518,7 +518,7 @@
 
 <!-- Add Staff Modal -->
 <div class="modal fade" id="addStaffModal" tabindex="-1">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-lg">
     <form method="post" action="{% url 'admin_panel:b2b_staff_create' agent.id %}" class="modal-content border-0 shadow-lg">
       {% csrf_token %}
       <div class="modal-header bg-primary text-white">
@@ -539,19 +539,82 @@
             <label class="form-label small fw-semibold">Email Address</label>
             <input type="email" name="email" class="form-control" placeholder="staff@example.com">
           </div>
-          <div class="col-12">
+          <div class="col-md-6">
             <label class="form-label small fw-semibold">Designation / Role</label>
-            <input type="text" name="designation" class="form-control" placeholder="e.g. Visa Executive, Flight Officer" value="Visa Processing Executive">
+            <input type="text" name="designation" class="form-control" value="Visa Processing Executive">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">NID / Employee ID</label>
+            <input type="text" name="nid_number" class="form-control" placeholder="National ID or Staff ID">
+          </div>
+          <div class="col-12">
+            <div class="alert alert-info border-0 rounded-3 py-2 px-3 small mb-0">
+              <i class="fa-solid fa-circle-info me-1"></i>
+              <strong>Portal Login</strong> — Set username & password for staff portal access.
+            </div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold"><i class="fa-solid fa-at me-1 text-primary"></i>Login Username</label>
+            <input type="text" name="username" class="form-control font-monospace" placeholder="e.g. staff_ali" autocomplete="off">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold"><i class="fa-solid fa-lock me-1 text-primary"></i>Password</label>
+            <div class="input-group">
+              <input type="password" name="password" id="detailAddPwd" class="form-control" placeholder="Min. 6 chars" autocomplete="new-password">
+              <button class="btn btn-outline-secondary btn-sm" type="button" onclick="togglePwdDetail('detailAddPwd','detailAddPwdEye')">
+                <i class="fa-solid fa-eye" id="detailAddPwdEye"></i>
+              </button>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold"><i class="fa-solid fa-lock-open me-1 text-primary"></i>Confirm Password</label>
+            <div class="input-group">
+              <input type="password" name="confirm_password" id="detailAddCpwd" class="form-control" placeholder="Repeat" autocomplete="new-password">
+              <button class="btn btn-outline-secondary btn-sm" type="button" onclick="togglePwdDetail('detailAddCpwd','detailAddCpwdEye')">
+                <i class="fa-solid fa-eye" id="detailAddCpwdEye"></i>
+              </button>
+            </div>
+            <div id="detailPwdMsg" class="form-text small text-danger d-none">Passwords do not match.</div>
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Internal Notes</label>
+            <textarea name="notes" class="form-control" rows="2" placeholder="Optional notes..."></textarea>
           </div>
         </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="submit" class="btn btn-primary fw-bold"><i class="fa-solid fa-save me-1"></i>Save Staff</button>
+        <button type="submit" class="btn btn-primary fw-bold" onclick="return validateDetailStaff()">
+          <i class="fa-solid fa-save me-1"></i>Create Staff Account
+        </button>
       </div>
     </form>
   </div>
 </div>
+<script>
+function togglePwdDetail(inputId, iconId) {
+  const inp = document.getElementById(inputId);
+  const ico = document.getElementById(iconId);
+  if (!inp) return;
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  if (ico) ico.className = inp.type === 'text' ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+}
+function validateDetailStaff() {
+  const pwd = document.getElementById('detailAddPwd').value;
+  const cpwd = document.getElementById('detailAddCpwd').value;
+  const msg = document.getElementById('detailPwdMsg');
+  if (pwd && pwd !== cpwd) { msg.classList.remove('d-none'); return false; }
+  msg.classList.add('d-none'); return true;
+}
+document.addEventListener('DOMContentLoaded', function() {
+  const p = document.getElementById('detailAddPwd');
+  const c = document.getElementById('detailAddCpwd');
+  const m = document.getElementById('detailPwdMsg');
+  function chk() { if(c.value.length>0 && p.value!==c.value){m.classList.remove('d-none');} else {m.classList.add('d-none');} }
+  if(p) p.addEventListener('input', chk);
+  if(c) c.addEventListener('input', chk);
+});
+</script>
 
 <!-- Edit Agent Modal -->
 <div class="modal fade" id="editAgentModal" tabindex="-1">
