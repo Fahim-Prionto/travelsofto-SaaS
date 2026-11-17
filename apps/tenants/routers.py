@@ -35,6 +35,8 @@ MAIN_DB_APPS = {
 # These models are inside the 'tenants' app but must route to their isolated tenant DB
 TENANT_SPECIFIC_MODELS = {
     'agencyagent',
+    'b2bagentstaff',
+    'b2btransaction',
     'agencycompany',
     'agencyposition',
     'selectiongrade',
@@ -94,12 +96,11 @@ class TenantDatabaseRouter:
 
     def allow_migrate(self, db, app_label, model_name=None, **hints):
         if db == 'default':
-            # Allow ALL tenants-app models to migrate to the public/default DB.
-            # This is required so that the public schema has the agency tables as a
-            # fallback (e.g. when tenant middleware hasn't resolved a tenant yet, or
-            # for direct queries that don't carry a tenant context).
-            # Tenant-specific queries are still routed away by db_for_read/write.
+            # Tenant-specific models belong to tenant databases, not the public default DB.
+            # Skipping them here prevents errors when ALTER TABLE is called on tables that only exist in tenant schemas.
             if app_label == 'tenants':
+                if model_name and model_name.lower() in TENANT_SPECIFIC_MODELS:
+                    return False
                 return True
             # Prevent pure tenant-specific apps from migrating to the default database
             tenant_apps = {'travel_packages', 'visa', 'bookings', 'payments', 'destinations', 'cms', 'support', 'coupons', 'kyc', 'bus', 'analytics', 'reviews'}
@@ -107,7 +108,9 @@ class TenantDatabaseRouter:
                 return False
             return True
         else:
-            # On tenant databases: allow tenants-app models that belong to this set
-            if app_label == 'tenants' and model_name in TENANT_SPECIFIC_MODELS:
-                return True
+            # On tenant databases: allow tenants-app models that belong to TENANT_SPECIFIC_MODELS
+            if app_label == 'tenants':
+                if model_name is None:
+                    return True
+                return model_name.lower() in TENANT_SPECIFIC_MODELS
             return app_label not in MAIN_DB_APPS
