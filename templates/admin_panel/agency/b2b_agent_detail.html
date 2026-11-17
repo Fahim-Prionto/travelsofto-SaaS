@@ -76,31 +76,70 @@
     </div>
   </div>
 
-  <!-- Credit Limit & Commission Bar -->
+  <!-- Credit Limit, Commission & Auto-Calculate Bar -->
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-body p-3">
       <div class="row align-items-center g-3">
-        <div class="col-md-3 border-end">
+
+        <!-- Credit Limit -->
+        <div class="col-md-2 border-end">
           <div class="small text-muted fw-semibold">Credit Limit</div>
           <div class="fw-bold fs-5 text-dark">৳{{ credit_limit|floatformat:2 }}</div>
         </div>
-        <div class="col-md-3 border-end">
-          <div class="small text-muted fw-semibold">Available Credit Margin</div>
+
+        <!-- Available Margin -->
+        <div class="col-md-2 border-end">
+          <div class="small text-muted fw-semibold">Available Margin</div>
           <div class="fw-bold fs-5 text-success">৳{{ available_credit|floatformat:2 }}</div>
         </div>
+
+        <!-- Commission Earned -->
         <div class="col-md-3 border-end">
-          <div class="small text-muted fw-semibold">Commission Rate</div>
-          <div class="fw-bold fs-5 text-primary">{{ agent.commission_rate|floatformat:1 }}% <span class="text-muted small fw-normal">(৳{{ total_commission|floatformat:2 }} earned)</span></div>
+          <div class="small text-muted fw-semibold">Commission Earned</div>
+          <div class="d-flex align-items-center gap-2">
+            <div class="fw-bold fs-5 text-primary">৳{{ total_commission|floatformat:2 }}</div>
+            <span class="badge bg-primary-subtle text-primary rounded-pill px-2 py-1 small">{{ agent.commission_rate|floatformat:2 }}%</span>
+          </div>
+          <div class="small text-muted">on ৳{{ total_billed|floatformat:2 }} total billed</div>
         </div>
-        <div class="col-md-3">
+
+        <!-- Commission Rate Setup -->
+        <div class="col-md-3 border-end">
+          <div class="small text-muted fw-semibold mb-1"><i class="fa-solid fa-sliders me-1 text-primary"></i>Set Commission Rate</div>
+          <form method="post" action="{% url 'admin_panel:b2b_agent_set_commission' agent.id %}" class="d-flex gap-2 align-items-center">
+            {% csrf_token %}
+            <div class="input-group input-group-sm" style="max-width:160px;">
+              <input type="number" name="commission_rate" class="form-control fw-bold"
+                     step="0.01" min="0" max="100"
+                     value="{{ agent.commission_rate|floatformat:2 }}"
+                     placeholder="e.g. 5.00">
+              <span class="input-group-text fw-bold">%</span>
+            </div>
+            <button type="submit" class="btn btn-sm btn-primary fw-bold px-3" title="Save & Auto-calculate">
+              <i class="fa-solid fa-check me-1"></i>Apply
+            </button>
+          </form>
+          <div class="form-text small text-muted mt-1">Saves rate & auto-calculates commission earned</div>
+        </div>
+
+        <!-- Credit Utilization + Recalculate -->
+        <div class="col-md-2">
           <div class="d-flex justify-content-between small text-muted mb-1">
             <span>Credit Utilization</span>
             <span class="fw-bold {% if credit_utilization_pct > 90 %}text-danger{% else %}text-primary{% endif %}">{{ credit_utilization_pct }}%</span>
           </div>
-          <div class="progress" style="height: 6px;">
-            <div class="progress-bar {% if credit_utilization_pct > 90 %}bg-danger{% elif credit_utilization_pct > 70 %}bg-warning{% else %}bg-primary{% endif %}" role="progressbar" style="width: {{ credit_utilization_pct }}%;"></div>
+          <div class="progress mb-2" style="height: 6px;">
+            <div class="progress-bar {% if credit_utilization_pct > 90 %}bg-danger{% elif credit_utilization_pct > 70 %}bg-warning{% else %}bg-primary{% endif %}"
+                 role="progressbar" style="width: {{ credit_utilization_pct }}%;"></div>
           </div>
+          <form method="post" action="{% url 'admin_panel:b2b_agent_recalculate' agent.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-xs btn-outline-secondary w-100 fw-semibold" title="Force recalculate all balances">
+              <i class="fa-solid fa-rotate me-1"></i>Recalculate All
+            </button>
+          </form>
         </div>
+
       </div>
     </div>
   </div>
@@ -129,7 +168,7 @@
     </li>
     <li class="nav-item">
       <button class="nav-link rounded-pill fw-semibold small" id="ledger-tab" data-bs-toggle="tab" data-bs-target="#ledgerTabPane" type="button">
-        <i class="fa-solid fa-scale-balanced me-1.5"></i>Financial Ledger & Statement ({{ transactions|length }})
+        <i class="fa-solid fa-scale-balanced me-1.5"></i>Financial Ledger &amp; Statement ({{ transactions|length }})
       </button>
     </li>
   </ul>
@@ -227,7 +266,7 @@
         <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
           <div>
             <h6 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-user-group text-primary me-2"></i>Staff Members Operating Under {{ agent.name }}</h6>
-            <span class="text-muted small">Sub-agent employees who register candidates and process services</span>
+            <span class="text-muted small">Set each staff's commission rate — commission is auto-calculated from candidates they handle.</span>
           </div>
           <button class="btn btn-sm btn-primary rounded-pill fw-semibold" data-bs-toggle="modal" data-bs-target="#addStaffModal">
             <i class="fa-solid fa-plus me-1"></i>Add Staff Member
@@ -242,47 +281,86 @@
                   <th>Full Name</th>
                   <th>Designation</th>
                   <th>Contact</th>
-                  <th class="text-center">Candidates Handled</th>
+                  <th class="text-center">Candidates</th>
+                  <th class="text-end">Revenue Handled</th>
+                  <th class="text-center" style="min-width:200px;">Commission Rate</th>
+                  <th class="text-end">Commission Earned</th>
                   <th class="text-center">Status</th>
                   <th class="text-center pe-3">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {% for s in staff_members %}
+                {% for item in staff_commission_items %}
                 <tr>
-                  <td class="ps-3 fw-bold fw-mono text-primary">{{ s.staff_code }}</td>
-                  <td class="fw-semibold text-dark">{{ s.name }}</td>
-                  <td>{{ s.designation|default:"Visa Executive" }}</td>
+                  <td class="ps-3 fw-bold font-monospace text-primary small">{{ item.staff.staff_code }}</td>
                   <td>
-                    <div><i class="fa-solid fa-phone me-1 text-muted"></i>{{ s.phone|default:"—" }}</div>
-                    {% if s.email %}<div class="text-muted small"><i class="fa-solid fa-envelope me-1"></i>{{ s.email }}</div>{% endif %}
+                    <div class="fw-semibold text-dark">{{ item.staff.name }}</div>
+                    {% if item.staff.username %}<div class="text-muted small font-monospace"><i class="fa-solid fa-at me-1"></i>{{ item.staff.username }}</div>{% endif %}
+                  </td>
+                  <td class="small">{{ item.staff.designation|default:"Visa Executive" }}</td>
+                  <td class="small">
+                    <div><i class="fa-solid fa-phone me-1 text-muted"></i>{{ item.staff.phone|default:"—" }}</div>
+                    {% if item.staff.email %}<div class="text-muted"><i class="fa-solid fa-envelope me-1"></i>{{ item.staff.email }}</div>{% endif %}
                   </td>
                   <td class="text-center">
-                    <span class="badge bg-primary-subtle text-primary rounded-pill px-2.5 py-1">
-                      {{ s.candidates.count }}
-                    </span>
+                    <span class="badge bg-primary-subtle text-primary rounded-pill px-2.5 py-1">{{ item.candidates_count }}</span>
+                  </td>
+                  <td class="text-end fw-semibold text-dark">৳{{ item.billed|floatformat:2 }}</td>
+                  <td class="text-center" style="min-width:200px;">
+                    <!-- Inline commission rate setter for each staff -->
+                    <form method="post" action="{% url 'admin_panel:b2b_staff_set_commission' item.staff.id %}" class="d-flex align-items-center gap-1 justify-content-center">
+                      {% csrf_token %}
+                      <div class="input-group input-group-sm" style="max-width:120px;">
+                        <input type="number" name="commission_rate" class="form-control fw-bold text-center"
+                               step="0.01" min="0" max="100"
+                               value="{{ item.commission_rate|floatformat:2 }}"
+                               placeholder="0.00">
+                        <span class="input-group-text fw-bold">%</span>
+                      </div>
+                      <button type="submit" class="btn btn-xs btn-primary px-2 fw-bold" title="Save & auto-calculate">
+                        <i class="fa-solid fa-check"></i>
+                      </button>
+                    </form>
+                  </td>
+                  <td class="text-end fw-bold {% if item.commission_earned > 0 %}text-success{% else %}text-muted{% endif %}">
+                    ৳{{ item.commission_earned|floatformat:2 }}
                   </td>
                   <td class="text-center">
-                    {% if s.is_active %}
+                    {% if item.staff.is_active %}
                       <span class="badge bg-success-subtle text-success rounded-pill px-2 py-0.5">Active</span>
                     {% else %}
                       <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-0.5">Inactive</span>
                     {% endif %}
                   </td>
                   <td class="text-center pe-3">
-                    <a href="{% url 'admin_panel:b2b_staff_toggle' s.id %}" class="btn btn-xs btn-outline-secondary p-1 px-2" title="Toggle Status">
+                    <a href="{% url 'admin_panel:b2b_staff_toggle' item.staff.id %}" class="btn btn-xs btn-outline-secondary p-1 px-2" title="Toggle Status">
                       <i class="fa-solid fa-power-off"></i>
                     </a>
                   </td>
                 </tr>
                 {% empty %}
                 <tr>
-                  <td colspan="7" class="text-center py-4 text-muted">
+                  <td colspan="10" class="text-center py-4 text-muted">
                     No staff accounts created for this agent yet.
                   </td>
                 </tr>
                 {% endfor %}
               </tbody>
+              {% if staff_commission_items %}
+              <tfoot class="table-light fw-bold">
+                <tr>
+                  <td colspan="5" class="ps-3 text-muted small">Total ({{ staff_commission_items|length }} staff)</td>
+                  <td class="text-end text-dark">
+                    ৳{% with total=0 %}{% for item in staff_commission_items %}{{ item.billed|add:total }}{% endfor %}{% endwith %}
+                  </td>
+                  <td></td>
+                  <td class="text-end text-success">
+                    {% with comm_total=0 %}{% for item in staff_commission_items %}{{ item.commission_earned }}{% endfor %}{% endwith %}
+                  </td>
+                  <td colspan="2"></td>
+                </tr>
+              </tfoot>
+              {% endif %}
             </table>
           </div>
         </div>

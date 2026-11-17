@@ -2295,9 +2295,11 @@ def b2b_agent_detail(request, pk):
     available_credit = max(Decimal('0.00'), credit_limit - outstanding_balance) if credit_limit > 0 else Decimal('0.00')
     credit_utilization_pct = min(100, int((outstanding_balance / credit_limit) * 100)) if credit_limit > 0 else 0
 
-    # Commission earned calculation
+    # Commission earned calculation (use stored value if set, else calculate from rate)
     comm_rate = agent.commission_rate or Decimal('0.00')
-    total_commission = (total_billed * comm_rate / Decimal('100.00')).quantize(Decimal('0.01'))
+    total_commission = agent.commission_earned if agent.commission_earned > Decimal('0.00') else (
+        (total_billed * comm_rate / Decimal('100.00')).quantize(Decimal('0.01'))
+    )
 
     # 6. Ledger Transactions
     transactions = list(
@@ -2309,9 +2311,30 @@ def b2b_agent_detail(request, pk):
 
     accounts = list(ChartOfAccount.objects.using(db).all())
 
+    # 7. Per-staff commission breakdown
+    staff_commission_items = []
+    for s in staff_members:
+        s_cands = Candidate.objects.using(db).filter(b2b_staff=s)
+        s_fin = s_cands.aggregate(billed=Sum('total_amount'), paid=Sum('paid_amount'))
+        s_billed = s_fin['billed'] or Decimal('0.00')
+        s_paid = s_fin['paid'] or Decimal('0.00')
+        s_rate = s.commission_rate or Decimal('0.00')
+        s_earned = s.commission_earned if s.commission_earned > Decimal('0.00') else (
+            (s_billed * s_rate / Decimal('100.00')).quantize(Decimal('0.01'))
+        )
+        staff_commission_items.append({
+            'staff': s,
+            'candidates_count': s_cands.count(),
+            'billed': s_billed,
+            'paid': s_paid,
+            'commission_rate': s_rate,
+            'commission_earned': s_earned,
+        })
+
     context = {
         'agent': agent,
         'staff_members': staff_members,
+        'staff_commission_items': staff_commission_items,
         'candidates': candidates,
         'candidates_count': len(candidates),
         'visa_lots': visa_lots,
@@ -2391,6 +2414,107 @@ def b2b_agent_add_payment(request, pk):
 
         messages.success(request, f'Payment of ৳{amt:,.2f} recorded for {agent.name}!')
         return redirect('admin_panel:b2b_agent_detail', pk=agent.id)
+
+    return redirect('admin_panel:b2b_agent_detail', pk=agent.id)
+
+
+@login_required
+def b2b_agent_set_commission(request, pk):
+    """
+    Update an agent's commission rate and immediately recalculate commission_earned
+    plus adjust the outstanding balance by posting/replacing the [AUTO-COMM] transaction.
+    """
+    db = get_tenant_db(request)
+    agent = get_object_or_404(AgencyAgent.objects.using(db), pk=pk)
+
+    if request.method == 'POST':
+        try:
+            new_rate = Decimal(request.POST.get('commission_rate', '0').strip() or '0')
+        except Exception:
+            new_rate = Decimal('0.00')
+
+        # Clamp rate 0-100
+        new_rate = max(Decimal('0.00'), min(Decimal('100.00'), new_rate))
+        old_rate = agent.commission_rate
+
+        agent.commission_rate = new_rate
+        agent.save(using=db, update_fields=['commission_rate'])
+
+        # Auto-recalculate commission & outstanding
+        new_commission = agent.recalculate_commission(using=db)
+
+        messages.success(
+            request,
+            f'Commission rate updated to {new_rate}% for {agent.name}. '
+            f'Commission earned auto-calculated: ৳{new_commission:,.2f}. '
+            f'Outstanding balance updated.'
+        )
+
+    return redirect('admin_panel:b2b_agent_detail', pk=agent.id)
+
+
+@login_required
+def b2b_staff_set_commission(request, pk):
+    """
+    Update a staff member's commission rate and recalculate their commission_earned
+    based on candidates they handled.
+    """
+    db = get_tenant_db(request)
+    staff = get_object_or_404(B2BAgentStaff.objects.using(db), pk=pk)
+
+    if request.method == 'POST':
+        try:
+            new_rate = Decimal(request.POST.get('commission_rate', '0').strip() or '0')
+        except Exception:
+            new_rate = Decimal('0.00')
+
+        new_rate = max(Decimal('0.00'), min(Decimal('100.00'), new_rate))
+        staff.commission_rate = new_rate
+        staff.save(using=db, update_fields=['commission_rate'])
+
+        new_commission = staff.recalculate_commission(using=db)
+
+        messages.success(
+            request,
+            f'Commission rate updated to {new_rate}% for staff "{staff.name}". '
+            f'Commission earned: ৳{new_commission:,.2f}.'
+        )
+
+    return redirect('admin_panel:b2b_agent_detail', pk=staff.agent.id)
+
+
+@login_required
+def b2b_agent_recalculate(request, pk):
+    """Force recalculate all balances and commission for an agent (useful after bulk data changes)."""
+    db = get_tenant_db(request)
+    agent = get_object_or_404(AgencyAgent.objects.using(db), pk=pk)
+
+    if request.method == 'POST':
+        # Recalculate commission if rate is set
+        if agent.commission_rate and agent.commission_rate > Decimal('0.00'):
+            comm = agent.recalculate_commission(using=db)
+            messages.success(
+                request,
+                f'✅ Recalculated for {agent.name}: Commission = ৳{comm:,.2f}, '
+                f'Outstanding = ৳{agent.outstanding_balance:,.2f}'
+            )
+        else:
+            agent.recalculate_outstanding(using=db)
+            messages.success(
+                request,
+                f'✅ Outstanding balance recalculated for {agent.name}: ৳{agent.outstanding_balance:,.2f}'
+            )
+
+        # Also recalculate all staff commission under this agent
+        staff_members = B2BAgentStaff.objects.using(db).filter(agent=agent, is_active=True)
+        staff_updated = 0
+        for s in staff_members:
+            if s.commission_rate and s.commission_rate > Decimal('0.00'):
+                s.recalculate_commission(using=db)
+                staff_updated += 1
+
+        if staff_updated:
+            messages.info(request, f'Staff commission recalculated for {staff_updated} active staff member(s).')
 
     return redirect('admin_panel:b2b_agent_detail', pk=agent.id)
 

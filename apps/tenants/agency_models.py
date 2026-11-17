@@ -87,6 +87,42 @@ class AgencyAgent(models.Model):
         self.outstanding_balance = max(Decimal('0.00'), Decimal(str(debits)) - Decimal(str(credits)))
         self.save(update_fields=['outstanding_balance'])
 
+    def recalculate_commission(self, using='default'):
+        """
+        Auto-calculate commission from all linked candidates' total_amount.
+        Posts/replaces [AUTO] commission_credit transaction and updates commission_earned + outstanding.
+        Returns the new commission amount.
+        """
+        total_billed = Candidate.objects.using(using).filter(
+            models.Q(b2b_agent=self) | models.Q(agent=self)
+        ).aggregate(t=models.Sum('total_amount'))['t'] or Decimal('0.00')
+
+        rate = self.commission_rate or Decimal('0.00')
+        new_commission = (Decimal(str(total_billed)) * rate / Decimal('100.00')).quantize(Decimal('0.01'))
+
+        if new_commission > Decimal('0.00'):
+            # Remove any existing auto-commission credits to avoid duplicates
+            B2BTransaction.objects.using(using).filter(
+                agent=self,
+                txn_type=B2BTransaction.TxnType.COMMISSION_CREDIT,
+                reference_no='AUTO-COMM'
+            ).delete()
+            # Post fresh commission credit
+            B2BTransaction.objects.using(using).create(
+                agent=self,
+                txn_type=B2BTransaction.TxnType.COMMISSION_CREDIT,
+                amount=new_commission,
+                balance_after=Decimal('0.00'),  # will be corrected by recalculate_outstanding
+                description=f'[AUTO] Commission {rate}% on ৳{total_billed:.2f} total candidate billing',
+                reference_no='AUTO-COMM',
+            )
+
+        self.commission_earned = new_commission
+        self.save(using=using, update_fields=['commission_earned'])
+        # Recalculate outstanding after commission credit
+        self.recalculate_outstanding(using=using)
+        return new_commission
+
 
 class B2BAgentStaff(models.Model):
     """Staff member who operates under a B2B Agent."""
@@ -104,6 +140,15 @@ class B2BAgentStaff(models.Model):
     password_hash = models.CharField(max_length=255, blank=True, help_text='Hashed password (bcrypt/sha256)')
     nid_number = models.CharField(max_length=50, blank=True, help_text='National ID or employee ID')
     notes = models.TextField(blank=True)
+    # Commission for staff performance tracking
+    commission_rate = models.DecimalField(
+        max_digits=5, decimal_places=2, default=Decimal('0.00'),
+        help_text='Commission % this staff earns on candidates they handle'
+    )
+    commission_earned = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+        help_text='Total commission credited to this staff member (auto-calculated)'
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -121,6 +166,21 @@ class B2BAgentStaff(models.Model):
             import random, string
             self.staff_code = 'ST-' + ''.join(random.choices(string.digits, k=5))
         super().save(*args, **kwargs)
+
+    def recalculate_commission(self, using='default'):
+        """
+        Auto-calculate staff commission based on candidates they handled.
+        Updates commission_earned and returns the calculated amount.
+        """
+        total_handled = Candidate.objects.using(using).filter(
+            b2b_staff=self
+        ).aggregate(t=models.Sum('total_amount'))['t'] or Decimal('0.00')
+
+        rate = self.commission_rate or Decimal('0.00')
+        new_commission = (Decimal(str(total_handled)) * rate / Decimal('100.00')).quantize(Decimal('0.01'))
+        self.commission_earned = new_commission
+        self.save(using=using, update_fields=['commission_earned'])
+        return new_commission
 
 
 class B2BTransaction(models.Model):
