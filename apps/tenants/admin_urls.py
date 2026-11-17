@@ -47,6 +47,7 @@ urlpatterns = [
     path('b2b/agents/create/', agency_views.b2b_agent_create, name='b2b_agent_create'),
     path('b2b/agents/<int:pk>/', agency_views.b2b_agent_detail, name='b2b_agent_detail'),
     path('b2b/agents/<int:pk>/edit/', agency_views.b2b_agent_edit, name='b2b_agent_edit'),
+    path('b2b/agents/<int:pk>/delete/', agency_views.b2b_agent_delete, name='b2b_agent_delete'),
     path('b2b/agents/<int:pk>/add-payment/', agency_views.b2b_agent_add_payment, name='b2b_agent_add_payment'),
     path('b2b/agents/<int:pk>/staff/create/', agency_views.b2b_staff_create, name='b2b_staff_create'),
     path('b2b/staff/', agency_views.b2b_staff_list, name='b2b_staff_list'),

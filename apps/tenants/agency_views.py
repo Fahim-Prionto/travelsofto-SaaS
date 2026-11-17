@@ -1656,32 +1656,191 @@ def master_settings(request):
     if request.method == 'POST':
         action = request.POST.get('action')
 
+        # ── AGENT ACTIONS ─────────────────────────────────────────────────────
         if action == 'add_agent':
             name = request.POST.get('name', '').strip()
             phone = request.POST.get('phone', '').strip()
             email = request.POST.get('email', '').strip()
             comp = request.POST.get('company_name', '').strip()
-            AgencyAgent.objects.using(db).create(name=name, phone=phone, email=email, company_name=comp)
-            messages.success(request, f'Agent "{name}" added successfully!')
+            address = request.POST.get('address', '').strip()
+            agent_type = request.POST.get('agent_type', 'b2b')
+            notes = request.POST.get('notes', '').strip()
 
+            try:
+                comm_rate = Decimal(request.POST.get('commission_rate', '0').strip() or '0')
+            except Exception:
+                comm_rate = Decimal('0.00')
+
+            try:
+                credit_lim = Decimal(request.POST.get('credit_limit', '0').strip() or '0')
+            except Exception:
+                credit_lim = Decimal('0.00')
+
+            if name:
+                agent = AgencyAgent.objects.using(db).create(
+                    name=name,
+                    phone=phone,
+                    email=email,
+                    company_name=comp,
+                    address=address,
+                    agent_type=agent_type,
+                    commission_rate=comm_rate,
+                    credit_limit=credit_lim,
+                    notes=notes,
+                    is_active=True
+                )
+                messages.success(request, f'Agent "{name}" ({agent.agent_code}) added successfully!')
+            else:
+                messages.error(request, 'Agent name is required.')
+
+        elif action == 'edit_agent':
+            agent_id = request.POST.get('agent_id')
+            agent = AgencyAgent.objects.using(db).filter(pk=agent_id).first()
+            if agent:
+                agent.name = request.POST.get('name', agent.name).strip()
+                agent.phone = request.POST.get('phone', agent.phone).strip()
+                agent.email = request.POST.get('email', agent.email).strip()
+                agent.company_name = request.POST.get('company_name', agent.company_name).strip()
+                agent.address = request.POST.get('address', agent.address).strip()
+                agent.agent_type = request.POST.get('agent_type', agent.agent_type)
+                agent.notes = request.POST.get('notes', agent.notes).strip()
+                agent.is_active = (request.POST.get('is_active') == 'on')
+
+                try:
+                    agent.commission_rate = Decimal(request.POST.get('commission_rate', '0').strip() or '0')
+                except Exception:
+                    pass
+
+                try:
+                    agent.credit_limit = Decimal(request.POST.get('credit_limit', '0').strip() or '0')
+                except Exception:
+                    pass
+
+                agent.save(using=db)
+                messages.success(request, f'Agent "{agent.name}" updated successfully!')
+            else:
+                messages.error(request, 'Agent not found.')
+
+        elif action == 'delete_agent':
+            agent_id = request.POST.get('agent_id')
+            agent = AgencyAgent.objects.using(db).filter(pk=agent_id).first()
+            if agent:
+                cands_count = Candidate.objects.using(db).filter(Q(b2b_agent=agent) | Q(agent=agent)).count()
+                if cands_count > 0:
+                    messages.error(
+                        request,
+                        f'Cannot delete agent "{agent.name}" because {cands_count} candidate(s) are linked to this agent. '
+                        'Please reassign the candidates or deactivate the agent instead.'
+                    )
+                else:
+                    name = agent.name
+                    B2BAgentStaff.objects.using(db).filter(agent=agent).delete()
+                    B2BTransaction.objects.using(db).filter(agent=agent).delete()
+                    agent.delete(using=db)
+                    messages.success(request, f'Agent "{name}" deleted successfully.')
+            else:
+                messages.error(request, 'Agent not found.')
+
+        # ── COMPANY ACTIONS ───────────────────────────────────────────────────
         elif action == 'add_company':
             name = request.POST.get('name', '').strip()
             country = request.POST.get('country', 'Saudi Arabia')
             contact = request.POST.get('contact_person', '').strip()
-            AgencyCompany.objects.using(db).create(name=name, country=country, contact_person=contact)
-            messages.success(request, f'Company "{name}" added successfully!')
+            phone = request.POST.get('phone', '').strip()
+            email = request.POST.get('email', '').strip()
+            if name:
+                AgencyCompany.objects.using(db).create(name=name, country=country, contact_person=contact, phone=phone, email=email)
+                messages.success(request, f'Company "{name}" added successfully!')
+            else:
+                messages.error(request, 'Company name is required.')
 
+        elif action == 'edit_company':
+            company_id = request.POST.get('company_id')
+            company = AgencyCompany.objects.using(db).filter(pk=company_id).first()
+            if company:
+                company.name = request.POST.get('name', company.name).strip()
+                company.country = request.POST.get('country', company.country).strip()
+                company.contact_person = request.POST.get('contact_person', company.contact_person).strip()
+                company.phone = request.POST.get('phone', company.phone).strip()
+                company.email = request.POST.get('email', company.email).strip()
+                company.is_active = (request.POST.get('is_active') == 'on')
+                company.save(using=db)
+                messages.success(request, f'Company "{company.name}" updated successfully!')
+
+        elif action == 'delete_company':
+            company_id = request.POST.get('company_id')
+            company = AgencyCompany.objects.using(db).filter(pk=company_id).first()
+            if company:
+                c_count = Candidate.objects.using(db).filter(company=company).count()
+                if c_count > 0:
+                    messages.error(request, f'Cannot delete company "{company.name}" because {c_count} candidates are associated with it.')
+                else:
+                    name = company.name
+                    company.delete(using=db)
+                    messages.success(request, f'Company "{name}" deleted.')
+
+        # ── POSITION ACTIONS ──────────────────────────────────────────────────
         elif action == 'add_position':
             title = request.POST.get('title', '').strip()
             code = request.POST.get('code', '').strip()
-            AgencyPosition.objects.using(db).create(title=title, code=code)
-            messages.success(request, f'Position "{title}" added successfully!')
+            if title:
+                AgencyPosition.objects.using(db).create(title=title, code=code)
+                messages.success(request, f'Position "{title}" added successfully!')
+            else:
+                messages.error(request, 'Position title is required.')
 
+        elif action == 'edit_position':
+            position_id = request.POST.get('position_id')
+            pos = AgencyPosition.objects.using(db).filter(pk=position_id).first()
+            if pos:
+                pos.title = request.POST.get('title', pos.title).strip()
+                pos.code = request.POST.get('code', pos.code).strip()
+                pos.is_active = (request.POST.get('is_active') == 'on')
+                pos.save(using=db)
+                messages.success(request, f'Position "{pos.title}" updated successfully!')
+
+        elif action == 'delete_position':
+            position_id = request.POST.get('position_id')
+            pos = AgencyPosition.objects.using(db).filter(pk=position_id).first()
+            if pos:
+                c_count = Candidate.objects.using(db).filter(position=pos).count()
+                if c_count > 0:
+                    messages.error(request, f'Cannot delete position "{pos.title}" because {c_count} candidates are assigned to it.')
+                else:
+                    title = pos.title
+                    pos.delete(using=db)
+                    messages.success(request, f'Position "{title}" deleted.')
+
+        # ── GRADE ACTIONS ─────────────────────────────────────────────────────
         elif action == 'add_grade':
             grade_name = request.POST.get('grade_name', '').strip()
             desc = request.POST.get('description', '').strip()
-            SelectionGrade.objects.using(db).create(grade_name=grade_name, description=desc)
-            messages.success(request, f'Selection Grade "{grade_name}" added successfully!')
+            if grade_name:
+                SelectionGrade.objects.using(db).create(grade_name=grade_name, description=desc)
+                messages.success(request, f'Selection Grade "{grade_name}" added successfully!')
+            else:
+                messages.error(request, 'Grade name is required.')
+
+        elif action == 'edit_grade':
+            grade_id = request.POST.get('grade_id')
+            grade = SelectionGrade.objects.using(db).filter(pk=grade_id).first()
+            if grade:
+                grade.grade_name = request.POST.get('grade_name', grade.grade_name).strip()
+                grade.description = request.POST.get('description', grade.description).strip()
+                grade.save(using=db)
+                messages.success(request, f'Grade "{grade.grade_name}" updated successfully!')
+
+        elif action == 'delete_grade':
+            grade_id = request.POST.get('grade_id')
+            grade = SelectionGrade.objects.using(db).filter(pk=grade_id).first()
+            if grade:
+                c_count = Candidate.objects.using(db).filter(selection_grade=grade).count()
+                if c_count > 0:
+                    messages.error(request, f'Cannot delete grade "{grade.grade_name}" because {c_count} candidates are graded with it.')
+                else:
+                    name = grade.grade_name
+                    grade.delete(using=db)
+                    messages.success(request, f'Grade "{name}" deleted.')
 
         return redirect(f'/admin-panel/master-settings/?tab={active_tab}')
 
@@ -2065,6 +2224,32 @@ def b2b_agent_edit(request, pk):
         return redirect('admin_panel:b2b_agent_detail', pk=agent.id)
 
     return redirect('admin_panel:b2b_agent_list')
+
+
+@login_required
+def b2b_agent_delete(request, pk):
+    """Delete a B2B agent safely if no linked candidates exist."""
+    db = get_tenant_db(request)
+    agent = get_object_or_404(AgencyAgent.objects.using(db), pk=pk)
+
+    if request.method == 'POST':
+        cands_count = Candidate.objects.using(db).filter(Q(b2b_agent=agent) | Q(agent=agent)).count()
+        if cands_count > 0:
+            messages.error(
+                request,
+                f'Cannot delete agent "{agent.name}" because {cands_count} candidate(s) are linked to this agent. '
+                'Please reassign or delete those candidates first, or deactivate this agent.'
+            )
+            return redirect('admin_panel:b2b_agent_detail', pk=agent.id)
+
+        name = agent.name
+        B2BAgentStaff.objects.using(db).filter(agent=agent).delete()
+        B2BTransaction.objects.using(db).filter(agent=agent).delete()
+        agent.delete(using=db)
+        messages.success(request, f'B2B Agent "{name}" has been deleted successfully.')
+        return redirect('admin_panel:b2b_agent_list')
+
+    return redirect('admin_panel:b2b_agent_detail', pk=agent.id)
 
 
 @login_required

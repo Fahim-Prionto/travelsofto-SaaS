@@ -54,12 +54,18 @@
               </div>
             </div>
           </div>
-          <div class="d-flex gap-2 justify-content-end mt-3">
+          <div class="d-flex gap-2 justify-content-end mt-3 flex-wrap">
             <button class="btn btn-success btn-sm fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#paymentModal">
               <i class="fa-solid fa-money-bill-wave me-1"></i>Record Payment
             </button>
             <button class="btn btn-outline-light btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#addStaffModal">
               <i class="fa-solid fa-user-plus me-1"></i>Add Staff
+            </button>
+            <button class="btn btn-outline-light btn-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#editAgentModal" title="Edit Agent">
+              <i class="fa-solid fa-pen-to-square me-1"></i>Edit
+            </button>
+            <button class="btn btn-outline-danger btn-sm fw-semibold text-white border-danger" data-bs-toggle="modal" data-bs-target="#deleteAgentModal" title="Delete Agent">
+              <i class="fa-solid fa-trash me-1"></i>Delete
             </button>
             <button class="btn btn-outline-light btn-sm" onclick="window.print()" title="Print Statement">
               <i class="fa-solid fa-print"></i>
@@ -542,6 +548,96 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
         <button type="submit" class="btn btn-primary fw-bold"><i class="fa-solid fa-save me-1"></i>Save Staff</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Agent Modal -->
+<div class="modal fade" id="editAgentModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <form method="post" action="{% url 'admin_panel:b2b_agent_edit' agent.id %}" class="modal-content border-0 shadow-lg">
+      {% csrf_token %}
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold"><i class="fa-solid fa-pen-to-square me-2"></i>Edit Agent: {{ agent.name }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Agent Name *</label>
+            <input type="text" name="name" class="form-control" value="{{ agent.name }}" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Company Name</label>
+            <input type="text" name="company_name" class="form-control" value="{{ agent.company_name }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Phone Number</label>
+            <input type="text" name="phone" class="form-control" value="{{ agent.phone }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Email Address</label>
+            <input type="email" name="email" class="form-control" value="{{ agent.email }}">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold">Commission Rate (%)</label>
+            <div class="input-group">
+              <input type="number" step="0.01" name="commission_rate" class="form-control" value="{{ agent.commission_rate }}">
+              <span class="input-group-text">%</span>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold">Credit Limit (৳)</label>
+            <input type="number" step="0.01" name="credit_limit" class="form-control" value="{{ agent.credit_limit }}">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold">NID / Trade License</label>
+            <input type="text" name="nid_number" class="form-control" value="{{ agent.nid_number }}">
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Office Address</label>
+            <textarea name="address" class="form-control" rows="2">{{ agent.address }}</textarea>
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Internal Notes</label>
+            <textarea name="notes" class="form-control" rows="2">{{ agent.notes }}</textarea>
+          </div>
+          <div class="col-12">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" name="is_active" id="detailAgentActive" {% if agent.is_active %}checked{% endif %}>
+              <label class="form-check-label fw-semibold small" for="detailAgentActive">Active Partner Status</label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary fw-bold"><i class="fa-solid fa-save me-1"></i>Update Agent</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Delete Agent Modal -->
+<div class="modal fade" id="deleteAgentModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="post" action="{% url 'admin_panel:b2b_agent_delete' agent.id %}" class="modal-content border-0 shadow-lg">
+      {% csrf_token %}
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title fw-bold"><i class="fa-solid fa-triangle-exclamation me-2"></i>Delete Agent: {{ agent.name }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2">Are you sure you want to permanently delete agent <strong>{{ agent.name }}</strong> (<code>{{ agent.agent_code }}</code>)?</p>
+        <div class="alert alert-warning small mb-0">
+          <i class="fa-solid fa-circle-info me-1"></i>
+          <strong>Safety Protection:</strong> If any candidates are linked to this agent, deletion will be blocked to safeguard candidate financial records and visa processing history.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-danger fw-bold"><i class="fa-solid fa-trash me-1"></i>Confirm Delete</button>
       </div>
     </form>
   </div>
