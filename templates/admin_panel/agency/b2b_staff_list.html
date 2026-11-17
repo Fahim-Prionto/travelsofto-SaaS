@@ -115,15 +115,21 @@
                 {% if item.staff.email %}<div class="text-muted"><i class="fa-solid fa-envelope me-1"></i>{{ item.staff.email }}</div>{% endif %}
               </td>
               <td class="text-center">
-                {% if item.staff.username %}
-                  <span class="badge bg-info-subtle text-info rounded-pill px-2 py-1 small font-monospace" title="Login username">
-                    <i class="fa-solid fa-at me-1"></i>{{ item.staff.username }}
+                {% if item.staff.email %}
+                  <span class="badge bg-light text-dark border rounded-pill px-2 py-1 small" title="Portal Login Email">
+                    <i class="fa-solid fa-envelope me-1 text-primary"></i>{{ item.staff.email }}
+                  </span>
+                {% elif item.staff.username %}
+                  <span class="badge bg-light text-dark border rounded-pill px-2 py-1 small" title="Login Identifier">
+                    <i class="fa-solid fa-envelope me-1 text-primary"></i>{{ item.staff.username }}
                   </span>
                 {% else %}
                   <span class="text-muted small">—</span>
                 {% endif %}
                 {% if item.staff.password_hash %}
-                  <div><span class="badge bg-success-subtle text-success" style="font-size:0.65rem;"><i class="fa-solid fa-lock me-1"></i>Password set</span></div>
+                  <div><span class="badge bg-success-subtle text-success" style="font-size:0.65rem;"><i class="fa-solid fa-lock me-1"></i>Portal Enabled</span></div>
+                {% else %}
+                  <div><span class="badge bg-secondary-subtle text-muted" style="font-size:0.65rem;"><i class="fa-solid fa-lock-open me-1"></i>No Password</span></div>
                 {% endif %}
               </td>
               <td class="text-center">
@@ -208,8 +214,9 @@
               <input type="text" name="phone" class="form-control" placeholder="+8801...">
             </div>
             <div class="col-md-6">
-              <label class="form-label small fw-semibold">Email Address</label>
-              <input type="email" name="email" class="form-control" placeholder="staff@example.com">
+              <label class="form-label small fw-semibold"><i class="fa-solid fa-envelope me-1 text-primary"></i>Login Email Address</label>
+              <input type="email" name="email" id="createStaffEmail" class="form-control" placeholder="staff@example.com">
+              <div class="form-text small">Staff will use this email address to log in</div>
             </div>
             <div class="col-md-6">
               <label class="form-label small fw-semibold">Designation / Role</label>
@@ -222,18 +229,13 @@
 
             <div class="col-12">
               <div class="alert alert-info border-0 rounded-3 py-2 px-3 small mb-0">
-                <i class="fa-solid fa-circle-info me-1"></i>
-                <strong>Portal Login Credentials</strong> — Set a username and password so this staff can log in to the agent portal.
+                <i class="fa-solid fa-shield-halved me-1"></i>
+                <strong>Portal Login Credentials</strong> — Staff will log in using their <strong>Login Email Address</strong> and password below.
               </div>
             </div>
 
             <!-- Login Credentials -->
-            <div class="col-md-4">
-              <label class="form-label small fw-semibold"><i class="fa-solid fa-at me-1 text-primary"></i>Login Username</label>
-              <input type="text" name="username" class="form-control font-monospace" placeholder="e.g. staff_ali" autocomplete="off">
-              <div class="form-text small">Leave blank if no portal login needed</div>
-            </div>
-            <div class="col-md-4">
+            <div class="col-md-6">
               <label class="form-label small fw-semibold"><i class="fa-solid fa-lock me-1 text-primary"></i>Password</label>
               <div class="input-group">
                 <input type="password" name="password" id="createPassword" class="form-control" placeholder="Min. 6 characters" autocomplete="new-password">
@@ -241,8 +243,9 @@
                   <i class="fa-solid fa-eye" id="createPwdEye"></i>
                 </button>
               </div>
+              <div class="form-text small">Leave blank if no portal login needed</div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-6">
               <label class="form-label small fw-semibold"><i class="fa-solid fa-lock-open me-1 text-primary"></i>Confirm Password</label>
               <div class="input-group">
                 <input type="password" name="confirm_password" id="createConfirmPassword" class="form-control" placeholder="Repeat password" autocomplete="new-password">
@@ -308,8 +311,9 @@
             <input type="text" name="phone" class="form-control" value="{{ item.staff.phone }}">
           </div>
           <div class="col-md-6">
-            <label class="form-label small fw-semibold">Email Address</label>
-            <input type="email" name="email" class="form-control" value="{{ item.staff.email }}">
+            <label class="form-label small fw-semibold"><i class="fa-solid fa-envelope me-1 text-primary"></i>Login Email Address</label>
+            <input type="email" name="email" class="form-control" value="{{ item.staff.email }}" placeholder="staff@example.com">
+            <div class="form-text small">Staff portal login email</div>
           </div>
           <div class="col-md-6">
             <label class="form-label small fw-semibold">Designation</label>
@@ -322,16 +326,12 @@
 
           <div class="col-12">
             <div class="alert alert-secondary border-0 rounded-3 py-2 px-3 small mb-0">
-              <i class="fa-solid fa-key me-1"></i>
-              <strong>Portal Login</strong> — Update username or reset password below. Leave password fields empty to keep existing password.
+              <i class="fa-solid fa-shield-halved me-1"></i>
+              <strong>Portal Login</strong> — Staff log in with their <strong>Login Email Address</strong> above. Reset password below if needed. Leave empty to keep existing password.
             </div>
           </div>
 
-          <div class="col-md-4">
-            <label class="form-label small fw-semibold"><i class="fa-solid fa-at me-1 text-primary"></i>Login Username</label>
-            <input type="text" name="username" class="form-control font-monospace" value="{{ item.staff.username }}" placeholder="e.g. staff_ali">
-          </div>
-          <div class="col-md-4">
+          <div class="col-md-6">
             <label class="form-label small fw-semibold"><i class="fa-solid fa-lock me-1 text-primary"></i>New Password</label>
             <div class="input-group">
               <input type="password" name="new_password" id="editPwd{{ item.staff.id }}" class="form-control" placeholder="Leave blank to keep current" autocomplete="new-password">
@@ -345,7 +345,7 @@
               <div class="form-text small text-muted">No password set yet</div>
             {% endif %}
           </div>
-          <div class="col-md-4">
+          <div class="col-md-6">
             <label class="form-label small fw-semibold"><i class="fa-solid fa-lock-open me-1 text-primary"></i>Confirm Password</label>
             <div class="input-group">
               <input type="password" name="confirm_password" id="editConfirmPwd{{ item.staff.id }}" class="form-control" placeholder="Repeat new password" autocomplete="new-password">
@@ -432,12 +432,25 @@ function togglePwd(inputId, iconId) {
 function validateCreateStaff() {
   const pwd = document.getElementById('createPassword').value;
   const cpwd = document.getElementById('createConfirmPassword').value;
+  const emailInput = document.getElementById('createStaffEmail');
   const msgEl = document.getElementById('pwdMatchMsg');
 
-  if (pwd && pwd !== cpwd) {
-    msgEl.classList.remove('d-none');
-    document.getElementById('createConfirmPassword').classList.add('is-invalid');
-    return false;
+  if (pwd) {
+    if (!emailInput || !emailInput.value.trim()) {
+      alert('Login Email Address is required when creating a password for portal access.');
+      if (emailInput) emailInput.focus();
+      return false;
+    }
+    if (pwd.length < 6) {
+      alert('Password must be at least 6 characters long.');
+      document.getElementById('createPassword').focus();
+      return false;
+    }
+    if (pwd !== cpwd) {
+      msgEl.classList.remove('d-none');
+      document.getElementById('createConfirmPassword').classList.add('is-invalid');
+      return false;
+    }
   }
   if (msgEl) msgEl.classList.add('d-none');
   document.getElementById('createConfirmPassword').classList.remove('is-invalid');

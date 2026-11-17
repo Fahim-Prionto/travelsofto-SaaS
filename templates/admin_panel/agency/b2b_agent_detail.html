@@ -295,7 +295,9 @@
                   <td class="ps-3 fw-bold font-monospace text-primary small">{{ item.staff.staff_code }}</td>
                   <td>
                     <div class="fw-semibold text-dark">{{ item.staff.name }}</div>
-                    {% if item.staff.username %}<div class="text-muted small font-monospace"><i class="fa-solid fa-at me-1"></i>{{ item.staff.username }}</div>{% endif %}
+                    {% if item.staff.password_hash %}
+                      <div><span class="badge bg-success-subtle text-success py-0 px-1" style="font-size:0.68rem;"><i class="fa-solid fa-lock me-1"></i>Portal Enabled</span></div>
+                    {% endif %}
                   </td>
                   <td class="small">{{ item.staff.designation|default:"Visa Executive" }}</td>
                   <td class="small">
@@ -614,8 +616,9 @@
             <input type="text" name="phone" class="form-control" placeholder="+8801...">
           </div>
           <div class="col-md-6">
-            <label class="form-label small fw-semibold">Email Address</label>
-            <input type="email" name="email" class="form-control" placeholder="staff@example.com">
+            <label class="form-label small fw-semibold"><i class="fa-solid fa-envelope me-1 text-primary"></i>Login Email Address</label>
+            <input type="email" name="email" id="detailStaffEmail" class="form-control" placeholder="staff@example.com">
+            <div class="form-text small">Used for staff portal login</div>
           </div>
           <div class="col-md-6">
             <label class="form-label small fw-semibold">Designation / Role</label>
@@ -627,15 +630,11 @@
           </div>
           <div class="col-12">
             <div class="alert alert-info border-0 rounded-3 py-2 px-3 small mb-0">
-              <i class="fa-solid fa-circle-info me-1"></i>
-              <strong>Portal Login</strong> — Set username & password for staff portal access.
+              <i class="fa-solid fa-shield-halved me-1"></i>
+              <strong>Portal Login</strong> — Staff will log in with their <strong>Login Email Address</strong> and password below.
             </div>
           </div>
-          <div class="col-md-4">
-            <label class="form-label small fw-semibold"><i class="fa-solid fa-at me-1 text-primary"></i>Login Username</label>
-            <input type="text" name="username" class="form-control font-monospace" placeholder="e.g. staff_ali" autocomplete="off">
-          </div>
-          <div class="col-md-4">
+          <div class="col-md-6">
             <label class="form-label small fw-semibold"><i class="fa-solid fa-lock me-1 text-primary"></i>Password</label>
             <div class="input-group">
               <input type="password" name="password" id="detailAddPwd" class="form-control" placeholder="Min. 6 chars" autocomplete="new-password">
@@ -643,11 +642,12 @@
                 <i class="fa-solid fa-eye" id="detailAddPwdEye"></i>
               </button>
             </div>
+            <div class="form-text small">Leave blank if no portal login needed</div>
           </div>
-          <div class="col-md-4">
+          <div class="col-md-6">
             <label class="form-label small fw-semibold"><i class="fa-solid fa-lock-open me-1 text-primary"></i>Confirm Password</label>
             <div class="input-group">
-              <input type="password" name="confirm_password" id="detailAddCpwd" class="form-control" placeholder="Repeat" autocomplete="new-password">
+              <input type="password" name="confirm_password" id="detailAddCpwd" class="form-control" placeholder="Repeat password" autocomplete="new-password">
               <button class="btn btn-outline-secondary btn-sm" type="button" onclick="togglePwdDetail('detailAddCpwd','detailAddCpwdEye')">
                 <i class="fa-solid fa-eye" id="detailAddCpwdEye"></i>
               </button>
@@ -680,9 +680,26 @@ function togglePwdDetail(inputId, iconId) {
 function validateDetailStaff() {
   const pwd = document.getElementById('detailAddPwd').value;
   const cpwd = document.getElementById('detailAddCpwd').value;
+  const email = document.getElementById('detailStaffEmail');
   const msg = document.getElementById('detailPwdMsg');
-  if (pwd && pwd !== cpwd) { msg.classList.remove('d-none'); return false; }
-  msg.classList.add('d-none'); return true;
+  if (pwd) {
+    if (!email || !email.value.trim()) {
+      alert('Login Email Address is required when setting a portal password.');
+      if (email) email.focus();
+      return false;
+    }
+    if (pwd.length < 6) {
+      alert('Password must be at least 6 characters.');
+      document.getElementById('detailAddPwd').focus();
+      return false;
+    }
+    if (pwd !== cpwd) {
+      msg.classList.remove('d-none');
+      return false;
+    }
+  }
+  msg.classList.add('d-none');
+  return true;
 }
 document.addEventListener('DOMContentLoaded', function() {
   const p = document.getElementById('detailAddPwd');

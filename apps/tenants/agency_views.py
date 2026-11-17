@@ -2539,7 +2539,6 @@ def b2b_staff_create(request, pk):
         phone = request.POST.get('phone', '').strip()
         email = request.POST.get('email', '').strip()
         designation = request.POST.get('designation', '').strip() or 'Visa Processing Executive'
-        username = request.POST.get('username', '').strip()
         nid_number = request.POST.get('nid_number', '').strip()
         notes = request.POST.get('notes', '').strip()
         password = request.POST.get('password', '').strip()
@@ -2549,9 +2548,18 @@ def b2b_staff_create(request, pk):
             messages.error(request, 'Staff member name is required.')
             return redirect('admin_panel:b2b_agent_detail', pk=agent.id) if pk != 0 else redirect('admin_panel:b2b_staff_list')
 
-        # Password validation
+        # Check email uniqueness if email provided
+        if email:
+            if B2BAgentStaff.objects.using(db).filter(email__iexact=email).exists():
+                messages.error(request, f'A staff member with login email "{email}" already exists.')
+                return redirect('admin_panel:b2b_agent_detail', pk=agent.id) if pk != 0 else redirect('admin_panel:b2b_staff_list')
+
+        # Password validation (staff logs in with email + password)
         password_hash = ''
         if password:
+            if not email:
+                messages.error(request, 'An email address is required to set up portal login credentials.')
+                return redirect('admin_panel:b2b_agent_detail', pk=agent.id) if pk != 0 else redirect('admin_panel:b2b_staff_list')
             if password != confirm_password:
                 messages.error(request, 'Password and confirm password do not match.')
                 return redirect('admin_panel:b2b_agent_detail', pk=agent.id) if pk != 0 else redirect('admin_panel:b2b_staff_list')
@@ -2561,19 +2569,13 @@ def b2b_staff_create(request, pk):
             import hashlib
             password_hash = hashlib.sha256(password.encode()).hexdigest()
 
-        # Check username uniqueness if provided
-        if username:
-            if B2BAgentStaff.objects.using(db).filter(username=username).exists():
-                messages.error(request, f'Username "{username}" is already taken. Please choose another.')
-                return redirect('admin_panel:b2b_agent_detail', pk=agent.id) if pk != 0 else redirect('admin_panel:b2b_staff_list')
-
         staff = B2BAgentStaff.objects.using(db).create(
             agent=agent,
             name=name,
             phone=phone,
             email=email,
             designation=designation,
-            username=username,
+            username=email,  # Staff login identifier is their email
             password_hash=password_hash,
             nid_number=nid_number,
             notes=notes,
@@ -2666,11 +2668,23 @@ def b2b_staff_edit(request, pk):
     if request.method == 'POST':
         staff.name = request.POST.get('name', staff.name).strip()
         staff.phone = request.POST.get('phone', staff.phone).strip()
-        staff.email = request.POST.get('email', staff.email).strip()
+        new_email = request.POST.get('email', staff.email).strip()
         staff.designation = request.POST.get('designation', staff.designation).strip()
         staff.nid_number = request.POST.get('nid_number', staff.nid_number).strip()
         staff.notes = request.POST.get('notes', staff.notes).strip()
         staff.is_active = (request.POST.get('is_active') == 'on')
+
+        # Email update & check uniqueness (email is login identifier)
+        if new_email and new_email.lower() != (staff.email or '').lower():
+            if B2BAgentStaff.objects.using(db).filter(email__iexact=new_email).exclude(pk=staff.pk).exists():
+                messages.error(request, f'A staff member with login email "{new_email}" already exists.')
+                next_url = request.META.get('HTTP_REFERER', 'admin_panel:b2b_staff_list')
+                return redirect(next_url)
+            staff.email = new_email
+            staff.username = new_email
+        elif new_email:
+            staff.email = new_email
+            staff.username = new_email
 
         new_agent_id = request.POST.get('agent_id')
         if new_agent_id:
@@ -2678,21 +2692,14 @@ def b2b_staff_edit(request, pk):
             if new_agent:
                 staff.agent = new_agent
 
-        # Username change
-        new_username = request.POST.get('username', '').strip()
-        if new_username and new_username != staff.username:
-            if B2BAgentStaff.objects.using(db).filter(username=new_username).exclude(pk=staff.pk).exists():
-                messages.error(request, f'Username "{new_username}" is already taken.')
-                next_url = request.META.get('HTTP_REFERER', 'admin_panel:b2b_staff_list')
-                return redirect(next_url)
-            staff.username = new_username
-        elif new_username:
-            staff.username = new_username
-
         # Password reset (only if new password provided)
         new_password = request.POST.get('new_password', '').strip()
         if new_password:
             confirm_password = request.POST.get('confirm_password', '').strip()
+            if not staff.email:
+                messages.error(request, 'Staff must have an email address to set a portal password.')
+                next_url = request.META.get('HTTP_REFERER', 'admin_panel:b2b_staff_list')
+                return redirect(next_url)
             if new_password != confirm_password:
                 messages.error(request, 'New password and confirm password do not match.')
                 next_url = request.META.get('HTTP_REFERER', 'admin_panel:b2b_staff_list')
