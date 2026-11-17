@@ -58,28 +58,47 @@
     <div class="card-body py-3">
       <form method="get" class="row g-2 align-items-end">
         <!-- Search -->
-        <div class="col-12 col-md-3">
+        <div class="col-12 col-md-2">
           <label class="form-label small fw-semibold text-muted mb-1">Search</label>
           <div class="input-group">
             <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-search text-muted"></i></span>
-            <input type="text" name="q" value="{{ query }}" class="form-control border-start-0 ps-0" placeholder="Name, passport, reg ID...">
+            <input type="text" name="q" value="{{ query }}" class="form-control border-start-0 ps-0" placeholder="Name, pass, reg...">
           </div>
         </div>
-        <!-- Country Filter -->
+        <!-- Client Type Filter -->
         <div class="col-6 col-md-2">
+          <label class="form-label small fw-semibold text-muted mb-1">Client Channel</label>
+          <select name="client_type" class="form-select">
+            <option value="">All Channels</option>
+            <option value="b2c" {% if client_type == 'b2c' %}selected{% endif %}>B2C (Direct)</option>
+            <option value="b2b" {% if client_type == 'b2b' %}selected{% endif %}>B2B (Via Agent)</option>
+          </select>
+        </div>
+        <!-- B2B Agent Filter -->
+        <div class="col-6 col-md-2">
+          <label class="form-label small fw-semibold text-muted mb-1">B2B Agent</label>
+          <select name="agent_id" class="form-select">
+            <option value="">All Agents</option>
+            {% for ag in b2b_agents %}
+            <option value="{{ ag.id }}" {% if agent_filter == ag.id|stringformat:"s" %}selected{% endif %}>{{ ag.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <!-- Country Filter -->
+        <div class="col-6 col-md-1">
           <label class="form-label small fw-semibold text-muted mb-1">Country</label>
           <select name="country" class="form-select">
-            <option value="">All Countries</option>
+            <option value="">All</option>
             {% for ctry in countries %}
             <option value="{{ ctry.name }}" {% if selected_country == ctry.name %}selected{% endif %}>{{ ctry.name }}</option>
             {% endfor %}
           </select>
         </div>
         <!-- Selection Status -->
-        <div class="col-6 col-md-2">
+        <div class="col-6 col-md-1">
           <label class="form-label small fw-semibold text-muted mb-1">Selection</label>
           <select name="selection_status" class="form-select">
-            <option value="">All Selection</option>
+            <option value="">All</option>
             <option value="pending" {% if request.GET.selection_status == 'pending' %}selected{% endif %}>Pending</option>
             <option value="selected" {% if request.GET.selection_status == 'selected' %}selected{% endif %}>Selected</option>
             <option value="awaiting" {% if request.GET.selection_status == 'awaiting' %}selected{% endif %}>Awaiting</option>
@@ -90,15 +109,15 @@
         <div class="col-6 col-md-1">
           <label class="form-label small fw-semibold text-muted mb-1">Medical</label>
           <select name="medical_status" class="form-select">
-            <option value="">All Medical</option>
+            <option value="">All</option>
             <option value="pending" {% if request.GET.medical_status == 'pending' %}selected{% endif %}>Pending</option>
             <option value="fit" {% if request.GET.medical_status == 'fit' %}selected{% endif %}>Fit</option>
             <option value="unfit" {% if request.GET.medical_status == 'unfit' %}selected{% endif %}>Unfit</option>
           </select>
         </div>
         <!-- Date From -->
-        <div class="col-6 col-md-2">
-          <label class="form-label small fw-semibold text-muted mb-1">Reg. Date From</label>
+        <div class="col-6 col-md-1">
+          <label class="form-label small fw-semibold text-muted mb-1">Date From</label>
           <input type="date" name="date_from" value="{{ date_from }}" class="form-control">
         </div>
         <!-- Date To -->
@@ -163,6 +182,24 @@
                   <div>
                     <div class="fw-semibold small">{{ c.name }}</div>
                     <div class="text-muted" style="font-size:0.75rem;">{{ c.mobile|default:"—" }}</div>
+                    {% if c.client_type == 'b2b' and c.b2b_agent %}
+                      <div class="mt-1 d-flex align-items-center gap-1">
+                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle rounded-pill py-0 px-1.5" style="font-size:0.65rem;" title="B2B Agent">
+                          <i class="fa-solid fa-handshake me-1"></i>{{ c.b2b_agent.name }}
+                        </span>
+                        {% if c.b2b_staff %}
+                        <span class="badge bg-secondary-subtle text-muted rounded-pill py-0 px-1.5" style="font-size:0.65rem;" title="Agent Staff">
+                          <i class="fa-solid fa-user-tag me-0.5"></i>{{ c.b2b_staff.name }}
+                        </span>
+                        {% endif %}
+                      </div>
+                    {% else %}
+                      <div class="mt-1">
+                        <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle rounded-pill py-0 px-1.5" style="font-size:0.65rem;">
+                          <i class="fa-solid fa-user me-1"></i>B2C Direct
+                        </span>
+                      </div>
+                    {% endif %}
                   </div>
                 </div>
               </td>
@@ -345,14 +382,51 @@
             </div>
           </div>
 
+          <!-- B2B vs B2C Network Channel Configuration -->
+          <div class="col-12 bg-light p-3 rounded border">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <label class="form-label fw-bold text-dark small mb-0 d-flex align-items-center gap-1.5">
+                <i class="fa-solid fa-network-wired text-primary"></i> Client Channel & Referral Network
+              </label>
+              <span class="badge bg-primary-subtle text-primary small">B2B & B2C Integration</span>
+            </div>
+            <div class="row g-2 align-items-center">
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold">Client Type *</label>
+                <select name="client_type" id="addCandidateClientType" class="form-select fw-semibold" onchange="toggleB2BFields(this, 'add_')">
+                  <option value="b2c" selected>B2C (Direct Walk-in Customer)</option>
+                  <option value="b2b">B2B (Via Agency Agent)</option>
+                </select>
+              </div>
+              <div class="col-md-4 add_b2b_group" style="display:none;">
+                <label class="form-label small fw-semibold text-primary"><i class="fa-solid fa-handshake me-1"></i>Select B2B Agent *</label>
+                <select name="b2b_agent" id="add_b2b_agent" class="form-select" onchange="loadB2BStaff(this.value, 'add_b2b_staff')">
+                  <option value="">— Select B2B Agent —</option>
+                  {% for a in b2b_agents %}
+                    <option value="{{ a.id }}">{{ a.name }} ({{ a.agent_code }})</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-4 add_b2b_group" style="display:none;">
+                <label class="form-label small fw-semibold text-primary"><i class="fa-solid fa-user-tag me-1"></i>Agent Staff Member</label>
+                <select name="b2b_staff" id="add_b2b_staff" class="form-select">
+                  <option value="">— Select Staff (Optional) —</option>
+                  {% for s in b2b_staff_members %}
+                    <option value="{{ s.id }}" data-agent="{{ s.agent_id }}">{{ s.name }} ({{ s.agent.name }})</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </div>
+
           <div class="col-md-4"><label class="form-label fw-semibold small">Position</label>
             <select name="position" class="form-select">
               <option value="">— Select —</option>
               {% for p in positions %}<option value="{{ p.id }}">{{ p.title }}</option>{% endfor %}
             </select></div>
-          <div class="col-md-4"><label class="form-label fw-semibold small">Agent</label>
+          <div class="col-md-4"><label class="form-label fw-semibold small">Direct Sub-Agent (Legacy)</label>
             <select name="agent" class="form-select">
-              <option value="">— Select —</option>
+              <option value="">— Select (Optional) —</option>
               {% for a in agents %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}
             </select></div>
           <div class="col-md-4"><label class="form-label fw-semibold small">Company / Sponsor</label>
@@ -670,12 +744,46 @@
               <input name="country" value="{{ c.country }}" class="form-control">
               {% endif %}
             </div>
+            <!-- B2B vs B2C Network Channel Configuration (Edit) -->
+            <div class="col-12 bg-light p-3 rounded border">
+              <label class="form-label fw-bold text-dark small mb-2 d-flex align-items-center gap-1.5">
+                <i class="fa-solid fa-network-wired text-primary"></i> Client Channel & Referral Network
+              </label>
+              <div class="row g-2 align-items-center">
+                <div class="col-md-4">
+                  <label class="form-label small fw-semibold">Client Type</label>
+                  <select name="client_type" class="form-select fw-semibold" onchange="toggleB2BFields(this, 'edit_{{ c.id }}_')">
+                    <option value="b2c" {% if c.client_type != 'b2b' %}selected{% endif %}>B2C (Direct Walk-in Customer)</option>
+                    <option value="b2b" {% if c.client_type == 'b2b' %}selected{% endif %}>B2B (Via Agency Agent)</option>
+                  </select>
+                </div>
+                <div class="col-md-4 edit_{{ c.id }}_b2b_group" {% if c.client_type != 'b2b' %}style="display:none;"{% endif %}>
+                  <label class="form-label small fw-semibold text-primary"><i class="fa-solid fa-handshake me-1"></i>B2B Agent</label>
+                  <select name="b2b_agent" class="form-select" onchange="loadB2BStaff(this.value, 'edit_b2b_staff_{{ c.id }}')">
+                    <option value="">— Select B2B Agent —</option>
+                    {% for a in b2b_agents %}
+                      <option value="{{ a.id }}" {% if c.b2b_agent_id == a.id or c.agent_id == a.id %}selected{% endif %}>{{ a.name }} ({{ a.agent_code }})</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-md-4 edit_{{ c.id }}_b2b_group" {% if c.client_type != 'b2b' %}style="display:none;"{% endif %}>
+                  <label class="form-label small fw-semibold text-primary"><i class="fa-solid fa-user-tag me-1"></i>Agent Staff Member</label>
+                  <select name="b2b_staff" id="edit_b2b_staff_{{ c.id }}" class="form-select">
+                    <option value="">— Select Staff (Optional) —</option>
+                    {% for s in b2b_staff_members %}
+                      <option value="{{ s.id }}" data-agent="{{ s.agent_id }}" {% if c.b2b_staff_id == s.id %}selected{% endif %}>{{ s.name }} ({{ s.agent.name }})</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+            </div>
+
             <div class="col-md-4"><label class="form-label small fw-semibold">Position</label>
               <select name="position" class="form-select">
                 <option value="">— Select —</option>
                 {% for p in positions %}<option value="{{ p.id }}" {% if c.position_id == p.id %}selected{% endif %}>{{ p.title }}</option>{% endfor %}
               </select></div>
-            <div class="col-md-4"><label class="form-label small fw-semibold">Agent</label>
+            <div class="col-md-4"><label class="form-label small fw-semibold">Direct Agent (Legacy)</label>
               <select name="agent" class="form-select">
                 <option value="">— Select —</option>
                 {% for a in agents %}<option value="{{ a.id }}" {% if c.agent_id == a.id %}selected{% endif %}>{{ a.name }}</option>{% endfor %}
@@ -1179,6 +1287,43 @@ function autoFillVoucherAmount(selectElem) {
       }
     }
   }
+}
+
+function toggleB2BFields(selectElem, prefix) {
+  const isB2B = (selectElem.value === 'b2b');
+  document.querySelectorAll('.' + prefix + 'b2b_group').forEach(el => {
+    el.style.display = isB2B ? 'block' : 'none';
+  });
+}
+
+function loadB2BStaff(agentId, staffSelectId) {
+  const staffSelect = document.getElementById(staffSelectId);
+  if (!staffSelect) return;
+  if (!agentId) {
+    Array.from(staffSelect.options).forEach(opt => {
+      if (opt.value) opt.style.display = '';
+    });
+    return;
+  }
+  const apiUrl = "{% url 'admin_panel:api_b2b_staff_by_agent' 0 %}".replace('/0/', '/' + agentId + '/');
+  fetch(apiUrl)
+    .then(r => r.json())
+    .then(data => {
+      if (data.status === 'ok') {
+        staffSelect.innerHTML = '<option value="">— Select Staff (Optional) —</option>';
+        data.staff.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s.id;
+          opt.textContent = s.name + ' (' + (s.designation || 'Staff') + ')';
+          staffSelect.appendChild(opt);
+        });
+      }
+    }).catch(err => {
+      Array.from(staffSelect.options).forEach(opt => {
+        if (!opt.value) return;
+        opt.style.display = (opt.getAttribute('data-agent') === String(agentId)) ? '' : 'none';
+      });
+    });
 }
 </script>
 {% endblock %}

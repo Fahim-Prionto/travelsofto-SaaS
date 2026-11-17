@@ -1,0 +1,449 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}B2B Agents Management{% endblock %}
+{% block header_title %}B2B Agents Directory{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+
+  <!-- Summary Metric Counters -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm p-3 bg-white h-100">
+        <div class="text-muted small fw-semibold">Total B2B Agents</div>
+        <div class="d-flex align-items-baseline gap-2 mt-1">
+          <h3 class="fw-bold mb-0 text-dark">{{ total_agents }}</h3>
+          <span class="badge bg-primary-subtle text-primary rounded-pill small">Active Partners</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm p-3 bg-white h-100">
+        <div class="text-muted small fw-semibold">Total Network Billing</div>
+        <div class="d-flex align-items-baseline gap-2 mt-1">
+          <h3 class="fw-bold mb-0 text-dark">৳{{ tot_all_billed|floatformat:2 }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm p-3 bg-white h-100">
+        <div class="text-muted small fw-semibold">Total Collections</div>
+        <div class="d-flex align-items-baseline gap-2 mt-1">
+          <h3 class="fw-bold mb-0 text-success">৳{{ tot_all_collected|floatformat:2 }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm p-3 bg-white h-100">
+        <div class="text-muted small fw-semibold">Outstanding Due Balance</div>
+        <div class="d-flex align-items-baseline gap-2 mt-1">
+          <h3 class="fw-bold mb-0 text-danger">৳{{ tot_all_due|floatformat:2 }}</h3>
+          <span class="badge bg-danger-subtle text-danger rounded-pill small">Receivables</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search & Action Toolbar -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-3">
+      <form method="get" class="row g-2 align-items-center">
+        <div class="col-12 col-md-5">
+          <div class="input-group">
+            <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-search text-muted"></i></span>
+            <input type="text" name="q" value="{{ query }}" class="form-control border-start-0 ps-0" placeholder="Search by agent name, code, company, phone, email...">
+          </div>
+        </div>
+        <div class="col-6 col-md-2">
+          <button type="submit" class="btn btn-primary w-100 fw-semibold">
+            <i class="fa-solid fa-filter me-1"></i>Filter
+          </button>
+        </div>
+        <div class="col-6 col-md-2">
+          <a href="{% url 'admin_panel:b2b_agent_list' %}" class="btn btn-outline-secondary w-100">
+            <i class="fa-solid fa-rotate-left me-1"></i>Reset
+          </a>
+        </div>
+        <div class="col-12 col-md-3 text-md-end">
+          <button type="button" class="btn btn-accent w-100 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#addAgentModal">
+            <i class="fa-solid fa-user-plus me-1.5"></i>Add B2B Agent
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- B2B Agents Table -->
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+      <div>
+        <h6 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-handshake text-primary me-2"></i>B2B Agents Registry</h6>
+        <span class="text-muted small">All registered sub-agencies with individual balance tracking</span>
+      </div>
+      <span class="badge bg-primary bg-opacity-10 text-primary">{{ agent_items|length }} Agents</span>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="font-size:0.835rem;">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Agent Name & Code</th>
+              <th>Company & Contact</th>
+              <th class="text-center">Commission</th>
+              <th class="text-center">Staff</th>
+              <th class="text-center">Candidates</th>
+              <th class="text-end">Total Billed</th>
+              <th class="text-end">Paid Amount</th>
+              <th class="text-end">Balance Due</th>
+              <th>Credit Limit</th>
+              <th class="text-center pe-3">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in agent_items %}
+            <tr>
+              <td class="ps-3">
+                <div class="d-flex align-items-center gap-2">
+                  <div class="rounded-circle bg-primary bg-opacity-10 text-primary fw-bold d-flex align-items-center justify-content-center" style="width:36px;height:36px;font-size:0.85rem;">
+                    {{ item.agent.name|slice:":1"|upper }}
+                  </div>
+                  <div>
+                    <a href="{% url 'admin_panel:b2b_agent_detail' item.agent.id %}" class="fw-bold text-dark text-decoration-none">
+                      {{ item.agent.name }}
+                    </a>
+                    <div class="text-muted fw-mono" style="font-size:0.72rem;">{{ item.agent.agent_code }}</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="fw-semibold text-dark">{{ item.agent.company_name|default:"—" }}</div>
+                <div class="text-muted" style="font-size:0.75rem;">
+                  <i class="fa-solid fa-phone me-1 text-muted"></i>{{ item.agent.phone|default:"—" }}
+                </div>
+              </td>
+              <td class="text-center">
+                <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-2 py-1">
+                  {{ item.agent.commission_rate|floatformat:1 }}%
+                </span>
+              </td>
+              <td class="text-center">
+                <a href="{% url 'admin_panel:b2b_staff_list' %}?agent_id={{ item.agent.id }}" class="badge bg-secondary-subtle text-secondary rounded-pill text-decoration-none px-2 py-1" title="View Staff">
+                  <i class="fa-solid fa-users me-1"></i>{{ item.staff_count }}
+                </a>
+              </td>
+              <td class="text-center">
+                <a href="{% url 'admin_panel:candidate_list' %}?client_type=b2b&agent_id={{ item.agent.id }}" class="badge bg-primary-subtle text-primary rounded-pill text-decoration-none px-2 py-1" title="View Candidates">
+                  <i class="fa-solid fa-user-check me-1"></i>{{ item.candidates_count }}
+                </a>
+              </td>
+              <td class="text-end fw-semibold text-dark">৳{{ item.billed|floatformat:2 }}</td>
+              <td class="text-end text-success fw-semibold">৳{{ item.paid|floatformat:2 }}</td>
+              <td class="text-end">
+                {% if item.outstanding > 0 %}
+                  <span class="fw-bold text-danger">৳{{ item.outstanding|floatformat:2 }}</span>
+                {% else %}
+                  <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1">Settled</span>
+                {% endif %}
+              </td>
+              <td style="min-width:120px;">
+                <div class="d-flex justify-content-between small text-muted mb-1" style="font-size:0.72rem;">
+                  <span>৳{{ item.agent.credit_limit|floatformat:0 }}</span>
+                  <span>{{ item.utilization_pct }}%</span>
+                </div>
+                <div class="progress" style="height: 5px;">
+                  <div class="progress-bar {% if item.is_over_limit %}bg-danger{% elif item.utilization_pct > 80 %}bg-warning{% else %}bg-primary{% endif %}" role="progressbar" style="width: {{ item.utilization_pct }}%;"></div>
+                </div>
+              </td>
+              <td class="text-center pe-3">
+                <div class="dropdown">
+                  <button class="btn btn-sm btn-outline-custom p-1 px-2 dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    Actions
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:0.82rem;">
+                    <li>
+                      <a class="dropdown-item" href="{% url 'admin_panel:b2b_agent_detail' item.agent.id %}">
+                        <i class="fa-solid fa-eye me-2 text-primary"></i>View Statement & Profile
+                      </a>
+                    </li>
+                    <li>
+                      <button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#paymentModal{{ item.agent.id }}">
+                        <i class="fa-solid fa-money-bill-wave me-2 text-success"></i>Record Payment / Settlement
+                      </button>
+                    </li>
+                    <li>
+                      <button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#addStaffModal{{ item.agent.id }}">
+                        <i class="fa-solid fa-user-plus me-2 text-info"></i>Add Staff Member
+                      </button>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                      <button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#editAgentModal{{ item.agent.id }}">
+                        <i class="fa-solid fa-pen-to-square me-2 text-secondary"></i>Edit Agent Details
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="10" class="text-center py-5 text-muted">
+                <i class="fa-solid fa-handshake fa-3x mb-3 d-block opacity-25"></i>
+                No B2B Agents found matching criteria. <button class="btn btn-sm btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#addAgentModal">Add First Agent</button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── MODAL: ADD B2B AGENT ────────────────────────────────────── -->
+<div class="modal fade" id="addAgentModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <form method="post" action="{% url 'admin_panel:b2b_agent_create' %}" class="modal-content border-0 shadow-lg">
+      {% csrf_token %}
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold"><i class="fa-solid fa-handshake me-2"></i>Add New B2B Agent</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Agent / Representative Name *</label>
+            <input type="text" name="name" class="form-control" placeholder="e.g. Al-Amin Overseas" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Agency / Company Name</label>
+            <input type="text" name="company_name" class="form-control" placeholder="e.g. Al-Amin Tours & Travels Ltd">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Phone Number *</label>
+            <input type="text" name="phone" class="form-control" placeholder="+8801700000000" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Email Address</label>
+            <input type="email" name="email" class="form-control" placeholder="agent@example.com">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold">Commission Rate (%)</label>
+            <div class="input-group">
+              <input type="number" step="0.01" name="commission_rate" class="form-control" placeholder="5.00" value="0.00">
+              <span class="input-group-text">%</span>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold">Credit Limit (৳)</label>
+            <input type="number" step="0.01" name="credit_limit" class="form-control" placeholder="500000.00" value="0.00">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold">NID / Trade License</label>
+            <input type="text" name="nid_number" class="form-control" placeholder="Govt License #">
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Office Address</label>
+            <textarea name="address" class="form-control" rows="2" placeholder="Full office address..."></textarea>
+          </div>
+
+          <!-- Optional Initial Staff Member Creation -->
+          <div class="col-12 bg-light p-3 rounded border">
+            <label class="form-label fw-bold text-dark small mb-2 d-flex align-items-center gap-1.5">
+              <i class="fa-solid fa-user-tag text-primary"></i> Create Primary Staff Member Under This Agent (Optional)
+            </label>
+            <div class="row g-2">
+              <div class="col-md-4">
+                <input type="text" name="initial_staff_name" class="form-control form-control-sm" placeholder="Staff Name">
+              </div>
+              <div class="col-md-4">
+                <input type="text" name="initial_staff_phone" class="form-control form-control-sm" placeholder="Staff Phone">
+              </div>
+              <div class="col-md-4">
+                <input type="text" name="initial_staff_designation" class="form-control form-control-sm" placeholder="Designation (e.g. Visa Executive)">
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Internal Notes / Terms</label>
+            <textarea name="notes" class="form-control" rows="2" placeholder="Commission agreements, payment cycles, guarantee notes..."></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary fw-bold"><i class="fa-solid fa-save me-1"></i>Save B2B Agent</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── PER-AGENT MODALS (Payment, Staff, Edit) ───────────────────── -->
+{% for item in agent_items %}
+
+<!-- Record Payment Modal -->
+<div class="modal fade" id="paymentModal{{ item.agent.id }}" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="post" action="{% url 'admin_panel:b2b_agent_add_payment' item.agent.id %}" class="modal-content border-0 shadow-lg">
+      {% csrf_token %}
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title fw-bold"><i class="fa-solid fa-coins me-2"></i>Record Settlement: {{ item.agent.name }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-light border d-flex justify-content-between align-items-center py-2 mb-3">
+          <span class="small text-muted">Current Balance Due:</span>
+          <span class="fw-bold text-danger fs-6">৳{{ item.outstanding|floatformat:2 }}</span>
+        </div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Payment Amount (৳) *</label>
+            <input type="number" step="0.01" name="amount" class="form-control" placeholder="0.00" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Payment Date *</label>
+            <input type="date" name="payment_date" class="form-control" required value="{% now 'Y-m-d' %}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Payment Method</label>
+            <select name="payment_method" class="form-select">
+              <option value="Bank Transfer">Bank Transfer</option>
+              <option value="Cash">Cash</option>
+              <option value="Cheque">Cheque</option>
+              <option value="bKash / Mobile Banking">bKash / Mobile Banking</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Reference / Slip #</label>
+            <input type="text" name="reference_no" class="form-control" placeholder="Bank Txn / Slip #">
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Processed By Staff Member</label>
+            <select name="staff_id" class="form-select">
+              <option value="">— Direct Agent Settlement —</option>
+              {% for s in item.agent.staff_members.all %}
+                <option value="{{ s.id }}">{{ s.name }} ({{ s.designation|default:'Staff' }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Notes / Remarks</label>
+            <textarea name="notes" class="form-control" rows="2" placeholder="Settlement for batch visas, cheque details..."></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-success fw-bold"><i class="fa-solid fa-check me-1"></i>Post Payment</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add Staff Member Modal -->
+<div class="modal fade" id="addStaffModal{{ item.agent.id }}" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="post" action="{% url 'admin_panel:b2b_staff_create' item.agent.id %}" class="modal-content border-0 shadow-lg">
+      {% csrf_token %}
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-plus me-2"></i>Add Staff for {{ item.agent.name }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Staff Full Name *</label>
+            <input type="text" name="name" class="form-control" placeholder="Staff Name" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Phone Number</label>
+            <input type="text" name="phone" class="form-control" placeholder="+8801...">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Email Address</label>
+            <input type="email" name="email" class="form-control" placeholder="staff@example.com">
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Designation / Role</label>
+            <input type="text" name="designation" class="form-control" placeholder="e.g. Visa Executive, Flight Officer" value="Visa Processing Executive">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary fw-bold"><i class="fa-solid fa-save me-1"></i>Save Staff</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Agent Modal -->
+<div class="modal fade" id="editAgentModal{{ item.agent.id }}" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <form method="post" action="{% url 'admin_panel:b2b_agent_edit' item.agent.id %}" class="modal-content border-0 shadow-lg">
+      {% csrf_token %}
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold"><i class="fa-solid fa-pen-to-square me-2"></i>Edit B2B Agent: {{ item.agent.name }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Agent Name *</label>
+            <input type="text" name="name" class="form-control" value="{{ item.agent.name }}" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Company Name</label>
+            <input type="text" name="company_name" class="form-control" value="{{ item.agent.company_name }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Phone Number</label>
+            <input type="text" name="phone" class="form-control" value="{{ item.agent.phone }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Email Address</label>
+            <input type="email" name="email" class="form-control" value="{{ item.agent.email }}">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold">Commission Rate (%)</label>
+            <div class="input-group">
+              <input type="number" step="0.01" name="commission_rate" class="form-control" value="{{ item.agent.commission_rate }}">
+              <span class="input-group-text">%</span>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold">Credit Limit (৳)</label>
+            <input type="number" step="0.01" name="credit_limit" class="form-control" value="{{ item.agent.credit_limit }}">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold">NID / Trade License</label>
+            <input type="text" name="nid_number" class="form-control" value="{{ item.agent.nid_number }}">
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Office Address</label>
+            <textarea name="address" class="form-control" rows="2">{{ item.agent.address }}</textarea>
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Internal Notes</label>
+            <textarea name="notes" class="form-control" rows="2">{{ item.agent.notes }}</textarea>
+          </div>
+          <div class="col-12">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" name="is_active" id="agentActive{{ item.agent.id }}" {% if item.agent.is_active %}checked{% endif %}>
+              <label class="form-check-label fw-semibold small" for="agentActive{{ item.agent.id }}">Active Partner Status</label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary fw-bold"><i class="fa-solid fa-save me-1"></i>Update Agent</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endfor %}
+
+{% endblock %}

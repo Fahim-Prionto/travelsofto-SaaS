@@ -23,6 +23,7 @@ Handles:
 """
 from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -32,7 +33,8 @@ from django.utils import timezone
 from .agency_models import (
     AgencyAgent, AgencyCompany, AgencyPosition, SelectionGrade,
     VisaLot, Candidate, CandidatePayment, CandidateDocument, Requisition, AccountHeadGroup,
-    ChartOfAccount, AccountVoucher, DailyMovement, LeaveSubmission, OfficeExpense
+    ChartOfAccount, AccountVoucher, DailyMovement, LeaveSubmission, OfficeExpense,
+    B2BAgentStaff, B2BTransaction
 )
 from apps.destinations.models import Country
 
@@ -103,7 +105,22 @@ def ensure_default_settings(db='default'):
                 SelectionGrade.objects.using(db).create(grade_name=g)
 
         if not AgencyAgent.objects.using(db).exists():
-            AgencyAgent.objects.using(db).create(name='Global Overseas Agency', phone='+8801700000000', email='agent@globaloverseas.com')
+            def_agent = AgencyAgent.objects.using(db).create(
+                name='Global Overseas Agency',
+                phone='+8801700000000',
+                email='agent@globaloverseas.com',
+                company_name='Global Overseas Ltd',
+                agent_type='b2b',
+                credit_limit=500000.00,
+                commission_rate=5.00
+            )
+            B2BAgentStaff.objects.using(db).create(
+                agent=def_agent,
+                name='Senior Visa Executive',
+                phone='+8801700000001',
+                email='executive@globaloverseas.com',
+                designation='Visa & Ticket Officer'
+            )
 
         if not AgencyCompany.objects.using(db).exists():
             AgencyCompany.objects.using(db).create(name='Al-Falah General Trading LLC', country='Saudi Arabia', contact_person='Ahmed Al-Mansoor')
@@ -149,9 +166,12 @@ def candidate_list(request):
     sel_status = request.GET.get('selection_status', '')
     med_status = request.GET.get('medical_status', '')
     visa_status = request.GET.get('visa_status', '')
+    client_type = request.GET.get('client_type', '').strip()
+    agent_filter = request.GET.get('agent_id', '').strip()
+    staff_filter = request.GET.get('staff_id', '').strip()
 
     try:
-        candidates_qs = Candidate.objects.using(db).all()
+        candidates_qs = Candidate.objects.using(db).select_related('b2b_agent', 'b2b_staff', 'agent', 'visa_lot').all()
         if query:
             candidates_qs = candidates_qs.filter(
                 Q(name__icontains=query) |
@@ -174,10 +194,18 @@ def candidate_list(request):
             candidates_qs = candidates_qs.filter(medical_status=med_status)
         if visa_status:
             candidates_qs = candidates_qs.filter(visa_stamping_status=visa_status)
+        if client_type in ['b2b', 'b2c']:
+            candidates_qs = candidates_qs.filter(client_type=client_type)
+        if agent_filter:
+            candidates_qs = candidates_qs.filter(Q(b2b_agent_id=agent_filter) | Q(agent_id=agent_filter))
+        if staff_filter:
+            candidates_qs = candidates_qs.filter(b2b_staff_id=staff_filter)
             
         candidates = list(candidates_qs)
         countries = list(Country.objects.using(db).filter(is_active=True).order_by('name'))
         agents = list(AgencyAgent.objects.using(db).filter(is_active=True))
+        b2b_agents = [a for a in agents if getattr(a, 'agent_type', 'b2b') == 'b2b']
+        b2b_staff_members = list(B2BAgentStaff.objects.using(db).filter(is_active=True).select_related('agent'))
         positions = list(AgencyPosition.objects.using(db).filter(is_active=True))
         companies = list(AgencyCompany.objects.using(db).filter(is_active=True))
         grades = list(SelectionGrade.objects.using(db).all())
@@ -197,7 +225,7 @@ def candidate_list(request):
         next_cr_serial = AccountVoucher.get_next_serial('cr_cash')
 
     except Exception:
-        candidates = countries = agents = positions = companies = grades = visa_lots = accounts = existing_vouchers = []
+        candidates = countries = agents = b2b_agents = b2b_staff_members = positions = companies = grades = visa_lots = accounts = existing_vouchers = []
         totals = {'total_value': 0, 'total_paid': 0, 'total_due': 0}
         total_candidates = selected_count = medical_fit_count = visa_completed_count = 0
         next_cr_serial = 'VCH-0001'
@@ -208,8 +236,13 @@ def candidate_list(request):
         'selected_country': selected_country,
         'date_from': date_from,
         'date_to': date_to,
+        'client_type': client_type,
+        'agent_filter': agent_filter,
+        'staff_filter': staff_filter,
         'countries': countries,
         'agents': agents,
+        'b2b_agents': b2b_agents,
+        'b2b_staff_members': b2b_staff_members,
         'positions': positions,
         'companies': companies,
         'grades': grades,
@@ -247,6 +280,22 @@ def candidate_create(request):
         notes = request.POST.get('notes', '').strip()
 
         agent_id = request.POST.get('agent')
+        client_type = request.POST.get('client_type', 'b2c').strip().lower()
+        if client_type not in ['b2b', 'b2c']:
+            client_type = 'b2c'
+        b2b_agent_id = request.POST.get('b2b_agent') or (agent_id if client_type == 'b2b' else None)
+        b2b_staff_id = request.POST.get('b2b_staff')
+
+        b2b_agent = AgencyAgent.objects.using(db).filter(pk=b2b_agent_id).first() if b2b_agent_id else None
+        b2b_staff = B2BAgentStaff.objects.using(db).filter(pk=b2b_staff_id).first() if b2b_staff_id else None
+
+        if client_type == 'b2b' and b2b_agent:
+            agent = b2b_agent
+        else:
+            client_type = 'b2c'
+            b2b_agent = None
+            b2b_staff = None
+
         position_id = request.POST.get('position')
         company_id = request.POST.get('company')
         grade_id = request.POST.get('selection_grade')
@@ -289,6 +338,9 @@ def candidate_create(request):
             country=country,
             interview_slot=interview_slot,
             agent=agent,
+            client_type=client_type,
+            b2b_agent=b2b_agent,
+            b2b_staff=b2b_staff,
             position=position,
             company=company,
             selection_grade=grade,
@@ -297,6 +349,21 @@ def candidate_create(request):
             applicable_sectors=applicable_sectors,
             notes=notes,
         )
+
+        # Log B2B debit transaction if applicable
+        if client_type == 'b2b' and b2b_agent and total_amt > 0:
+            B2BTransaction.objects.using(db).create(
+                agent=b2b_agent,
+                staff=b2b_staff,
+                candidate=cand,
+                txn_type=B2BTransaction.TxnType.SERVICE_CHARGE,
+                amount=total_amt,
+                balance_after=b2b_agent.outstanding_balance + total_amt,
+                description=f"Registration Service Fee: {cand.name} ({cand.registration_id})",
+                reference_no=cand.registration_id,
+                txn_date=payment_date_val or timezone.now().date()
+            )
+            b2b_agent.recalculate_outstanding(using=db)
 
         if visa_lot:
             visa_lot.update_assigned_count()
@@ -366,6 +433,21 @@ def candidate_create(request):
                 pay.save(using=db, update_fields=['voucher'])
                 acc.current_balance += init_paid
                 acc.save(using=db)
+
+            # Record B2B transaction for initial payment
+            if client_type == 'b2b' and b2b_agent:
+                B2BTransaction.objects.using(db).create(
+                    agent=b2b_agent,
+                    staff=b2b_staff,
+                    candidate=cand,
+                    txn_type=B2BTransaction.TxnType.PAYMENT_RECEIVED,
+                    amount=init_paid,
+                    balance_after=max(Decimal('0.00'), b2b_agent.outstanding_balance - init_paid),
+                    description=f"Initial Reg. Payment: {cand.name} ({cand.registration_id})",
+                    reference_no=payment_ref or cand.registration_id,
+                    txn_date=payment_date_val or timezone.now().date()
+                )
+                b2b_agent.recalculate_outstanding(using=db)
 
         messages.success(request, f'Candidate "{name}" registered successfully with Registration ID {cand.registration_id}!')
         return redirect('admin_panel:candidate_list')
@@ -462,6 +544,22 @@ def candidate_add_payment(request, pk):
                 pay.save(using=db, update_fields=['voucher'])
                 acc.current_balance += amt
                 acc.save(using=db)
+
+            # Record B2B ledger transaction if candidate is connected to a B2B agent
+            if candidate.client_type == 'b2b' and candidate.b2b_agent:
+                B2BTransaction.objects.using(db).create(
+                    agent=candidate.b2b_agent,
+                    staff=candidate.b2b_staff,
+                    candidate=candidate,
+                    txn_type=B2BTransaction.TxnType.PAYMENT_RECEIVED,
+                    amount=amt,
+                    balance_after=max(Decimal('0.00'), candidate.b2b_agent.outstanding_balance - amt),
+                    description=f"Candidate Payment: {candidate.name} ({candidate.registration_id})",
+                    reference_no=reference_no or candidate.registration_id,
+                    txn_date=payment_date_val
+                )
+                candidate.b2b_agent.recalculate_outstanding(using=db)
+
             messages.success(request, f'Payment of ৳{amt:,.2f} recorded on {payment_date_val} for {candidate.name}!')
         else:
             messages.error(request, 'Please enter a valid payment amount greater than zero.')
@@ -497,12 +595,26 @@ def candidate_edit(request, pk):
                 pass
 
         agent_id = request.POST.get('agent')
+        client_type = request.POST.get('client_type', candidate.client_type or 'b2c').strip().lower()
+        b2b_agent_id = request.POST.get('b2b_agent') or (agent_id if client_type == 'b2b' else None)
+        b2b_staff_id = request.POST.get('b2b_staff')
+
+        if client_type == 'b2b' and b2b_agent_id:
+            candidate.client_type = 'b2b'
+            candidate.b2b_agent = AgencyAgent.objects.using(db).filter(pk=b2b_agent_id).first()
+            candidate.b2b_staff = B2BAgentStaff.objects.using(db).filter(pk=b2b_staff_id).first() if b2b_staff_id else None
+            candidate.agent = candidate.b2b_agent
+        else:
+            candidate.client_type = 'b2c'
+            candidate.b2b_agent = None
+            candidate.b2b_staff = None
+            candidate.agent = AgencyAgent.objects.using(db).filter(pk=agent_id).first() if agent_id else None
+
         position_id = request.POST.get('position')
         company_id = request.POST.get('company')
         grade_id = request.POST.get('selection_grade')
         visa_lot_id = request.POST.get('visa_lot')
 
-        candidate.agent = AgencyAgent.objects.using(db).filter(pk=agent_id).first() if agent_id else None
         candidate.position = AgencyPosition.objects.using(db).filter(pk=position_id).first() if position_id else None
         candidate.company = AgencyCompany.objects.using(db).filter(pk=company_id).first() if company_id else None
         candidate.selection_grade = SelectionGrade.objects.using(db).filter(pk=grade_id).first() if grade_id else None
@@ -535,12 +647,31 @@ def candidate_update_package_fee(request, pk):
     if request.method == 'POST':
         fee_raw = request.POST.get('total_amount', '').strip()
         try:
+            old_fee = candidate.total_amount
             new_fee = Decimal(fee_raw)
             if new_fee < Decimal('0.00'):
                 new_fee = Decimal('0.00')
             candidate.total_amount = new_fee
             candidate.due_amount = max(Decimal('0.00'), new_fee - candidate.paid_amount)
             candidate.save(using=db, update_fields=['total_amount', 'due_amount'])
+
+            # Log adjustment in B2B ledger if linked to B2B Agent
+            if candidate.client_type == 'b2b' and candidate.b2b_agent:
+                diff = new_fee - old_fee
+                if diff != Decimal('0.00'):
+                    txn_t = B2BTransaction.TxnType.ADJUSTMENT_DEBIT if diff > 0 else B2BTransaction.TxnType.ADJUSTMENT_CREDIT
+                    B2BTransaction.objects.using(db).create(
+                        agent=candidate.b2b_agent,
+                        staff=candidate.b2b_staff,
+                        candidate=candidate,
+                        txn_type=txn_t,
+                        amount=abs(diff),
+                        balance_after=candidate.b2b_agent.outstanding_balance + diff,
+                        description=f"Fee adjustment for {candidate.name} ({candidate.registration_id}) from ৳{old_fee:,.2f} to ৳{new_fee:,.2f}",
+                        txn_date=timezone.now().date()
+                    )
+                    candidate.b2b_agent.recalculate_outstanding(using=db)
+
             messages.success(request, f'Total package fee for {candidate.registration_id} ({candidate.name}) updated to ৳{new_fee:,.2f}!')
         except Exception as e:
             messages.error(request, f'Invalid package fee amount: {e}')
@@ -1679,3 +1810,784 @@ def office_expense_list(request):
         'payment_method_choices': OfficeExpense.PAYMENT_METHOD_CHOICES,
     }
     return render(request, 'admin_panel/agency/office_expense.html', context)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 11. B2B & B2C NETWORK MANAGEMENT SYSTEM
+# ══════════════════════════════════════════════════════════════════════════════
+
+@login_required
+def api_b2b_staff_by_agent(request, agent_id):
+    """API endpoint to dynamically fetch staff members for a specific B2B agent."""
+    db = get_tenant_db(request)
+    staff_qs = B2BAgentStaff.objects.using(db).filter(agent_id=agent_id, is_active=True).values(
+        'id', 'name', 'staff_code', 'designation', 'phone'
+    )
+    return JsonResponse({'status': 'ok', 'staff': list(staff_qs)})
+
+
+@login_required
+def b2b_dashboard(request):
+    """High-level B2B vs B2C Network Dashboard with live metrics and recent activity."""
+    db = get_tenant_db(request)
+    ensure_default_settings(db)
+
+    # 1. High level counters
+    total_b2b_agents = AgencyAgent.objects.using(db).filter(agent_type='b2b', is_active=True).count()
+    total_b2b_staff = B2BAgentStaff.objects.using(db).filter(is_active=True).count()
+    
+    b2b_cand_qs = Candidate.objects.using(db).filter(client_type='b2b')
+    b2c_cand_qs = Candidate.objects.using(db).filter(client_type='b2c')
+
+    b2b_candidates_count = b2b_cand_qs.count()
+    b2c_candidates_count = b2c_cand_qs.count()
+
+    b2b_fin = b2b_cand_qs.aggregate(
+        total_billing=Sum('total_amount'),
+        total_collected=Sum('paid_amount'),
+        total_due=Sum('due_amount')
+    )
+    b2c_fin = b2c_cand_qs.aggregate(
+        total_billing=Sum('total_amount'),
+        total_collected=Sum('paid_amount'),
+        total_due=Sum('due_amount')
+    )
+
+    b2b_billing = b2b_fin['total_billing'] or Decimal('0.00')
+    b2b_collected = b2b_fin['total_collected'] or Decimal('0.00')
+    b2b_due = b2b_fin['total_due'] or Decimal('0.00')
+
+    b2c_billing = b2c_fin['total_billing'] or Decimal('0.00')
+    b2c_collected = b2c_fin['total_collected'] or Decimal('0.00')
+    b2c_due = b2c_fin['total_due'] or Decimal('0.00')
+
+    total_revenue_collected = b2b_collected + b2c_collected
+
+    # Top B2B agents by volume
+    agents = list(AgencyAgent.objects.using(db).filter(agent_type='b2b', is_active=True))
+    agents_summary = []
+    for ag in agents:
+        cands = Candidate.objects.using(db).filter(Q(b2b_agent=ag) | Q(agent=ag))
+        c_count = cands.count()
+        c_fin = cands.aggregate(tot=Sum('total_amount'), paid=Sum('paid_amount'), due=Sum('due_amount'))
+        billed = c_fin['tot'] or Decimal('0.00')
+        paid = c_fin['paid'] or Decimal('0.00')
+        due = c_fin['due'] or Decimal('0.00')
+        agents_summary.append({
+            'agent': ag,
+            'candidates_count': c_count,
+            'billed': billed,
+            'paid': paid,
+            'due': due,
+            'outstanding': ag.outstanding_balance or due,
+            'staff_count': ag.staff_members.count(),
+        })
+    agents_summary.sort(key=lambda x: x['billed'], reverse=True)
+
+    # Recent Transactions
+    recent_txns = list(
+        B2BTransaction.objects.using(db)
+        .select_related('agent', 'staff', 'candidate')
+        .order_by('-txn_date', '-created_at')[:12]
+    )
+
+    context = {
+        'total_b2b_agents': total_b2b_agents,
+        'total_b2b_staff': total_b2b_staff,
+        'b2b_candidates_count': b2b_candidates_count,
+        'b2c_candidates_count': b2c_candidates_count,
+        'b2b_billing': b2b_billing,
+        'b2b_collected': b2b_collected,
+        'b2b_due': b2b_due,
+        'b2c_billing': b2c_billing,
+        'b2c_collected': b2c_collected,
+        'b2c_due': b2c_due,
+        'total_revenue_collected': total_revenue_collected,
+        'agents_summary': agents_summary[:6],
+        'recent_txns': recent_txns,
+    }
+    return render(request, 'admin_panel/agency/b2b_dashboard.html', context)
+
+
+@login_required
+def b2b_agent_list(request):
+    """List all B2B agents with running balances, credit limits, and quick-action modals."""
+    db = get_tenant_db(request)
+    ensure_default_settings(db)
+
+    query = request.GET.get('q', '').strip()
+    agents_qs = AgencyAgent.objects.using(db).filter(agent_type='b2b')
+    if query:
+        agents_qs = agents_qs.filter(
+            Q(name__icontains=query) |
+            Q(agent_code__icontains=query) |
+            Q(company_name__icontains=query) |
+            Q(phone__icontains=query) |
+            Q(email__icontains=query)
+        )
+
+    agents = list(agents_qs.order_by('name'))
+    agent_items = []
+    tot_all_billed = Decimal('0.00')
+    tot_all_collected = Decimal('0.00')
+    tot_all_due = Decimal('0.00')
+
+    for ag in agents:
+        cands = Candidate.objects.using(db).filter(Q(b2b_agent=ag) | Q(agent=ag))
+        c_fin = cands.aggregate(tot=Sum('total_amount'), paid=Sum('paid_amount'), due=Sum('due_amount'))
+        billed = c_fin['tot'] or Decimal('0.00')
+        paid = c_fin['paid'] or Decimal('0.00')
+        due = c_fin['due'] or Decimal('0.00')
+        
+        tot_all_billed += billed
+        tot_all_collected += paid
+        tot_all_due += due
+
+        # Credit utilization
+        limit = ag.credit_limit or Decimal('0.00')
+        current_bal = ag.outstanding_balance or due
+        utilization_pct = 0
+        if limit > 0:
+            utilization_pct = min(100, int((current_bal / limit) * 100))
+
+        agent_items.append({
+            'agent': ag,
+            'candidates_count': cands.count(),
+            'staff_count': ag.staff_members.count(),
+            'billed': billed,
+            'paid': paid,
+            'due': due,
+            'outstanding': current_bal,
+            'utilization_pct': utilization_pct,
+            'is_over_limit': (limit > 0 and current_bal > limit),
+        })
+
+    accounts = list(ChartOfAccount.objects.using(db).all())
+
+    context = {
+        'agent_items': agent_items,
+        'query': query,
+        'total_agents': len(agents),
+        'tot_all_billed': tot_all_billed,
+        'tot_all_collected': tot_all_collected,
+        'tot_all_due': tot_all_due,
+        'accounts': accounts,
+    }
+    return render(request, 'admin_panel/agency/b2b_agent_list.html', context)
+
+
+@login_required
+def b2b_agent_create(request):
+    """Create a new B2B Agent."""
+    db = get_tenant_db(request)
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        company_name = request.POST.get('company_name', '').strip()
+        phone = request.POST.get('phone', '').strip()
+        email = request.POST.get('email', '').strip()
+        address = request.POST.get('address', '').strip()
+        nid_number = request.POST.get('nid_number', '').strip()
+        notes = request.POST.get('notes', '').strip()
+        
+        try:
+            commission_rate = Decimal(request.POST.get('commission_rate', '0').strip() or '0')
+        except Exception:
+            commission_rate = Decimal('0.00')
+
+        try:
+            credit_limit = Decimal(request.POST.get('credit_limit', '0').strip() or '0')
+        except Exception:
+            credit_limit = Decimal('0.00')
+
+        if not name:
+            messages.error(request, 'Agent name is required.')
+            return redirect('admin_panel:b2b_agent_list')
+
+        agent = AgencyAgent.objects.using(db).create(
+            name=name,
+            company_name=company_name,
+            phone=phone,
+            email=email,
+            address=address,
+            agent_type='b2b',
+            commission_rate=commission_rate,
+            credit_limit=credit_limit,
+            nid_number=nid_number,
+            notes=notes,
+            is_active=True
+        )
+
+        # Optionally create initial staff member if provided
+        initial_staff_name = request.POST.get('initial_staff_name', '').strip()
+        if initial_staff_name:
+            B2BAgentStaff.objects.using(db).create(
+                agent=agent,
+                name=initial_staff_name,
+                phone=request.POST.get('initial_staff_phone', '').strip() or phone,
+                email=request.POST.get('initial_staff_email', '').strip() or email,
+                designation=request.POST.get('initial_staff_designation', 'Managing Executive').strip(),
+            )
+
+        messages.success(request, f'B2B Agent "{agent.name}" ({agent.agent_code}) created successfully!')
+        return redirect('admin_panel:b2b_agent_detail', pk=agent.id)
+
+    return redirect('admin_panel:b2b_agent_list')
+
+
+@login_required
+def b2b_agent_edit(request, pk):
+    """Update B2B Agent details."""
+    db = get_tenant_db(request)
+    agent = get_object_or_404(AgencyAgent.objects.using(db), pk=pk)
+
+    if request.method == 'POST':
+        agent.name = request.POST.get('name', agent.name).strip()
+        agent.company_name = request.POST.get('company_name', agent.company_name).strip()
+        agent.phone = request.POST.get('phone', agent.phone).strip()
+        agent.email = request.POST.get('email', agent.email).strip()
+        agent.address = request.POST.get('address', agent.address).strip()
+        agent.nid_number = request.POST.get('nid_number', agent.nid_number).strip()
+        agent.notes = request.POST.get('notes', agent.notes).strip()
+        agent.is_active = (request.POST.get('is_active') == 'on')
+
+        try:
+            agent.commission_rate = Decimal(request.POST.get('commission_rate', '0').strip() or '0')
+        except Exception:
+            pass
+
+        try:
+            agent.credit_limit = Decimal(request.POST.get('credit_limit', '0').strip() or '0')
+        except Exception:
+            pass
+
+        agent.save(using=db)
+        messages.success(request, f'B2B Agent "{agent.name}" updated successfully!')
+        return redirect('admin_panel:b2b_agent_detail', pk=agent.id)
+
+    return redirect('admin_panel:b2b_agent_list')
+
+
+@login_required
+def b2b_agent_detail(request, pk):
+    """Comprehensive Agent Profile with Staff Management, Connected Candidates, Visas, Tickets, and Ledger."""
+    db = get_tenant_db(request)
+    agent = get_object_or_404(AgencyAgent.objects.using(db), pk=pk)
+
+    # 1. Staff Members
+    staff_members = list(agent.staff_members.all().order_by('name'))
+
+    # 2. Connected Candidates
+    candidates = list(
+        Candidate.objects.using(db)
+        .filter(Q(b2b_agent=agent) | Q(agent=agent))
+        .select_related('b2b_staff', 'visa_lot')
+        .order_by('-created_at')
+    )
+
+    # 3. Connected Visa Lots
+    visa_lot_ids = [c.visa_lot_id for c in candidates if c.visa_lot_id]
+    visa_lots = list(VisaLot.objects.using(db).filter(id__in=visa_lot_ids))
+
+    # 4. Flight Tickets connected to candidates
+    flight_candidates = [c for c in candidates if c.ticket_status != Candidate.TicketStatus.PENDING or c.airline or c.pnr_number]
+
+    # 5. Financial aggregates
+    cand_fin = Candidate.objects.using(db).filter(Q(b2b_agent=agent) | Q(agent=agent)).aggregate(
+        billed=Sum('total_amount'),
+        paid=Sum('paid_amount'),
+        due=Sum('due_amount')
+    )
+    total_billed = cand_fin['billed'] or Decimal('0.00')
+    total_paid = cand_fin['paid'] or Decimal('0.00')
+    total_due = cand_fin['due'] or Decimal('0.00')
+
+    # Recalculate and fetch outstanding ledger balance
+    agent.recalculate_outstanding(using=db)
+    outstanding_balance = agent.outstanding_balance or total_due
+
+    # Credit limit calculations
+    credit_limit = agent.credit_limit or Decimal('0.00')
+    available_credit = max(Decimal('0.00'), credit_limit - outstanding_balance) if credit_limit > 0 else Decimal('0.00')
+    credit_utilization_pct = min(100, int((outstanding_balance / credit_limit) * 100)) if credit_limit > 0 else 0
+
+    # Commission earned calculation
+    comm_rate = agent.commission_rate or Decimal('0.00')
+    total_commission = (total_billed * comm_rate / Decimal('100.00')).quantize(Decimal('0.01'))
+
+    # 6. Ledger Transactions
+    transactions = list(
+        B2BTransaction.objects.using(db)
+        .filter(agent=agent)
+        .select_related('staff', 'candidate')
+        .order_by('-txn_date', '-created_at')[:60]
+    )
+
+    accounts = list(ChartOfAccount.objects.using(db).all())
+
+    context = {
+        'agent': agent,
+        'staff_members': staff_members,
+        'candidates': candidates,
+        'candidates_count': len(candidates),
+        'visa_lots': visa_lots,
+        'flight_candidates': flight_candidates,
+        'total_billed': total_billed,
+        'total_paid': total_paid,
+        'total_due': total_due,
+        'outstanding_balance': outstanding_balance,
+        'credit_limit': credit_limit,
+        'available_credit': available_credit,
+        'credit_utilization_pct': credit_utilization_pct,
+        'total_commission': total_commission,
+        'transactions': transactions,
+        'accounts': accounts,
+    }
+    return render(request, 'admin_panel/agency/b2b_agent_detail.html', context)
+
+
+@login_required
+def b2b_agent_add_payment(request, pk):
+    """Record direct bulk or settlement payment from a B2B agent."""
+    db = get_tenant_db(request)
+    agent = get_object_or_404(AgencyAgent.objects.using(db), pk=pk)
+
+    if request.method == 'POST':
+        amount_raw = request.POST.get('amount', '0').strip()
+        payment_date_val = request.POST.get('payment_date') or timezone.now().date()
+        payment_method = request.POST.get('payment_method', 'Cash')
+        reference_no = request.POST.get('reference_no', '').strip()
+        staff_id = request.POST.get('staff_id')
+        notes = request.POST.get('notes', '').strip()
+        account_id = request.POST.get('account_id')
+
+        try:
+            amt = Decimal(amount_raw)
+        except Exception:
+            amt = Decimal('0.00')
+
+        if amt <= Decimal('0.00'):
+            messages.error(request, 'Please enter a payment amount greater than zero.')
+            return redirect('admin_panel:b2b_agent_detail', pk=agent.id)
+
+        staff = B2BAgentStaff.objects.using(db).filter(pk=staff_id).first() if staff_id else None
+
+        # Record B2B transaction
+        txn = B2BTransaction.objects.using(db).create(
+            agent=agent,
+            staff=staff,
+            txn_type=B2BTransaction.TxnType.PAYMENT_RECEIVED,
+            amount=amt,
+            balance_after=max(Decimal('0.00'), agent.outstanding_balance - amt),
+            description=f"Agent Payment / Settlement from {agent.name}" + (f" ({notes})" if notes else ""),
+            reference_no=reference_no,
+            txn_date=payment_date_val
+        )
+
+        # Update running balance
+        agent.recalculate_outstanding(using=db)
+
+        # Post to Chart of Account & Voucher if selected
+        acc = ChartOfAccount.objects.using(db).filter(pk=account_id).first() if account_id else (
+            ChartOfAccount.objects.using(db).filter(account_name__icontains='Cash').first() or
+            ChartOfAccount.objects.using(db).first()
+        )
+        if acc:
+            v_type = 'cr_cheque' if payment_method == 'Cheque' else 'cr_cash'
+            AccountVoucher.objects.using(db).create(
+                voucher_type=v_type,
+                account=acc,
+                amount=amt,
+                narration=f"B2B Agent Settlement: {agent.name} ({agent.agent_code})",
+                reference_no=reference_no,
+                voucher_date=payment_date_val
+            )
+            acc.current_balance += amt
+            acc.save(using=db)
+
+        messages.success(request, f'Payment of ৳{amt:,.2f} recorded for {agent.name}!')
+        return redirect('admin_panel:b2b_agent_detail', pk=agent.id)
+
+    return redirect('admin_panel:b2b_agent_detail', pk=agent.id)
+
+
+@login_required
+def b2b_staff_create(request, pk):
+    """Add a staff member under a specific B2B Agent."""
+    db = get_tenant_db(request)
+    agent = get_object_or_404(AgencyAgent.objects.using(db), pk=pk)
+
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        phone = request.POST.get('phone', '').strip()
+        email = request.POST.get('email', '').strip()
+        designation = request.POST.get('designation', '').strip() or 'Visa Processing Executive'
+
+        if not name:
+            messages.error(request, 'Staff member name is required.')
+            return redirect('admin_panel:b2b_agent_detail', pk=agent.id)
+
+        staff = B2BAgentStaff.objects.using(db).create(
+            agent=agent,
+            name=name,
+            phone=phone,
+            email=email,
+            designation=designation,
+            is_active=True
+        )
+        messages.success(request, f'Staff member "{staff.name}" ({staff.staff_code}) added under {agent.name}!')
+        return redirect('admin_panel:b2b_agent_detail', pk=agent.id)
+
+    return redirect('admin_panel:b2b_agent_detail', pk=agent.id)
+
+
+@login_required
+def b2b_staff_list(request):
+    """List all staff accounts across all B2B agents with their individual activity and candidates."""
+    db = get_tenant_db(request)
+    ensure_default_settings(db)
+
+    selected_agent_id = request.GET.get('agent_id', '').strip()
+    query = request.GET.get('q', '').strip()
+
+    staff_qs = B2BAgentStaff.objects.using(db).select_related('agent').all()
+    if selected_agent_id:
+        staff_qs = staff_qs.filter(agent_id=selected_agent_id)
+    if query:
+        staff_qs = staff_qs.filter(
+            Q(name__icontains=query) |
+            Q(staff_code__icontains=query) |
+            Q(phone__icontains=query) |
+            Q(email__icontains=query) |
+            Q(agent__name__icontains=query)
+        )
+
+    staff_list = list(staff_qs.order_by('agent__name', 'name'))
+    staff_items = []
+    for s in staff_list:
+        cands = Candidate.objects.using(db).filter(b2b_staff=s)
+        c_fin = cands.aggregate(tot=Sum('total_amount'), paid=Sum('paid_amount'), due=Sum('due_amount'))
+        staff_items.append({
+            'staff': s,
+            'candidates_count': cands.count(),
+            'revenue_handled': c_fin['tot'] or Decimal('0.00'),
+            'paid_handled': c_fin['paid'] or Decimal('0.00'),
+            'due_handled': c_fin['due'] or Decimal('0.00'),
+        })
+
+    agents = list(AgencyAgent.objects.using(db).filter(agent_type='b2b', is_active=True).order_by('name'))
+
+    context = {
+        'staff_items': staff_items,
+        'agents': agents,
+        'selected_agent_id': selected_agent_id,
+        'query': query,
+        'total_staff': len(staff_items),
+    }
+    return render(request, 'admin_panel/agency/b2b_staff_list.html', context)
+
+
+@login_required
+def b2b_staff_toggle(request, pk):
+    """Toggle staff account active/inactive."""
+    db = get_tenant_db(request)
+    staff = get_object_or_404(B2BAgentStaff.objects.using(db), pk=pk)
+    staff.is_active = not staff.is_active
+    staff.save(using=db, update_fields=['is_active'])
+    status_str = "activated" if staff.is_active else "deactivated"
+    messages.success(request, f'Staff member "{staff.name}" has been {status_str}.')
+    next_url = request.META.get('HTTP_REFERER', 'admin_panel:b2b_staff_list')
+    return redirect(next_url)
+
+
+@login_required
+def b2b_staff_edit(request, pk):
+    """Update staff member profile."""
+    db = get_tenant_db(request)
+    staff = get_object_or_404(B2BAgentStaff.objects.using(db), pk=pk)
+    if request.method == 'POST':
+        staff.name = request.POST.get('name', staff.name).strip()
+        staff.phone = request.POST.get('phone', staff.phone).strip()
+        staff.email = request.POST.get('email', staff.email).strip()
+        staff.designation = request.POST.get('designation', staff.designation).strip()
+        new_agent_id = request.POST.get('agent_id')
+        if new_agent_id:
+            new_agent = AgencyAgent.objects.using(db).filter(pk=new_agent_id).first()
+            if new_agent:
+                staff.agent = new_agent
+        staff.save(using=db)
+        messages.success(request, f'Staff member "{staff.name}" updated successfully!')
+    next_url = request.META.get('HTTP_REFERER', 'admin_panel:b2b_staff_list')
+    return redirect(next_url)
+
+
+@login_required
+def b2b_ledger(request):
+    """Complete Agency B2B Ledger: filterable transaction audit trail with debit/credit running balances."""
+    db = get_tenant_db(request)
+    ensure_default_settings(db)
+
+    agent_id = request.GET.get('agent_id', '').strip()
+    staff_id = request.GET.get('staff_id', '').strip()
+    txn_type = request.GET.get('txn_type', '').strip()
+    date_from = request.GET.get('date_from', '').strip()
+    date_to = request.GET.get('date_to', '').strip()
+
+    txns_qs = B2BTransaction.objects.using(db).select_related('agent', 'staff', 'candidate').all()
+    if agent_id:
+        txns_qs = txns_qs.filter(agent_id=agent_id)
+    if staff_id:
+        txns_qs = txns_qs.filter(staff_id=staff_id)
+    if txn_type:
+        txns_qs = txns_qs.filter(txn_type=txn_type)
+    if date_from:
+        txns_qs = txns_qs.filter(txn_date__gte=date_from)
+    if date_to:
+        txns_qs = txns_qs.filter(txn_date__lte=date_to)
+
+    txns = list(txns_qs.order_by('-txn_date', '-created_at'))
+
+    # Totals
+    total_debit = Decimal('0.00')
+    total_credit = Decimal('0.00')
+    for t in txns:
+        if t.txn_type in ['debit', 'service_charge', 'adjustment_debit']:
+            total_debit += t.amount
+        else:
+            total_credit += t.amount
+
+    agents = list(AgencyAgent.objects.using(db).filter(agent_type='b2b', is_active=True).order_by('name'))
+    staff_members = list(B2BAgentStaff.objects.using(db).filter(is_active=True).select_related('agent').order_by('name'))
+
+    context = {
+        'txns': txns,
+        'agents': agents,
+        'staff_members': staff_members,
+        'selected_agent_id': agent_id,
+        'selected_staff_id': staff_id,
+        'selected_txn_type': txn_type,
+        'date_from': date_from,
+        'date_to': date_to,
+        'total_debit': total_debit,
+        'total_credit': total_credit,
+        'net_ledger_balance': total_debit - total_credit,
+        'txn_types': B2BTransaction.TxnType.choices,
+    }
+    return render(request, 'admin_panel/agency/b2b_ledger.html', context)
+
+
+@login_required
+def b2b_analytics(request):
+    """
+    Comprehensive Monthly Profit & Performance Analysis:
+      1. Individual Candidate / Customer-wise Breakdown (B2B & B2C)
+      2. Individual B2B Agency Agent-wise Breakdown & Commissions
+      3. Individual Staff-wise Breakdown
+      4. Month-by-Month Financial Trend & Net Agency Profit Analysis
+    """
+    db = get_tenant_db(request)
+    ensure_default_settings(db)
+
+    # Filter params
+    current_year = timezone.now().year
+    try:
+        year = int(request.GET.get('year', current_year))
+    except (ValueError, TypeError):
+        year = current_year
+
+    month_filter = request.GET.get('month', '').strip()
+    agent_filter = request.GET.get('agent_id', '').strip()
+    client_type_filter = request.GET.get('client_type', '').strip()
+
+    # Base candidate queryset
+    cands_qs = Candidate.objects.using(db).select_related('b2b_agent', 'b2b_staff', 'visa_lot').filter(created_at__year=year)
+    if month_filter and month_filter.isdigit():
+        cands_qs = cands_qs.filter(created_at__month=int(month_filter))
+    if agent_filter:
+        cands_qs = cands_qs.filter(Q(b2b_agent_id=agent_filter) | Q(agent_id=agent_filter))
+    if client_type_filter in ['b2b', 'b2c']:
+        cands_qs = cands_qs.filter(client_type=client_type_filter)
+
+    candidates = list(cands_qs.order_by('-created_at'))
+
+    # 1. Candidate-wise Profit Analysis
+    candidate_items = []
+    tot_cand_billing = Decimal('0.00')
+    tot_cand_collected = Decimal('0.00')
+    tot_cand_due = Decimal('0.00')
+    tot_cand_est_cost = Decimal('0.00')
+    tot_cand_net_profit = Decimal('0.00')
+
+    for c in candidates:
+        fee = c.total_amount or Decimal('0.00')
+        paid = c.paid_amount or Decimal('0.00')
+        due = c.due_amount or Decimal('0.00')
+
+        # Estimated cost: air ticket price if recorded + visa lot base cost (assumed ~60% of lot price or ticket price)
+        est_cost = Decimal('0.00')
+        if c.ticket_price and c.ticket_price > 0:
+            est_cost += Decimal(str(c.ticket_price))
+        if c.visa_lot and c.visa_lot.price:
+            # Assume 50% lot cost base if ticket is separate
+            est_cost += (Decimal(str(c.visa_lot.price)) * Decimal('0.50')).quantize(Decimal('0.01'))
+        elif fee > 0:
+            # Baseline processing cost assumption 40% if no other breakdown
+            est_cost += (fee * Decimal('0.40')).quantize(Decimal('0.01'))
+
+        # Agent commission deduction if B2B
+        comm_amt = Decimal('0.00')
+        if c.client_type == 'b2b' and c.b2b_agent and c.b2b_agent.commission_rate:
+            comm_amt = (fee * c.b2b_agent.commission_rate / Decimal('100.00')).quantize(Decimal('0.01'))
+
+        net_profit = max(Decimal('0.00'), fee - est_cost - comm_amt)
+        profit_margin_pct = int((net_profit / fee) * 100) if fee > 0 else 0
+
+        tot_cand_billing += fee
+        tot_cand_collected += paid
+        tot_cand_due += due
+        tot_cand_est_cost += est_cost
+        tot_cand_net_profit += net_profit
+
+        candidate_items.append({
+            'candidate': c,
+            'fee': fee,
+            'paid': paid,
+            'due': due,
+            'est_cost': est_cost,
+            'comm_amt': comm_amt,
+            'net_profit': net_profit,
+            'margin_pct': profit_margin_pct,
+        })
+
+    # 2. Agent-wise Profit Analysis
+    b2b_agents = list(AgencyAgent.objects.using(db).filter(agent_type='b2b').order_by('name'))
+    agent_items = []
+    tot_agent_revenue = Decimal('0.00')
+    tot_agent_collected = Decimal('0.00')
+    tot_agent_due = Decimal('0.00')
+    tot_agent_comm = Decimal('0.00')
+    tot_agent_net_profit = Decimal('0.00')
+
+    for ag in b2b_agents:
+        ag_cands = Candidate.objects.using(db).filter(Q(b2b_agent=ag) | Q(agent=ag), created_at__year=year)
+        if month_filter and month_filter.isdigit():
+            ag_cands = ag_cands.filter(created_at__month=int(month_filter))
+
+        c_fin = ag_cands.aggregate(tot=Sum('total_amount'), paid=Sum('paid_amount'), due=Sum('due_amount'))
+        billed = c_fin['tot'] or Decimal('0.00')
+        paid = c_fin['paid'] or Decimal('0.00')
+        due = c_fin['due'] or Decimal('0.00')
+        comm_rate = ag.commission_rate or Decimal('0.00')
+        comm_earned = (billed * comm_rate / Decimal('100.00')).quantize(Decimal('0.01'))
+        est_cost = (billed * Decimal('0.45')).quantize(Decimal('0.01'))
+        agency_profit = max(Decimal('0.00'), billed - comm_earned - est_cost)
+
+        tot_agent_revenue += billed
+        tot_agent_collected += paid
+        tot_agent_due += due
+        tot_agent_comm += comm_earned
+        tot_agent_net_profit += agency_profit
+
+        agent_items.append({
+            'agent': ag,
+            'candidates_count': ag_cands.count(),
+            'staff_count': ag.staff_members.count(),
+            'billed': billed,
+            'paid': paid,
+            'due': due,
+            'comm_rate': comm_rate,
+            'comm_earned': comm_earned,
+            'agency_profit': agency_profit,
+        })
+    agent_items.sort(key=lambda x: x['billed'], reverse=True)
+
+    # 3. Staff-wise Performance Analysis
+    staff_qs = B2BAgentStaff.objects.using(db).select_related('agent').all()
+    if agent_filter:
+        staff_qs = staff_qs.filter(agent_id=agent_filter)
+    staff_members = list(staff_qs.order_by('agent__name', 'name'))
+    staff_items = []
+    for s in staff_members:
+        s_cands = Candidate.objects.using(db).filter(b2b_staff=s, created_at__year=year)
+        if month_filter and month_filter.isdigit():
+            s_cands = s_cands.filter(created_at__month=int(month_filter))
+        s_fin = s_cands.aggregate(tot=Sum('total_amount'), paid=Sum('paid_amount'), due=Sum('due_amount'))
+        rev = s_fin['tot'] or Decimal('0.00')
+        col = s_fin['paid'] or Decimal('0.00')
+        staff_items.append({
+            'staff': s,
+            'candidates_count': s_cands.count(),
+            'revenue_handled': rev,
+            'paid_handled': col,
+            'profit_contribution': (rev * Decimal('0.35')).quantize(Decimal('0.01')),
+        })
+    staff_items.sort(key=lambda x: x['revenue_handled'], reverse=True)
+
+    # 4. Month-by-Month Trend Analysis (Jan - Dec for selected year)
+    month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    monthly_trend = []
+    year_b2b_tot = Decimal('0.00')
+    year_b2c_tot = Decimal('0.00')
+    year_profit_tot = Decimal('0.00')
+
+    for m_idx, m_name in enumerate(month_names, start=1):
+        m_cands = Candidate.objects.using(db).filter(created_at__year=year, created_at__month=m_idx)
+        b2b_m = m_cands.filter(client_type='b2b')
+        b2c_m = m_cands.filter(client_type='b2c')
+
+        b2b_val = b2b_m.aggregate(s=Sum('total_amount'))['s'] or Decimal('0.00')
+        b2b_col = b2b_m.aggregate(s=Sum('paid_amount'))['s'] or Decimal('0.00')
+        b2c_val = b2c_m.aggregate(s=Sum('total_amount'))['s'] or Decimal('0.00')
+        b2c_col = b2c_m.aggregate(s=Sum('paid_amount'))['s'] or Decimal('0.00')
+
+        tot_rev = b2b_col + b2c_col
+        # Est. Commission expense
+        comm_m = (b2b_val * Decimal('0.05')).quantize(Decimal('0.01'))
+        # Est. direct costs
+        cost_m = ((b2b_val + b2c_val) * Decimal('0.40')).quantize(Decimal('0.01'))
+        est_profit_m = max(Decimal('0.00'), (b2b_val + b2c_val) - comm_m - cost_m)
+
+        year_b2b_tot += b2b_val
+        year_b2c_tot += b2c_val
+        year_profit_tot += est_profit_m
+
+        monthly_trend.append({
+            'month_num': m_idx,
+            'month_name': m_name,
+            'b2b_count': b2b_m.count(),
+            'b2c_count': b2c_m.count(),
+            'total_count': m_cands.count(),
+            'b2b_revenue': b2b_val,
+            'b2c_revenue': b2c_val,
+            'total_revenue': b2b_val + b2c_val,
+            'total_collected': tot_rev,
+            'commission': comm_m,
+            'est_profit': est_profit_m,
+        })
+
+    # Available years for filter (current year - 2 to current year + 1)
+    years_list = [current_year - 2, current_year - 1, current_year, current_year + 1]
+
+    context = {
+        'year': year,
+        'years_list': years_list,
+        'month_filter': month_filter,
+        'agent_filter': agent_filter,
+        'client_type_filter': client_type_filter,
+        'all_agents': b2b_agents,
+        'candidate_items': candidate_items,
+        'agent_items': agent_items,
+        'staff_items': staff_items,
+        'monthly_trend': monthly_trend,
+        'tot_cand_billing': tot_cand_billing,
+        'tot_cand_collected': tot_cand_collected,
+        'tot_cand_due': tot_cand_due,
+        'tot_cand_net_profit': tot_cand_net_profit,
+        'tot_agent_revenue': tot_agent_revenue,
+        'tot_agent_comm': tot_agent_comm,
+        'tot_agent_net_profit': tot_agent_net_profit,
+        'year_b2b_tot': year_b2b_tot,
+        'year_b2c_tot': year_b2c_tot,
+        'year_profit_tot': year_profit_tot,
+    }
+    return render(request, 'admin_panel/agency/b2b_analytics.html', context)
+

@@ -337,6 +337,24 @@
             <i class="fa-solid fa-plane-departure"></i><span>Flight Ticket & NOC</span>
         </a>
 
+        <!-- B2B & B2C NETWORK -->
+        <div class="nav-section-title mt-2">B2B & B2C Network</div>
+        <a href="{% url 'admin_panel:b2b_dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'b2b_dashboard' %}active{% endif %}">
+            <i class="fa-solid fa-network-wired"></i><span>B2B Overview</span>
+        </a>
+        <a href="{% url 'admin_panel:b2b_agent_list' %}" class="nav-link {% if 'b2b/agents' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-handshake"></i><span>B2B Agents & Staff</span>
+        </a>
+        <a href="{% url 'admin_panel:b2b_staff_list' %}" class="nav-link {% if 'b2b/staff' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-user-group"></i><span>Agent Staff Accounts</span>
+        </a>
+        <a href="{% url 'admin_panel:b2b_ledger' %}" class="nav-link {% if 'b2b/ledger' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-scale-balanced"></i><span>Payments & Ledger</span>
+        </a>
+        <a href="{% url 'admin_panel:b2b_analytics' %}" class="nav-link {% if 'b2b/analytics' in request.path %}active{% endif %}">
+            <i class="fa-solid fa-chart-line"></i><span>Profit Analysis</span>
+        </a>
+
         <!-- FINANCE & HR OPERATIONS -->
         <div class="nav-section-title mt-2">Finance & HR Operations</div>
 

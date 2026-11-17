@@ -1,0 +1,550 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}B2B Statement: {{ agent.name }}{% endblock %}
+{% block header_title %}Agent Profile & Statement: {{ agent.name }}{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+
+  <!-- Header Card: Agent Bio, Balance & Credit Health -->
+  <div class="card mb-4 border-0 shadow-sm" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
+    <div class="card-body p-4 text-white">
+      <div class="row align-items-center g-3">
+        <div class="col-lg-7">
+          <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle bg-primary text-white fw-bold d-flex align-items-center justify-content-center shadow-sm" style="width:58px;height:58px;font-size:1.4rem;">
+              {{ agent.name|slice:":1"|upper }}
+            </div>
+            <div>
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <h3 class="fw-bold mb-0 text-white">{{ agent.name }}</h3>
+                <span class="badge bg-primary px-2.5 py-1 rounded-pill small">{{ agent.agent_code }}</span>
+                {% if agent.is_active %}
+                  <span class="badge bg-success bg-opacity-25 text-success border border-success-subtle rounded-pill small">Active Partner</span>
+                {% else %}
+                  <span class="badge bg-danger bg-opacity-25 text-danger border border-danger-subtle rounded-pill small">Inactive</span>
+                {% endif %}
+              </div>
+              <div class="text-white-50 small">
+                <i class="fa-solid fa-building me-1"></i>{{ agent.company_name|default:"Direct Agency" }} • 
+                <i class="fa-solid fa-phone ms-2 me-1"></i>{{ agent.phone|default:"—" }} • 
+                <i class="fa-solid fa-envelope ms-2 me-1"></i>{{ agent.email|default:"—" }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-5">
+          <div class="row g-2 text-center">
+            <div class="col-4">
+              <div class="p-2.5 rounded bg-white bg-opacity-10">
+                <div class="text-white-50 small" style="font-size:0.70rem;">TOTAL BILLED</div>
+                <div class="fw-bold fs-6">৳{{ total_billed|floatformat:0 }}</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="p-2.5 rounded bg-success bg-opacity-20 text-success">
+                <div class="text-success-emphasis small" style="font-size:0.70rem;">TOTAL PAID</div>
+                <div class="fw-bold fs-6">৳{{ total_paid|floatformat:0 }}</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="p-2.5 rounded {% if outstanding_balance > 0 %}bg-danger bg-opacity-20 text-danger{% else %}bg-white bg-opacity-10 text-white{% endif %}">
+                <div class="small" style="font-size:0.70rem;">CURRENT DUE</div>
+                <div class="fw-bold fs-6">৳{{ outstanding_balance|floatformat:0 }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="d-flex gap-2 justify-content-end mt-3">
+            <button class="btn btn-success btn-sm fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#paymentModal">
+              <i class="fa-solid fa-money-bill-wave me-1"></i>Record Payment
+            </button>
+            <button class="btn btn-outline-light btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#addStaffModal">
+              <i class="fa-solid fa-user-plus me-1"></i>Add Staff
+            </button>
+            <button class="btn btn-outline-light btn-sm" onclick="window.print()" title="Print Statement">
+              <i class="fa-solid fa-print"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Credit Limit & Commission Bar -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-3">
+      <div class="row align-items-center g-3">
+        <div class="col-md-3 border-end">
+          <div class="small text-muted fw-semibold">Credit Limit</div>
+          <div class="fw-bold fs-5 text-dark">৳{{ credit_limit|floatformat:2 }}</div>
+        </div>
+        <div class="col-md-3 border-end">
+          <div class="small text-muted fw-semibold">Available Credit Margin</div>
+          <div class="fw-bold fs-5 text-success">৳{{ available_credit|floatformat:2 }}</div>
+        </div>
+        <div class="col-md-3 border-end">
+          <div class="small text-muted fw-semibold">Commission Rate</div>
+          <div class="fw-bold fs-5 text-primary">{{ agent.commission_rate|floatformat:1 }}% <span class="text-muted small fw-normal">(৳{{ total_commission|floatformat:2 }} earned)</span></div>
+        </div>
+        <div class="col-md-3">
+          <div class="d-flex justify-content-between small text-muted mb-1">
+            <span>Credit Utilization</span>
+            <span class="fw-bold {% if credit_utilization_pct > 90 %}text-danger{% else %}text-primary{% endif %}">{{ credit_utilization_pct }}%</span>
+          </div>
+          <div class="progress" style="height: 6px;">
+            <div class="progress-bar {% if credit_utilization_pct > 90 %}bg-danger{% elif credit_utilization_pct > 70 %}bg-warning{% else %}bg-primary{% endif %}" role="progressbar" style="width: {{ credit_utilization_pct }}%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs for Detailed Sub-sections -->
+  <ul class="nav nav-pills mb-3 gap-2" id="agentDetailTabs" role="tablist">
+    <li class="nav-item">
+      <button class="nav-link active rounded-pill fw-semibold small" id="candidates-tab" data-bs-toggle="tab" data-bs-target="#candidatesTabPane" type="button">
+        <i class="fa-solid fa-users me-1.5"></i>Connected Candidates ({{ candidates_count }})
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link rounded-pill fw-semibold small" id="staff-tab" data-bs-toggle="tab" data-bs-target="#staffTabPane" type="button">
+        <i class="fa-solid fa-user-group me-1.5"></i>Staff Accounts ({{ staff_members|length }})
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link rounded-pill fw-semibold small" id="visas-tab" data-bs-toggle="tab" data-bs-target="#visasTabPane" type="button">
+        <i class="fa-solid fa-passport me-1.5"></i>Visa Lots ({{ visa_lots|length }})
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link rounded-pill fw-semibold small" id="tickets-tab" data-bs-toggle="tab" data-bs-target="#ticketsTabPane" type="button">
+        <i class="fa-solid fa-plane-departure me-1.5"></i>Flight Tickets ({{ flight_candidates|length }})
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link rounded-pill fw-semibold small" id="ledger-tab" data-bs-toggle="tab" data-bs-target="#ledgerTabPane" type="button">
+        <i class="fa-solid fa-scale-balanced me-1.5"></i>Financial Ledger & Statement ({{ transactions|length }})
+      </button>
+    </li>
+  </ul>
+
+  <!-- Tab Contents -->
+  <div class="tab-content" id="agentDetailTabContent">
+
+    <!-- ── TAB 1: CONNECTED CANDIDATES ───────────────────────────── -->
+    <div class="tab-pane fade show active" id="candidatesTabPane" role="tabpanel">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+          <h6 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-users text-primary me-2"></i>Candidates Registered via {{ agent.name }}</h6>
+          <a href="{% url 'admin_panel:candidate_list' %}" class="btn btn-sm btn-outline-primary rounded-pill">Register New Candidate</a>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size:0.82rem;">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-3">Reg ID</th>
+                  <th>Candidate</th>
+                  <th>Passport</th>
+                  <th>Destination</th>
+                  <th>Staff Member</th>
+                  <th>Visa Lot</th>
+                  <th class="text-end">Package Fee</th>
+                  <th class="text-end">Paid Amount</th>
+                  <th class="text-end">Due Balance</th>
+                  <th class="text-center pe-3">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for c in candidates %}
+                <tr>
+                  <td class="ps-3 fw-bold text-primary">{{ c.registration_id }}</td>
+                  <td>
+                    <div class="fw-semibold text-dark">{{ c.name }}</div>
+                    <div class="text-muted" style="font-size:0.72rem;">{{ c.mobile|default:"—" }}</div>
+                  </td>
+                  <td class="fw-mono">{{ c.passport_number }}</td>
+                  <td>
+                    <span class="badge bg-primary-subtle text-primary rounded-pill px-2 py-0.5">
+                      <i class="fa-solid fa-earth-asia me-1"></i>{{ c.country }}
+                    </span>
+                  </td>
+                  <td>
+                    {% if c.b2b_staff %}
+                      <span class="badge bg-secondary-subtle text-muted rounded-pill px-2 py-0.5">
+                        <i class="fa-solid fa-user-tag me-1"></i>{{ c.b2b_staff.name }}
+                      </span>
+                    {% else %}
+                      <span class="text-muted">—</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if c.visa_lot %}
+                      <span class="small fw-semibold text-dark">{{ c.visa_lot.title }}</span>
+                    {% else %}
+                      <span class="text-muted">—</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-end fw-semibold">৳{{ c.total_amount|floatformat:2 }}</td>
+                  <td class="text-end text-success fw-semibold">৳{{ c.paid_amount|floatformat:2 }}</td>
+                  <td class="text-end">
+                    {% if c.due_amount > 0 %}
+                      <span class="fw-bold text-danger">৳{{ c.due_amount|floatformat:2 }}</span>
+                    {% else %}
+                      <span class="text-success small fw-bold">Paid</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-center pe-3">
+                    <span class="badge {% if c.selection_status == 'selected' %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %} rounded-pill">
+                      {{ c.get_selection_status_display }}
+                    </span>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="10" class="text-center py-4 text-muted">
+                    <i class="fa-solid fa-user-xmark fa-2x mb-2 d-block opacity-25"></i>
+                    No candidates registered under this agent yet.
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB 2: STAFF ACCOUNTS ─────────────────────────────────── -->
+    <div class="tab-pane fade" id="staffTabPane" role="tabpanel">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-user-group text-primary me-2"></i>Staff Members Operating Under {{ agent.name }}</h6>
+            <span class="text-muted small">Sub-agent employees who register candidates and process services</span>
+          </div>
+          <button class="btn btn-sm btn-primary rounded-pill fw-semibold" data-bs-toggle="modal" data-bs-target="#addStaffModal">
+            <i class="fa-solid fa-plus me-1"></i>Add Staff Member
+          </button>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size:0.835rem;">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-3">Staff Code</th>
+                  <th>Full Name</th>
+                  <th>Designation</th>
+                  <th>Contact</th>
+                  <th class="text-center">Candidates Handled</th>
+                  <th class="text-center">Status</th>
+                  <th class="text-center pe-3">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for s in staff_members %}
+                <tr>
+                  <td class="ps-3 fw-bold fw-mono text-primary">{{ s.staff_code }}</td>
+                  <td class="fw-semibold text-dark">{{ s.name }}</td>
+                  <td>{{ s.designation|default:"Visa Executive" }}</td>
+                  <td>
+                    <div><i class="fa-solid fa-phone me-1 text-muted"></i>{{ s.phone|default:"—" }}</div>
+                    {% if s.email %}<div class="text-muted small"><i class="fa-solid fa-envelope me-1"></i>{{ s.email }}</div>{% endif %}
+                  </td>
+                  <td class="text-center">
+                    <span class="badge bg-primary-subtle text-primary rounded-pill px-2.5 py-1">
+                      {{ s.candidates.count }}
+                    </span>
+                  </td>
+                  <td class="text-center">
+                    {% if s.is_active %}
+                      <span class="badge bg-success-subtle text-success rounded-pill px-2 py-0.5">Active</span>
+                    {% else %}
+                      <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-0.5">Inactive</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-center pe-3">
+                    <a href="{% url 'admin_panel:b2b_staff_toggle' s.id %}" class="btn btn-xs btn-outline-secondary p-1 px-2" title="Toggle Status">
+                      <i class="fa-solid fa-power-off"></i>
+                    </a>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="7" class="text-center py-4 text-muted">
+                    No staff accounts created for this agent yet.
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB 3: CONNECTED VISA LOTS ────────────────────────────── -->
+    <div class="tab-pane fade" id="visasTabPane" role="tabpanel">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3 border-0">
+          <h6 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-passport text-primary me-2"></i>Visa Lots Connected to Candidates of {{ agent.name }}</h6>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size:0.835rem;">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-3">Lot #</th>
+                  <th>Title</th>
+                  <th>Country</th>
+                  <th>Type</th>
+                  <th>Price (৳)</th>
+                  <th>Quota</th>
+                  <th>Remaining</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for lot in visa_lots %}
+                <tr>
+                  <td class="ps-3 fw-bold text-primary">{{ lot.lot_number }}</td>
+                  <td class="fw-semibold text-dark">{{ lot.title }}</td>
+                  <td>{{ lot.country }}</td>
+                  <td><span class="badge bg-info-subtle text-info">{{ lot.get_visa_type_display }}</span></td>
+                  <td class="fw-semibold">৳{{ lot.price|floatformat:2 }}</td>
+                  <td>{{ lot.quota }}</td>
+                  <td><span class="badge bg-success-subtle text-success">{{ lot.remaining_visas }} remaining</span></td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="7" class="text-center py-4 text-muted">No visa lots assigned to this agent's candidates.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB 4: FLIGHT TICKETS ─────────────────────────────────── -->
+    <div class="tab-pane fade" id="ticketsTabPane" role="tabpanel">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3 border-0">
+          <h6 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-plane text-primary me-2"></i>Air Tickets Connected to {{ agent.name }}</h6>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size:0.835rem;">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-3">Candidate</th>
+                  <th>Passport</th>
+                  <th>Airline</th>
+                  <th>PNR Number</th>
+                  <th>Flight Date</th>
+                  <th>Ticket Price (৳)</th>
+                  <th class="text-center pe-3">Ticket Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for fc in flight_candidates %}
+                <tr>
+                  <td class="ps-3 fw-bold text-dark">{{ fc.name }} ({{ fc.registration_id }})</td>
+                  <td class="fw-mono">{{ fc.passport_number }}</td>
+                  <td>{{ fc.airline|default:"—" }}</td>
+                  <td class="fw-mono fw-bold text-primary">{{ fc.pnr_number|default:"—" }}</td>
+                  <td>{{ fc.flight_date|date:"d M Y, H:i"|default:"—" }}</td>
+                  <td class="fw-semibold">৳{{ fc.ticket_price|floatformat:2 }}</td>
+                  <td class="text-center pe-3">
+                    <span class="badge bg-primary-subtle text-primary rounded-pill">
+                      {{ fc.get_ticket_status_display }}
+                    </span>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="7" class="text-center py-4 text-muted">No flight tickets issued for this agent's candidates yet.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB 5: FINANCIAL LEDGER & STATEMENT ───────────────────── -->
+    <div class="tab-pane fade" id="ledgerTabPane" role="tabpanel">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-scale-balanced text-primary me-2"></i>Running Account Statement</h6>
+            <span class="text-muted small">Complete debit & credit audit trail for {{ agent.name }}</span>
+          </div>
+          <button class="btn btn-sm btn-success rounded-pill fw-semibold" data-bs-toggle="modal" data-bs-target="#paymentModal">
+            <i class="fa-solid fa-plus me-1"></i>Record Settlement
+          </button>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size:0.82rem;">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-3">Date</th>
+                  <th>Transaction Description</th>
+                  <th>Candidate / Ref</th>
+                  <th>Staff Member</th>
+                  <th class="text-end">Debit (৳)</th>
+                  <th class="text-end">Credit (৳)</th>
+                  <th class="text-end pe-3">Balance After</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for txn in transactions %}
+                <tr>
+                  <td class="ps-3 text-muted text-nowrap">{{ txn.txn_date|date:"d M Y" }}</td>
+                  <td>
+                    <div class="fw-semibold text-dark">{{ txn.description }}</div>
+                    <span class="badge bg-secondary-subtle text-secondary" style="font-size:0.70rem;">{{ txn.get_txn_type_display }}</span>
+                  </td>
+                  <td>
+                    {% if txn.candidate %}
+                      <span class="fw-bold text-primary">{{ txn.candidate.registration_id }}</span>
+                    {% elif txn.reference_no %}
+                      <span class="text-muted">{{ txn.reference_no }}</span>
+                    {% else %}
+                      <span class="text-muted">—</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ txn.staff.name|default:"—" }}</td>
+                  <td class="text-end">
+                    {% if txn.txn_type in 'debit,service_charge,adjustment_debit' %}
+                      <span class="fw-bold text-dark">৳{{ txn.amount|floatformat:2 }}</span>
+                    {% else %}
+                      <span class="text-muted">—</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-end">
+                    {% if txn.txn_type in 'payment_received,commission_credit,adjustment_credit' %}
+                      <span class="fw-bold text-success">+৳{{ txn.amount|floatformat:2 }}</span>
+                    {% else %}
+                      <span class="text-muted">—</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-end pe-3 fw-bold text-primary">
+                    ৳{{ txn.balance_after|floatformat:2 }}
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="7" class="text-center py-4 text-muted">No transactions recorded in ledger.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Payment Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="post" action="{% url 'admin_panel:b2b_agent_add_payment' agent.id %}" class="modal-content border-0 shadow-lg">
+      {% csrf_token %}
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title fw-bold"><i class="fa-solid fa-coins me-2"></i>Record Settlement: {{ agent.name }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-light border d-flex justify-content-between align-items-center py-2 mb-3">
+          <span class="small text-muted">Current Balance Due:</span>
+          <span class="fw-bold text-danger fs-6">৳{{ outstanding_balance|floatformat:2 }}</span>
+        </div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Payment Amount (৳) *</label>
+            <input type="number" step="0.01" name="amount" class="form-control" placeholder="0.00" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Payment Date *</label>
+            <input type="date" name="payment_date" class="form-control" required value="{% now 'Y-m-d' %}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Payment Method</label>
+            <select name="payment_method" class="form-select">
+              <option value="Bank Transfer">Bank Transfer</option>
+              <option value="Cash">Cash</option>
+              <option value="Cheque">Cheque</option>
+              <option value="bKash / Mobile Banking">bKash / Mobile Banking</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Reference / Slip #</label>
+            <input type="text" name="reference_no" class="form-control" placeholder="Bank Txn / Slip #">
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Processed By Staff Member</label>
+            <select name="staff_id" class="form-select">
+              <option value="">— Direct Agent Settlement —</option>
+              {% for s in staff_members %}
+                <option value="{{ s.id }}">{{ s.name }} ({{ s.designation|default:'Staff' }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Notes / Remarks</label>
+            <textarea name="notes" class="form-control" rows="2" placeholder="Settlement notes..."></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-success fw-bold"><i class="fa-solid fa-check me-1"></i>Post Payment</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add Staff Modal -->
+<div class="modal fade" id="addStaffModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="post" action="{% url 'admin_panel:b2b_staff_create' agent.id %}" class="modal-content border-0 shadow-lg">
+      {% csrf_token %}
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-plus me-2"></i>Add Staff for {{ agent.name }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Staff Full Name *</label>
+            <input type="text" name="name" class="form-control" placeholder="Staff Name" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Phone Number</label>
+            <input type="text" name="phone" class="form-control" placeholder="+8801...">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Email Address</label>
+            <input type="email" name="email" class="form-control" placeholder="staff@example.com">
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Designation / Role</label>
+            <input type="text" name="designation" class="form-control" placeholder="e.g. Visa Executive, Flight Officer" value="Visa Processing Executive">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary fw-bold"><i class="fa-solid fa-save me-1"></i>Save Staff</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

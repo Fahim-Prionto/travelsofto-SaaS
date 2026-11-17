@@ -27,7 +27,12 @@ from django.utils import timezone
 
 
 class AgencyAgent(models.Model):
-    """Recruitment or travel sub-agent."""
+    """Recruitment or travel sub-agent (supports B2B and B2C classification)."""
+
+    class AgentType(models.TextChoices):
+        B2B = 'b2b', 'B2B (Business Agent)'
+        B2C = 'b2c', 'B2C (Direct Client)'
+
     name = models.CharField(max_length=200)
     agent_code = models.CharField(max_length=50, unique=True, blank=True)
     phone = models.CharField(max_length=50, blank=True)
@@ -39,17 +44,121 @@ class AgencyAgent(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # B2B / B2C fields
+    agent_type = models.CharField(
+        max_length=10, choices=AgentType.choices, default=AgentType.B2B,
+        help_text='B2B = business agent who brings clients; B2C = direct client'
+    )
+    credit_limit = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+        help_text='Maximum credit the agent can carry before payment is required'
+    )
+    outstanding_balance = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+        help_text='Total unpaid dues from this agent (auto-calculated)'
+    )
+    commission_earned = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+        help_text='Cumulative commission credited to this agent'
+    )
+    nid_number = models.CharField(max_length=50, blank=True, help_text='National ID / Trade License')
+    notes = models.TextField(blank=True)
+
     class Meta:
         ordering = ['name']
 
     def __str__(self):
-        return f"{self.name} ({self.agent_code or 'Agent'})"
+        return f"{self.name} ({self.agent_code or 'Agent'}) [{self.get_agent_type_display()}]"
 
     def save(self, *args, **kwargs):
         if not self.agent_code:
             import random, string
             self.agent_code = 'AG-' + ''.join(random.choices(string.digits, k=5))
         super().save(*args, **kwargs)
+
+    def recalculate_outstanding(self, using='default'):
+        """Recalculate outstanding balance from B2BTransactions."""
+        debits = B2BTransaction.objects.using(using).filter(
+            agent=self, txn_type__in=['debit', 'service_charge']
+        ).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
+        credits = B2BTransaction.objects.using(using).filter(
+            agent=self, txn_type__in=['payment_received', 'commission_credit', 'adjustment_credit']
+        ).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
+        self.outstanding_balance = max(Decimal('0.00'), Decimal(str(debits)) - Decimal(str(credits)))
+        self.save(update_fields=['outstanding_balance'])
+
+
+class B2BAgentStaff(models.Model):
+    """Staff member who operates under a B2B Agent."""
+    agent = models.ForeignKey(
+        AgencyAgent, on_delete=models.CASCADE, related_name='staff_members',
+        limit_choices_to={'agent_type': 'b2b'}
+    )
+    name = models.CharField(max_length=200)
+    staff_code = models.CharField(max_length=50, unique=True, blank=True)
+    phone = models.CharField(max_length=50, blank=True)
+    email = models.EmailField(blank=True)
+    designation = models.CharField(max_length=100, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['agent__name', 'name']
+        verbose_name = 'B2B Agent Staff'
+        verbose_name_plural = 'B2B Agent Staff Members'
+
+    def __str__(self):
+        return f"{self.name} — Staff of {self.agent.name}"
+
+    def save(self, *args, **kwargs):
+        if not self.staff_code:
+            import random, string
+            self.staff_code = 'ST-' + ''.join(random.choices(string.digits, k=5))
+        super().save(*args, **kwargs)
+
+
+class B2BTransaction(models.Model):
+    """
+    Financial ledger record for B2B agent transactions.
+    Tracks debits (service charges) and credits (payments, commissions, adjustments).
+    """
+
+    class TxnType(models.TextChoices):
+        DEBIT = 'debit', 'Debit (Service Charge)'
+        SERVICE_CHARGE = 'service_charge', 'Candidate Service Charge'
+        PAYMENT_RECEIVED = 'payment_received', 'Payment Received from Agent'
+        COMMISSION_CREDIT = 'commission_credit', 'Commission Credit'
+        ADJUSTMENT_CREDIT = 'adjustment_credit', 'Adjustment Credit'
+        ADJUSTMENT_DEBIT = 'adjustment_debit', 'Adjustment Debit'
+
+    agent = models.ForeignKey(
+        AgencyAgent, on_delete=models.CASCADE, related_name='b2b_transactions'
+    )
+    staff = models.ForeignKey(
+        B2BAgentStaff, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='transactions', help_text='Staff member who processed this transaction'
+    )
+    candidate = models.ForeignKey(
+        'Candidate', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='b2b_transactions', help_text='Linked candidate (if service charge)'
+    )
+    txn_type = models.CharField(max_length=30, choices=TxnType.choices)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    balance_after = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+        help_text='Outstanding balance snapshot after this transaction'
+    )
+    description = models.CharField(max_length=300, blank=True)
+    reference_no = models.CharField(max_length=100, blank=True)
+    txn_date = models.DateField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-txn_date', '-created_at']
+        verbose_name = 'B2B Transaction'
+
+    def __str__(self):
+        return f"{self.get_txn_type_display()} | {self.agent.name} | ৳{self.amount} | {self.txn_date}"
 
 
 class AgencyCompany(models.Model):
@@ -250,6 +359,24 @@ class Candidate(models.Model):
     selection_grade = models.ForeignKey(SelectionGrade, on_delete=models.SET_NULL, null=True, blank=True)
     visa_lot = models.ForeignKey(VisaLot, on_delete=models.SET_NULL, null=True, blank=True, related_name='candidates')
     interview_slot = models.CharField(max_length=100, blank=True, help_text='e.g. Slot A - 10:00 AM')
+
+    # B2B / B2C Classification
+    client_type = models.CharField(
+        max_length=10,
+        choices=[('b2b', 'B2B (Via Agent)'), ('b2c', 'B2C (Direct)')],
+        default='b2c',
+        help_text='B2B = referred by an agent; B2C = direct walk-in'
+    )
+    b2b_agent = models.ForeignKey(
+        AgencyAgent, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='b2b_candidates',
+        help_text='The B2B agent who referred this candidate (only when client_type=b2b)'
+    )
+    b2b_staff = models.ForeignKey(
+        B2BAgentStaff, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='candidates',
+        help_text='The agent staff member who registered this candidate'
+    )
 
     # 1. Selection & Assessment Stages
     selection_status = models.CharField(max_length=20, choices=SelectionStatus.choices, default=SelectionStatus.PENDING)

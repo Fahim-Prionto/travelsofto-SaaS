@@ -41,6 +41,21 @@ urlpatterns = [
     # Master Agency Settings
     path('master-settings/', agency_views.master_settings, name='master_settings'),
 
+    # B2B & B2C Network Management
+    path('b2b/', agency_views.b2b_dashboard, name='b2b_dashboard'),
+    path('b2b/agents/', agency_views.b2b_agent_list, name='b2b_agent_list'),
+    path('b2b/agents/create/', agency_views.b2b_agent_create, name='b2b_agent_create'),
+    path('b2b/agents/<int:pk>/', agency_views.b2b_agent_detail, name='b2b_agent_detail'),
+    path('b2b/agents/<int:pk>/edit/', agency_views.b2b_agent_edit, name='b2b_agent_edit'),
+    path('b2b/agents/<int:pk>/add-payment/', agency_views.b2b_agent_add_payment, name='b2b_agent_add_payment'),
+    path('b2b/agents/<int:pk>/staff/create/', agency_views.b2b_staff_create, name='b2b_staff_create'),
+    path('b2b/staff/', agency_views.b2b_staff_list, name='b2b_staff_list'),
+    path('b2b/staff/<int:pk>/toggle/', agency_views.b2b_staff_toggle, name='b2b_staff_toggle'),
+    path('b2b/staff/<int:pk>/edit/', agency_views.b2b_staff_edit, name='b2b_staff_edit'),
+    path('b2b/ledger/', agency_views.b2b_ledger, name='b2b_ledger'),
+    path('b2b/analytics/', agency_views.b2b_analytics, name='b2b_analytics'),
+    path('api/b2b-staff/<int:agent_id>/', agency_views.api_b2b_staff_by_agent, name='api_b2b_staff_by_agent'),
+
     # Core Travel Packages & Visa Services
     path('packages/', admin_views.package_list, name='package_list'),
     path('packages/create/', admin_views.package_create, name='package_create'),
