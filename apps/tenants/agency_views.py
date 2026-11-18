@@ -2014,12 +2014,23 @@ def b2b_dashboard(request):
     db = get_tenant_db(request)
     ensure_default_settings(db)
 
+    is_staff = request.user.is_tenant_staff
+
     # 1. High level counters
-    total_b2b_agents = AgencyAgent.objects.using(db).filter(agent_type='b2b', is_active=True).count()
-    total_b2b_staff = B2BAgentStaff.objects.using(db).filter(is_active=True).count()
-    
-    b2b_cand_qs = Candidate.objects.using(db).filter(client_type='b2b')
-    b2c_cand_qs = Candidate.objects.using(db).filter(client_type='b2c')
+    if is_staff:
+        agents_base = AgencyAgent.objects.using(db).filter(agent_type='b2b', assigned_staff_id=request.user.id, is_active=True)
+        assigned_agent_ids = list(agents_base.values_list('id', flat=True))
+        b2b_cand_qs = Candidate.objects.using(db).filter(
+            Q(agency_staff_id=request.user.id) | Q(b2b_agent_id__in=assigned_agent_ids)
+        )
+        b2c_cand_qs = Candidate.objects.none()
+    else:
+        agents_base = AgencyAgent.objects.using(db).filter(agent_type='b2b', is_active=True)
+        b2b_cand_qs = Candidate.objects.using(db).filter(client_type='b2b')
+        b2c_cand_qs = Candidate.objects.using(db).filter(client_type='b2c')
+
+    total_b2b_agents = agents_base.count()
+    total_b2b_staff = get_tenant_agency_staff(request)
 
     b2b_candidates_count = b2b_cand_qs.count()
     b2c_candidates_count = b2c_cand_qs.count()
@@ -2046,7 +2057,7 @@ def b2b_dashboard(request):
     total_revenue_collected = b2b_collected + b2c_collected
 
     # Top B2B agents by volume
-    agents = list(AgencyAgent.objects.using(db).filter(agent_type='b2b', is_active=True))
+    agents = list(agents_base)
     agents_summary = []
     for ag in agents:
         cands = Candidate.objects.using(db).filter(Q(b2b_agent=ag) | Q(agent=ag))
@@ -2062,16 +2073,24 @@ def b2b_dashboard(request):
             'paid': paid,
             'due': due,
             'outstanding': ag.outstanding_balance or due,
-            'staff_count': ag.staff_members.count(),
+            'staff_count': 1 if ag.assigned_staff_id else 0,
         })
     agents_summary.sort(key=lambda x: x['billed'], reverse=True)
 
     # Recent Transactions
-    recent_txns = list(
-        B2BTransaction.objects.using(db)
-        .select_related('agent', 'staff', 'candidate')
-        .order_by('-txn_date', '-created_at')[:12]
-    )
+    if is_staff:
+        recent_txns = list(
+            B2BTransaction.objects.using(db)
+            .filter(Q(agency_staff_id=request.user.id) | Q(agent__assigned_staff_id=request.user.id))
+            .select_related('agent', 'candidate')
+            .order_by('-txn_date', '-created_at')[:12]
+        )
+    else:
+        recent_txns = list(
+            B2BTransaction.objects.using(db)
+            .select_related('agent', 'candidate')
+            .order_by('-txn_date', '-created_at')[:12]
+        )
 
     context = {
         'total_b2b_agents': total_b2b_agents,

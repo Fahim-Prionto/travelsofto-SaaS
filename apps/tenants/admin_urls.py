@@ -89,6 +89,7 @@ urlpatterns = [
 
     path('staff/', admin_views.staff_list, name='staff_list'),
     path('staff/create/', admin_views.staff_create, name='staff_create'),
+    path('staff/<int:pk>/edit/', admin_views.staff_edit, name='staff_edit'),
     path('staff/<int:pk>/toggle-ban/', admin_views.staff_toggle_ban, name='staff_toggle_ban'),
     path('staff/<int:pk>/delete/', admin_views.staff_delete, name='staff_delete'),
 

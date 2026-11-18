@@ -22,6 +22,7 @@
                     <th>Staff Name &amp; Email</th>
                     <th>Mobile Phone</th>
                     <th>Role</th>
+                    <th class="text-center">Assigned B2B Agents</th>
                     <th>Account Status</th>
                     <th>Date Added</th>
                     <th class="text-end">Actions</th>
@@ -47,6 +48,13 @@
                                 <i class="fa-solid fa-user-tie me-1"></i> Tenant Staff
                             </span>
                         </td>
+                        <td class="text-center">
+                            <a href="{% url 'admin_panel:b2b_agent_list' %}?staff_id={{ staff.pk }}"
+                               class="badge bg-primary-subtle text-primary rounded-pill px-2.5 py-1.5 text-decoration-none fw-semibold"
+                               title="Click to view B2B agents assigned to this staff">
+                                <i class="fa-solid fa-handshake me-1"></i>{{ staff.assigned_agents_count }} Agents
+                            </a>
+                        </td>
                         <td>
                             {% if staff.is_banned %}
                                 <span class="badge-status badge-status-suspended">Suspended</span>
@@ -56,7 +64,14 @@
                         </td>
                         <td><small class="text-muted fw-semibold">{{ staff.date_joined|date:"M d, Y" }}</small></td>
                         <td class="text-end">
-                            <div class="d-flex justify-content-end gap-2">
+                            <div class="d-flex justify-content-end gap-2 flex-wrap">
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#editStaffModal{{ staff.pk }}"
+                                        title="Edit staff details and password">
+                                    <i class="fa-solid fa-pen-to-square me-1"></i> Edit
+                                </button>
                                 <a href="{% url 'admin_panel:staff_toggle_ban' staff.pk %}"
                                    class="btn btn-sm btn-outline-{% if staff.is_banned %}success{% else %}warning{% endif %} rounded-pill px-3"
                                    title="{% if staff.is_banned %}Activate{% else %}Suspend{% endif %} staff account">
@@ -77,7 +92,7 @@
                     </tr>
                 {% empty %}
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-5">
+                        <td colspan="7" class="text-center text-muted py-5">
                             <i class="fa-solid fa-user-tie fs-1 mb-2 text-secondary d-block"></i>
                             <p class="mb-1 fw-semibold">No staff members added yet.</p>
                             <small>Add your first staff member to help manage the agency platform.</small>
@@ -88,4 +103,88 @@
         </table>
     </div>
 </div>
+
+<!-- Edit Staff Modals -->
+{% for staff in staff_members %}
+<div class="modal fade" id="editStaffModal{{ staff.pk }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <form method="post" action="{% url 'admin_panel:staff_edit' staff.pk %}" class="modal-content border-0 shadow-lg">
+            {% csrf_token %}
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold">
+                    <i class="fa-solid fa-user-pen me-2"></i>Edit Staff Member: {{ staff.full_name|default:staff.email }}
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-dark">First Name</label>
+                        <input type="text" name="first_name" class="form-control" value="{{ staff.first_name }}" placeholder="First Name">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-dark">Last Name</label>
+                        <input type="text" name="last_name" class="form-control" value="{{ staff.last_name }}" placeholder="Last Name">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-semibold text-dark">Login Email Address *</label>
+                        <input type="email" name="email" class="form-control" value="{{ staff.email }}" required>
+                        <div class="form-text small">Staff will use this email address to log in to the agency dashboard.</div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-semibold text-dark">Mobile Phone</label>
+                        <input type="text" name="mobile" class="form-control" value="{{ staff.mobile }}" placeholder="+8801...">
+                    </div>
+                    <div class="col-12">
+                        <div class="alert alert-light border rounded-3 p-3 mb-0">
+                            <label class="form-label small fw-bold text-dark d-flex align-items-center gap-1.5 mb-1">
+                                <i class="fa-solid fa-key text-primary"></i> Reset Password (Optional)
+                            </label>
+                            <div class="input-group">
+                                <input type="password" name="new_password" id="staffNewPwd{{ staff.pk }}" class="form-control" placeholder="Leave blank to keep existing password" autocomplete="new-password">
+                                <button class="btn btn-outline-secondary btn-sm" type="button" onclick="toggleStaffPwd('staffNewPwd{{ staff.pk }}', 'staffNewPwdEye{{ staff.pk }}')">
+                                    <i class="fa-solid fa-eye" id="staffNewPwdEye{{ staff.pk }}"></i>
+                                </button>
+                            </div>
+                            <div class="form-text small text-muted">Min. 6 characters. Leave empty if you do not want to change their password.</div>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="p-2.5 rounded bg-light border d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="small fw-bold text-dark"><i class="fa-solid fa-handshake text-primary me-1"></i>Assigned B2B Agents</div>
+                                <div class="text-muted small">{{ staff.assigned_agents_count }} agent(s) currently managed by this staff</div>
+                            </div>
+                            <a href="{% url 'admin_panel:b2b_agent_list' %}?staff_id={{ staff.pk }}" class="btn btn-xs btn-outline-primary fw-semibold px-2.5 py-1" style="font-size:0.75rem;">
+                                View Agents <i class="fa-solid fa-arrow-right ms-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-0">
+                <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold">
+                    <i class="fa-solid fa-save me-1"></i> Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
+
+<script>
+function toggleStaffPwd(inputId, iconId) {
+    const inp = document.getElementById(inputId);
+    const ico = document.getElementById(iconId);
+    if (!inp) return;
+    if (inp.type === 'password') {
+        inp.type = 'text';
+        if (ico) ico.className = 'fa-solid fa-eye-slash';
+    } else {
+        inp.type = 'password';
+        if (ico) ico.className = 'fa-solid fa-eye';
+    }
+}
+</script>
 {% endblock %}

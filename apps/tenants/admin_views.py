@@ -749,15 +749,25 @@ def customer_toggle_ban(request, pk):
 # ── STAFF MANAGEMENT ──────────────────────────────────────────────────────────
 @login_required
 def staff_list(request):
-    """List all staff members for this agency."""
+    """List all staff members for this agency with assigned B2B agents count."""
     # Only tenant admin can manage staff
     if not (request.user.is_tenant_admin or request.user.is_super_admin):
         messages.error(request, 'You do not have permission to manage staff.')
         return redirect('admin_panel:dashboard')
-    staff_members = User.objects.filter(
+    staff_members = list(User.objects.filter(
         tenant_id=request.user.tenant_id,
         role=User.Role.TENANT_STAFF,
-    )
+    ).order_by('-date_joined'))
+
+    db = get_tenant_db(request)
+    try:
+        from apps.tenants.agency_models import AgencyAgent
+        for s in staff_members:
+            s.assigned_agents_count = AgencyAgent.objects.using(db).filter(assigned_staff_id=s.id).count()
+    except Exception:
+        for s in staff_members:
+            s.assigned_agents_count = 0
+
     return render(request, 'admin_panel/staff/list.html', {'staff_members': staff_members})
 
 
@@ -803,6 +813,61 @@ def staff_create(request):
         return redirect('admin_panel:staff_list')
 
     return render(request, 'admin_panel/staff/create.html')
+
+
+@login_required
+def staff_edit(request, pk):
+    """Agency Admin updates a staff member profile, contact info, and resets password."""
+    if not (request.user.is_tenant_admin or request.user.is_super_admin):
+        messages.error(request, 'You do not have permission to edit staff accounts.')
+        return redirect('admin_panel:dashboard')
+
+    staff = get_object_or_404(User, pk=pk, tenant_id=request.user.tenant_id, role=User.Role.TENANT_STAFF)
+
+    if request.method == 'POST':
+        first_name = request.POST.get('first_name', '').strip()
+        last_name  = request.POST.get('last_name', '').strip()
+        email      = request.POST.get('email', '').strip()
+        mobile     = request.POST.get('mobile', '').strip()
+        new_password = request.POST.get('new_password', '').strip()
+
+        if not email:
+            messages.error(request, 'Email address is required.')
+            return redirect('admin_panel:staff_list')
+
+        if email.lower() != staff.email.lower():
+            if User.objects.filter(email__iexact=email).exclude(pk=staff.pk).exists():
+                messages.error(request, f'An account with email "{email}" already exists.')
+                return redirect('admin_panel:staff_list')
+            staff.email = email
+
+        staff.first_name = first_name
+        staff.last_name = last_name
+        staff.mobile = mobile
+
+        if new_password:
+            if len(new_password) < 6:
+                messages.error(request, 'Password must be at least 6 characters.')
+                return redirect('admin_panel:staff_list')
+            staff.set_password(new_password)
+
+        staff.save()
+
+        # Update cached staff name and email in tenant AgencyAgent
+        try:
+            db = get_tenant_db(request)
+            from apps.tenants.agency_models import AgencyAgent
+            AgencyAgent.objects.using(db).filter(assigned_staff_id=staff.id).update(
+                assigned_staff_name=staff.get_full_name() or staff.email,
+                assigned_staff_email=staff.email
+            )
+        except Exception:
+            pass
+
+        messages.success(request, f'Staff member "{staff.email}" updated successfully!')
+        return redirect('admin_panel:staff_list')
+
+    return redirect('admin_panel:staff_list')
 
 
 @login_required
