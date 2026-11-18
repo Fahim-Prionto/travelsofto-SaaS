@@ -47,23 +47,35 @@
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-body p-3">
       <form method="get" class="row g-2 align-items-center">
-        <div class="col-12 col-md-5">
+        <div class="col-12 {% if not is_staff_view %}col-md-4{% else %}col-md-7{% endif %}">
           <div class="input-group">
             <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-search text-muted"></i></span>
             <input type="text" name="q" value="{{ query }}" class="form-control border-start-0 ps-0" placeholder="Search by agent name, code, company, phone, email...">
           </div>
         </div>
+        {% if not is_staff_view %}
+        <div class="col-6 col-md-3">
+          <select name="staff_id" class="form-select">
+            <option value="">All Agency Staff</option>
+            {% for st in staff_list %}
+              <option value="{{ st.id }}" {% if selected_staff_id == st.id|stringformat:"s" %}selected{% endif %}>
+                {{ st.get_full_name|default:st.email }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
         <div class="col-6 col-md-2">
           <button type="submit" class="btn btn-primary w-100 fw-semibold">
             <i class="fa-solid fa-filter me-1"></i>Filter
           </button>
         </div>
-        <div class="col-6 col-md-2">
-          <a href="{% url 'admin_panel:b2b_agent_list' %}" class="btn btn-outline-secondary w-100">
-            <i class="fa-solid fa-rotate-left me-1"></i>Reset
+        <div class="col-6 {% if not is_staff_view %}col-md-1{% else %}col-md-2{% endif %}">
+          <a href="{% url 'admin_panel:b2b_agent_list' %}" class="btn btn-outline-secondary w-100" title="Reset Filters">
+            <i class="fa-solid fa-rotate-left"></i>
           </a>
         </div>
-        <div class="col-12 col-md-3 text-md-end">
+        <div class="col-6 {% if not is_staff_view %}col-md-2{% else %}col-md-3{% endif %} text-md-end">
           <button type="button" class="btn btn-accent w-100 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#addAgentModal">
             <i class="fa-solid fa-user-plus me-1.5"></i>Add B2B Agent
           </button>
@@ -89,7 +101,7 @@
               <th class="ps-3">Agent Name & Code</th>
               <th>Company & Contact</th>
               <th class="text-center">Commission</th>
-              <th class="text-center">Staff</th>
+              <th class="text-center">Assigned Staff</th>
               <th class="text-center">Candidates</th>
               <th class="text-end">Total Billed</th>
               <th class="text-end">Paid Amount</th>
@@ -126,9 +138,15 @@
                 </span>
               </td>
               <td class="text-center">
-                <a href="{% url 'admin_panel:b2b_staff_list' %}?agent_id={{ item.agent.id }}" class="badge bg-secondary-subtle text-secondary rounded-pill text-decoration-none px-2 py-1" title="View Staff">
-                  <i class="fa-solid fa-users me-1"></i>{{ item.staff_count }}
-                </a>
+                {% if item.agent.assigned_staff_name %}
+                  <span class="badge bg-primary-subtle text-primary rounded-pill px-2 py-1" title="Agency Staff: {{ item.agent.assigned_staff_email }}">
+                    <i class="fa-solid fa-user-tie me-1"></i>{{ item.agent.assigned_staff_name }}
+                  </span>
+                {% else %}
+                  <span class="badge bg-secondary-subtle text-muted rounded-pill px-2 py-1">
+                    <i class="fa-solid fa-user-xmark me-1"></i>Unassigned
+                  </span>
+                {% endif %}
               </td>
               <td class="text-center">
                 <a href="{% url 'admin_panel:candidate_list' %}?client_type=b2b&agent_id={{ item.agent.id }}" class="badge bg-primary-subtle text-primary rounded-pill text-decoration-none px-2 py-1" title="View Candidates">
@@ -169,22 +187,19 @@
                         <i class="fa-solid fa-money-bill-wave me-2 text-success"></i>Record Payment / Settlement
                       </button>
                     </li>
-                    <li>
-                      <button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#addStaffModal{{ item.agent.id }}">
-                        <i class="fa-solid fa-user-plus me-2 text-info"></i>Add Staff Member
-                      </button>
-                    </li>
                     <li><hr class="dropdown-divider"></li>
                     <li>
                       <button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#editAgentModal{{ item.agent.id }}">
                         <i class="fa-solid fa-pen-to-square me-2 text-secondary"></i>Edit Agent Details
                       </button>
                     </li>
+                    {% if not is_staff_view %}
                     <li>
                       <button class="dropdown-item text-danger" type="button" data-bs-toggle="modal" data-bs-target="#deleteAgentModal{{ item.agent.id }}">
                         <i class="fa-solid fa-trash me-2 text-danger"></i>Delete Agent
                       </button>
                     </li>
+                    {% endif %}
                   </ul>
                 </div>
               </td>
@@ -252,23 +267,27 @@
             <textarea name="address" class="form-control" rows="2" placeholder="Full office address..."></textarea>
           </div>
 
-          <!-- Optional Initial Staff Member Creation -->
+          {% if not is_staff_view %}
           <div class="col-12 bg-light p-3 rounded border">
-            <label class="form-label fw-bold text-dark small mb-2 d-flex align-items-center gap-1.5">
-              <i class="fa-solid fa-user-tag text-primary"></i> Create Primary Staff Member Under This Agent (Optional)
+            <label class="form-label small fw-bold text-primary mb-1">
+              <i class="fa-solid fa-user-tie me-1"></i>Assign to Agency Staff Member
             </label>
-            <div class="row g-2">
-              <div class="col-md-4">
-                <input type="text" name="initial_staff_name" class="form-control form-control-sm" placeholder="Staff Name">
-              </div>
-              <div class="col-md-4">
-                <input type="text" name="initial_staff_phone" class="form-control form-control-sm" placeholder="Staff Phone">
-              </div>
-              <div class="col-md-4">
-                <input type="text" name="initial_staff_designation" class="form-control form-control-sm" placeholder="Designation (e.g. Visa Executive)">
-              </div>
+            <select name="assigned_staff_id" class="form-select">
+              <option value="">-- Unassigned (Direct Agency Admin Control) --</option>
+              {% for st in staff_list %}
+                <option value="{{ st.id }}">{{ st.get_full_name|default:st.email }} ({{ st.email }})</option>
+              {% endfor %}
+            </select>
+            <div class="form-text small text-muted">This staff member will have exclusive dashboard access to manage this B2B agent.</div>
+          </div>
+          {% else %}
+          <div class="col-12">
+            <div class="alert alert-info py-2 px-3 small mb-0">
+              <i class="fa-solid fa-circle-info me-1"></i>
+              This B2B agent will be assigned to your staff account (<strong>{{ request.user.get_full_name|default:request.user.email }}</strong>).
             </div>
           </div>
+          {% endif %}
 
           <div class="col-12">
             <label class="form-label small fw-semibold">Internal Notes / Terms</label>
@@ -433,6 +452,30 @@
             <label class="form-label small fw-semibold">Internal Notes</label>
             <textarea name="notes" class="form-control" rows="2">{{ item.agent.notes }}</textarea>
           </div>
+          {% if not is_staff_view %}
+          <div class="col-12 bg-light p-3 rounded border border-primary border-opacity-25">
+            <label class="form-label small fw-bold text-primary mb-1">
+              <i class="fa-solid fa-arrows-rotate me-1"></i>Reassign to Agency Staff Member
+            </label>
+            <select name="assigned_staff_id" class="form-select border-primary">
+              <option value="none" {% if not item.agent.assigned_staff_id %}selected{% endif %}>-- Unassigned (Direct Agency Admin Control) --</option>
+              {% for st in staff_list %}
+                <option value="{{ st.id }}" {% if item.agent.assigned_staff_id == st.id %}selected{% endif %}>
+                  {{ st.get_full_name|default:st.email }} ({{ st.email }})
+                </option>
+              {% endfor %}
+            </select>
+            <div class="form-text small text-muted">
+              Only Agency Admin can reassign this agent to another staff member. Two staff cannot access the same agent simultaneously.
+            </div>
+          </div>
+          {% else %}
+          <div class="col-12">
+            <span class="badge bg-primary-subtle text-primary px-3 py-2 small">
+              <i class="fa-solid fa-user-tie me-1"></i>Assigned to your staff account: <strong>{{ item.agent.assigned_staff_name|default:request.user.email }}</strong>
+            </span>
+          </div>
+          {% endif %}
           <div class="col-12">
             <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" name="is_active" id="agentActive{{ item.agent.id }}" {% if item.agent.is_active %}checked{% endif %}>

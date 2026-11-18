@@ -291,42 +291,42 @@
     <div class="tab-pane fade" id="staffTabPane" role="tabpanel">
       <div class="card border-0 shadow-sm">
         <div class="card-header bg-white py-3 border-0">
-          <h6 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-user-group text-primary me-2"></i>Staff-Wise Performance & Revenue Contribution</h6>
-          <span class="text-muted small">Tracking individual staff members under B2B agents and their business contribution</span>
+          <h6 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-user-tie text-primary me-2"></i>Agency Staff Performance & Monthly Profit Contribution</h6>
+          <span class="text-muted small">Tracking individual Agency Staff members, assigned B2B agents, candidate operations, and business profit</span>
         </div>
         <div class="card-body p-0">
           <div class="table-responsive">
             <table class="table table-hover align-middle mb-0" style="font-size:0.835rem;">
               <thead class="table-light">
                 <tr>
-                  <th class="ps-3">Staff Code</th>
-                  <th>Staff Full Name</th>
-                  <th>B2B Agent</th>
-                  <th>Designation</th>
+                  <th class="ps-3">Agency Staff Member</th>
+                  <th>Contact Email</th>
+                  <th class="text-center">Assigned B2B Agents</th>
                   <th class="text-center">Candidates Handled</th>
                   <th class="text-end">Revenue Volume</th>
-                  <th class="text-end">Collected Through Staff</th>
-                  <th class="text-end pe-3">Profit Contribution</th>
+                  <th class="text-end">Collected Amount</th>
+                  <th class="text-end">Commission Paid</th>
+                  <th class="text-end pe-3">Net Profit Contribution</th>
                 </tr>
               </thead>
               <tbody>
                 {% for st in staff_items %}
                 <tr>
-                  <td class="ps-3 fw-mono fw-bold text-primary">{{ st.staff.staff_code }}</td>
-                  <td class="fw-semibold text-dark">{{ st.staff.name }}</td>
-                  <td>
-                    <a href="{% url 'admin_panel:b2b_agent_detail' st.staff.agent.id %}" class="text-dark text-decoration-none fw-semibold">
-                      {{ st.staff.agent.name }}
-                    </a>
+                  <td class="ps-3">
+                    <div class="fw-bold text-dark"><i class="fa-solid fa-user-tie me-1.5 text-primary"></i>{{ st.name }}</div>
                   </td>
-                  <td>{{ st.staff.designation|default:"Visa Executive" }}</td>
+                  <td>{{ st.email }}</td>
+                  <td class="text-center">
+                    <span class="badge bg-info-subtle text-info rounded-pill px-2.5">{{ st.assigned_agents_count }} Agents</span>
+                  </td>
                   <td class="text-center"><span class="badge bg-primary-subtle text-primary rounded-pill px-2.5">{{ st.candidates_count }}</span></td>
                   <td class="text-end fw-semibold">৳{{ st.revenue_handled|floatformat:2 }}</td>
                   <td class="text-end text-success fw-semibold">৳{{ st.paid_handled|floatformat:2 }}</td>
+                  <td class="text-end text-warning-emphasis fw-semibold">৳{{ st.commission_generated|floatformat:2 }}</td>
                   <td class="text-end pe-3 fw-bold text-primary">৳{{ st.profit_contribution|floatformat:2 }}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="8" class="text-center py-4 text-muted">No staff activities recorded.</td></tr>
+                <tr><td colspan="8" class="text-center py-4 text-muted">No agency staff activity recorded for this period.</td></tr>
                 {% endfor %}
               </tbody>
             </table>

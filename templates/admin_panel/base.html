@@ -343,10 +343,7 @@
             <i class="fa-solid fa-network-wired"></i><span>B2B Overview</span>
         </a>
         <a href="{% url 'admin_panel:b2b_agent_list' %}" class="nav-link {% if 'b2b/agents' in request.path %}active{% endif %}">
-            <i class="fa-solid fa-handshake"></i><span>B2B Agents & Staff</span>
-        </a>
-        <a href="{% url 'admin_panel:b2b_staff_list' %}" class="nav-link {% if 'b2b/staff' in request.path %}active{% endif %}">
-            <i class="fa-solid fa-user-group"></i><span>Agent Staff Accounts</span>
+            <i class="fa-solid fa-handshake"></i><span>B2B Agency Agents</span>
         </a>
         <a href="{% url 'admin_panel:b2b_ledger' %}" class="nav-link {% if 'b2b/ledger' in request.path %}active{% endif %}">
             <i class="fa-solid fa-scale-balanced"></i><span>Payments & Ledger</span>
@@ -413,7 +410,7 @@
             <i class="fa-solid fa-globe"></i><span>Domain & Website</span>
         </a>
         {% if request.user.is_tenant_admin or request.user.is_super_admin %}
-        <a href="{% url 'admin_panel:staff_list' %}" class="nav-link {% if 'staff' in request.path %}active{% endif %}">
+        <a href="{% url 'admin_panel:staff_list' %}" class="nav-link {% if '/admin-panel/staff' in request.path %}active{% endif %}">
             <i class="fa-solid fa-user-tie"></i><span>Staff Management</span>
         </a>
         <a href="{% url 'admin_panel:ambassador_list' %}" class="nav-link {% if 'ambassador' in request.path %}active{% endif %}">

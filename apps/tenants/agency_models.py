@@ -64,6 +64,12 @@ class AgencyAgent(models.Model):
     nid_number = models.CharField(max_length=50, blank=True, help_text='National ID / Trade License')
     notes = models.TextField(blank=True)
 
+    # Agency Staff Assignment (One Agency Staff member manages this agent)
+    assigned_staff_id = models.IntegerField(null=True, blank=True, help_text='User ID of the assigned Agency Staff member')
+    assigned_staff_name = models.CharField(max_length=200, blank=True, help_text='Name of assigned Agency Staff')
+    assigned_staff_email = models.EmailField(blank=True, help_text='Email of assigned Agency Staff')
+    created_by_user_id = models.IntegerField(null=True, blank=True, help_text='User ID of creator (Staff or Admin)')
+
     class Meta:
         ordering = ['name']
 
@@ -204,6 +210,9 @@ class B2BTransaction(models.Model):
         B2BAgentStaff, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='transactions', help_text='Staff member who processed this transaction'
     )
+    # Agency Staff who handled this transaction
+    agency_staff_id = models.IntegerField(null=True, blank=True, help_text='User ID of Agency Staff')
+    agency_staff_name = models.CharField(max_length=200, blank=True, help_text='Name of Agency Staff')
     candidate = models.ForeignKey(
         'Candidate', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='b2b_transactions', help_text='Linked candidate (if service charge)'
@@ -443,6 +452,9 @@ class Candidate(models.Model):
         related_name='candidates',
         help_text='The agent staff member who registered this candidate'
     )
+    # Agency Staff who owns/manages this candidate workflow
+    agency_staff_id = models.IntegerField(null=True, blank=True, help_text='User ID of Agency Staff handling this candidate')
+    agency_staff_name = models.CharField(max_length=200, blank=True, help_text='Name of Agency Staff')
 
     # 1. Selection & Assessment Stages
     selection_status = models.CharField(max_length=20, choices=SelectionStatus.choices, default=SelectionStatus.PENDING)

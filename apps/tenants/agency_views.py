@@ -327,6 +327,14 @@ def candidate_create(request):
         if not total_amt and visa_lot and visa_lot.price:
             total_amt = Decimal(str(visa_lot.price))
 
+        # Tag candidate with Agency Staff ownership
+        agency_staff_id = request.user.id if request.user.is_tenant_staff else (
+            b2b_agent.assigned_staff_id if (b2b_agent and b2b_agent.assigned_staff_id) else None
+        )
+        agency_staff_name = (request.user.get_full_name() or request.user.email) if request.user.is_tenant_staff else (
+            b2b_agent.assigned_staff_name if (b2b_agent and b2b_agent.assigned_staff_name) else ''
+        )
+
         cand = Candidate.objects.using(db).create(
             name=name,
             passport_number=passport_number,
@@ -341,6 +349,8 @@ def candidate_create(request):
             client_type=client_type,
             b2b_agent=b2b_agent,
             b2b_staff=b2b_staff,
+            agency_staff_id=agency_staff_id,
+            agency_staff_name=agency_staff_name,
             position=position,
             company=company,
             selection_grade=grade,
@@ -355,6 +365,8 @@ def candidate_create(request):
             B2BTransaction.objects.using(db).create(
                 agent=b2b_agent,
                 staff=b2b_staff,
+                agency_staff_id=agency_staff_id,
+                agency_staff_name=agency_staff_name,
                 candidate=cand,
                 txn_type=B2BTransaction.TxnType.SERVICE_CHARGE,
                 amount=total_amt,
@@ -1975,6 +1987,17 @@ def office_expense_list(request):
 # 11. B2B & B2C NETWORK MANAGEMENT SYSTEM
 # ══════════════════════════════════════════════════════════════════════════════
 
+def get_tenant_agency_staff(request):
+    """Fetch all active TENANT_STAFF users belonging to current agency tenant."""
+    from apps.accounts.models import User
+    tenant_slug = getattr(request.user, 'tenant_id', None)
+    if not tenant_slug and hasattr(request, 'tenant') and request.tenant:
+        tenant_slug = request.tenant.slug
+    if not tenant_slug:
+        return []
+    return list(User.objects.filter(tenant_id=tenant_slug, role=User.Role.TENANT_STAFF, is_banned=False).order_by('first_name', 'email'))
+
+
 @login_required
 def api_b2b_staff_by_agent(request, agent_id):
     """API endpoint to dynamically fetch staff members for a specific B2B agent."""
@@ -2070,19 +2093,30 @@ def b2b_dashboard(request):
 
 @login_required
 def b2b_agent_list(request):
-    """List all B2B agents with running balances, credit limits, and quick-action modals."""
+    """List B2B agents with running balances, credit limits, and agency staff ownership."""
     db = get_tenant_db(request)
     ensure_default_settings(db)
 
+    is_staff_view = request.user.is_tenant_staff
     query = request.GET.get('q', '').strip()
+    selected_staff_id = request.GET.get('staff_id', '').strip()
+
     agents_qs = AgencyAgent.objects.using(db).filter(agent_type='b2b')
+
+    # Security: If Agency Staff is logged in, they can ONLY see their own assigned agents!
+    if is_staff_view:
+        agents_qs = agents_qs.filter(assigned_staff_id=request.user.id)
+    elif selected_staff_id and selected_staff_id.isdigit():
+        agents_qs = agents_qs.filter(assigned_staff_id=int(selected_staff_id))
+
     if query:
         agents_qs = agents_qs.filter(
             Q(name__icontains=query) |
             Q(agent_code__icontains=query) |
             Q(company_name__icontains=query) |
             Q(phone__icontains=query) |
-            Q(email__icontains=query)
+            Q(email__icontains=query) |
+            Q(assigned_staff_name__icontains=query)
         )
 
     agents = list(agents_qs.order_by('name'))
@@ -2122,22 +2156,26 @@ def b2b_agent_list(request):
         })
 
     accounts = list(ChartOfAccount.objects.using(db).all())
+    staff_list = get_tenant_agency_staff(request)
 
     context = {
         'agent_items': agent_items,
         'query': query,
+        'selected_staff_id': selected_staff_id,
         'total_agents': len(agents),
         'tot_all_billed': tot_all_billed,
         'tot_all_collected': tot_all_collected,
         'tot_all_due': tot_all_due,
         'accounts': accounts,
+        'staff_list': staff_list,
+        'is_staff_view': is_staff_view,
     }
     return render(request, 'admin_panel/agency/b2b_agent_list.html', context)
 
 
 @login_required
 def b2b_agent_create(request):
-    """Create a new B2B Agent."""
+    """Create a new B2B Agent. Staff creates under their account; Admin can assign to any staff."""
     db = get_tenant_db(request)
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
@@ -2162,6 +2200,27 @@ def b2b_agent_create(request):
             messages.error(request, 'Agent name is required.')
             return redirect('admin_panel:b2b_agent_list')
 
+        # Determine agency staff assignment
+        assigned_staff_id = None
+        assigned_staff_name = ''
+        assigned_staff_email = ''
+
+        if request.user.is_tenant_staff:
+            # Agency Staff member creating agent: auto-assigned to self
+            assigned_staff_id = request.user.id
+            assigned_staff_name = request.user.get_full_name() or request.user.email
+            assigned_staff_email = request.user.email
+        else:
+            # Agency Admin creating agent: can choose assigned staff
+            staff_param = request.POST.get('assigned_staff_id', '').strip()
+            if staff_param and staff_param.isdigit():
+                from apps.accounts.models import User
+                st_user = User.objects.filter(pk=int(staff_param), tenant_id=request.user.tenant_id).first()
+                if st_user:
+                    assigned_staff_id = st_user.id
+                    assigned_staff_name = st_user.get_full_name() or st_user.email
+                    assigned_staff_email = st_user.email
+
         agent = AgencyAgent.objects.using(db).create(
             name=name,
             company_name=company_name,
@@ -2173,19 +2232,12 @@ def b2b_agent_create(request):
             credit_limit=credit_limit,
             nid_number=nid_number,
             notes=notes,
+            assigned_staff_id=assigned_staff_id,
+            assigned_staff_name=assigned_staff_name,
+            assigned_staff_email=assigned_staff_email,
+            created_by_user_id=request.user.id,
             is_active=True
         )
-
-        # Optionally create initial staff member if provided
-        initial_staff_name = request.POST.get('initial_staff_name', '').strip()
-        if initial_staff_name:
-            B2BAgentStaff.objects.using(db).create(
-                agent=agent,
-                name=initial_staff_name,
-                phone=request.POST.get('initial_staff_phone', '').strip() or phone,
-                email=request.POST.get('initial_staff_email', '').strip() or email,
-                designation=request.POST.get('initial_staff_designation', 'Managing Executive').strip(),
-            )
 
         messages.success(request, f'B2B Agent "{agent.name}" ({agent.agent_code}) created successfully!')
         return redirect('admin_panel:b2b_agent_detail', pk=agent.id)
@@ -2195,9 +2247,14 @@ def b2b_agent_create(request):
 
 @login_required
 def b2b_agent_edit(request, pk):
-    """Update B2B Agent details."""
+    """Update B2B Agent details. Agency Admin can also reassign agent to another Agency Staff member."""
     db = get_tenant_db(request)
     agent = get_object_or_404(AgencyAgent.objects.using(db), pk=pk)
+
+    # Security check: if staff member is attempting to edit an agent not assigned to them
+    if request.user.is_tenant_staff and agent.assigned_staff_id and agent.assigned_staff_id != request.user.id:
+        messages.error(request, 'Access denied. You can only manage your own assigned B2B agents.')
+        return redirect('admin_panel:b2b_agent_list')
 
     if request.method == 'POST':
         agent.name = request.POST.get('name', agent.name).strip()
@@ -2219,6 +2276,21 @@ def b2b_agent_edit(request, pk):
         except Exception:
             pass
 
+        # Only Agency Admin can reassign the agent from one staff member to another
+        if not request.user.is_tenant_staff:
+            new_staff_param = request.POST.get('assigned_staff_id', '').strip()
+            if new_staff_param in ['none', '0', '']:
+                agent.assigned_staff_id = None
+                agent.assigned_staff_name = ''
+                agent.assigned_staff_email = ''
+            elif new_staff_param.isdigit():
+                from apps.accounts.models import User
+                st_user = User.objects.filter(pk=int(new_staff_param), tenant_id=request.user.tenant_id).first()
+                if st_user:
+                    agent.assigned_staff_id = st_user.id
+                    agent.assigned_staff_name = st_user.get_full_name() or st_user.email
+                    agent.assigned_staff_email = st_user.email
+
         agent.save(using=db)
         messages.success(request, f'B2B Agent "{agent.name}" updated successfully!')
         return redirect('admin_panel:b2b_agent_detail', pk=agent.id)
@@ -2228,9 +2300,14 @@ def b2b_agent_edit(request, pk):
 
 @login_required
 def b2b_agent_delete(request, pk):
-    """Delete a B2B agent safely if no linked candidates exist."""
+    """Delete a B2B agent safely if no linked candidates exist. Staff CANNOT delete agents."""
     db = get_tenant_db(request)
     agent = get_object_or_404(AgencyAgent.objects.using(db), pk=pk)
+
+    # Staff permission guard: Agency Staff can NEVER delete an agent
+    if request.user.is_tenant_staff:
+        messages.error(request, '🚫 Staff members are not permitted to delete B2B agents. Only Agency Admin can delete.')
+        return redirect('admin_panel:b2b_agent_detail', pk=agent.id)
 
     if request.method == 'POST':
         cands_count = Candidate.objects.using(db).filter(Q(b2b_agent=agent) | Q(agent=agent)).count()
@@ -2257,6 +2334,11 @@ def b2b_agent_detail(request, pk):
     """Comprehensive Agent Profile with Staff Management, Connected Candidates, Visas, Tickets, and Ledger."""
     db = get_tenant_db(request)
     agent = get_object_or_404(AgencyAgent.objects.using(db), pk=pk)
+
+    # Security check: Agency Staff cannot access another staff member's agent
+    if request.user.is_tenant_staff and agent.assigned_staff_id and agent.assigned_staff_id != request.user.id:
+        messages.error(request, 'Access denied. This agent is assigned to another staff member.')
+        return redirect('admin_panel:b2b_agent_list')
 
     # 1. Staff Members
     staff_members = list(agent.staff_members.all().order_by('name'))
@@ -2349,6 +2431,8 @@ def b2b_agent_detail(request, pk):
         'total_commission': total_commission,
         'transactions': transactions,
         'accounts': accounts,
+        'staff_list': get_tenant_agency_staff(request),
+        'is_staff_user': request.user.is_tenant_staff,
     }
     return render(request, 'admin_panel/agency/b2b_agent_detail.html', context)
 
@@ -2358,6 +2442,11 @@ def b2b_agent_add_payment(request, pk):
     """Record direct bulk or settlement payment from a B2B agent."""
     db = get_tenant_db(request)
     agent = get_object_or_404(AgencyAgent.objects.using(db), pk=pk)
+
+    # Security check: Agency Staff cannot record payment on an agent assigned to another staff
+    if request.user.is_tenant_staff and agent.assigned_staff_id and agent.assigned_staff_id != request.user.id:
+        messages.error(request, 'Access denied. You can only record payments for your assigned agents.')
+        return redirect('admin_panel:b2b_agent_list')
 
     if request.method == 'POST':
         amount_raw = request.POST.get('amount', '0').strip()
@@ -2379,10 +2468,12 @@ def b2b_agent_add_payment(request, pk):
 
         staff = B2BAgentStaff.objects.using(db).filter(pk=staff_id).first() if staff_id else None
 
-        # Record B2B transaction
+        # Record B2B transaction with Agency Staff details
         txn = B2BTransaction.objects.using(db).create(
             agent=agent,
             staff=staff,
+            agency_staff_id=request.user.id,
+            agency_staff_name=request.user.get_full_name() or request.user.email,
             txn_type=B2BTransaction.TxnType.PAYMENT_RECEIVED,
             amount=amt,
             balance_after=max(Decimal('0.00'), agent.outstanding_balance - amt),
@@ -2922,25 +3013,48 @@ def b2b_analytics(request):
         })
     agent_items.sort(key=lambda x: x['billed'], reverse=True)
 
-    # 3. Staff-wise Performance Analysis
-    staff_qs = B2BAgentStaff.objects.using(db).select_related('agent').all()
-    if agent_filter:
-        staff_qs = staff_qs.filter(agent_id=agent_filter)
-    staff_members = list(staff_qs.order_by('agent__name', 'name'))
+    # 3. Agency Staff-wise Performance & Monthly Profit Analysis
+    agency_staff_all = get_tenant_agency_staff(request)
+    if request.user.is_tenant_staff:
+        agency_staff_all = [s for s in agency_staff_all if s.id == request.user.id]
+
     staff_items = []
-    for s in staff_members:
-        s_cands = Candidate.objects.using(db).filter(b2b_staff=s, created_at__year=year)
+    for s in agency_staff_all:
+        assigned_agents = list(AgencyAgent.objects.using(db).filter(assigned_staff_id=s.id))
+        assigned_agents_ids = [ag.id for ag in assigned_agents]
+
+        s_cands = Candidate.objects.using(db).filter(
+            Q(agency_staff_id=s.id) | Q(b2b_agent_id__in=assigned_agents_ids),
+            created_at__year=year
+        )
         if month_filter and month_filter.isdigit():
             s_cands = s_cands.filter(created_at__month=int(month_filter))
+        if agent_filter:
+            s_cands = s_cands.filter(b2b_agent_id=agent_filter)
+
         s_fin = s_cands.aggregate(tot=Sum('total_amount'), paid=Sum('paid_amount'), due=Sum('due_amount'))
         rev = s_fin['tot'] or Decimal('0.00')
         col = s_fin['paid'] or Decimal('0.00')
+        due = s_fin['due'] or Decimal('0.00')
+
+        tot_comm = Decimal('0.00')
+        for c in s_cands:
+            if c.b2b_agent and c.b2b_agent.commission_rate and c.total_amount:
+                tot_comm += (c.total_amount * c.b2b_agent.commission_rate / Decimal('100.00')).quantize(Decimal('0.01'))
+
+        profit_contrib = max(Decimal('0.00'), rev - (rev * Decimal('0.40')) - tot_comm).quantize(Decimal('0.01'))
+
         staff_items.append({
             'staff': s,
+            'name': s.get_full_name() or s.email,
+            'email': s.email,
+            'assigned_agents_count': len(assigned_agents),
             'candidates_count': s_cands.count(),
             'revenue_handled': rev,
             'paid_handled': col,
-            'profit_contribution': (rev * Decimal('0.35')).quantize(Decimal('0.01')),
+            'due_handled': due,
+            'commission_generated': tot_comm,
+            'profit_contribution': profit_contrib,
         })
     staff_items.sort(key=lambda x: x['revenue_handled'], reverse=True)
 

@@ -29,6 +29,11 @@
                 <i class="fa-solid fa-phone ms-2 me-1"></i>{{ agent.phone|default:"—" }} • 
                 <i class="fa-solid fa-envelope ms-2 me-1"></i>{{ agent.email|default:"—" }}
               </div>
+              <div class="mt-2">
+                <span class="badge bg-white bg-opacity-20 text-white rounded-pill px-2.5 py-1 small">
+                  <i class="fa-solid fa-user-tie me-1"></i>Assigned Staff: <strong>{{ agent.assigned_staff_name|default:"Unassigned (Agency Admin)" }}</strong>
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -64,9 +69,11 @@
             <button class="btn btn-outline-light btn-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#editAgentModal" title="Edit Agent">
               <i class="fa-solid fa-pen-to-square me-1"></i>Edit
             </button>
+            {% if not is_staff_user %}
             <button class="btn btn-outline-danger btn-sm fw-semibold text-white border-danger" data-bs-toggle="modal" data-bs-target="#deleteAgentModal" title="Delete Agent">
               <i class="fa-solid fa-trash me-1"></i>Delete
             </button>
+            {% endif %}
             <button class="btn btn-outline-light btn-sm" onclick="window.print()" title="Print Statement">
               <i class="fa-solid fa-print"></i>
             </button>
@@ -761,6 +768,30 @@ document.addEventListener('DOMContentLoaded', function() {
             <label class="form-label small fw-semibold">Internal Notes</label>
             <textarea name="notes" class="form-control" rows="2">{{ agent.notes }}</textarea>
           </div>
+          {% if not is_staff_user %}
+          <div class="col-12 bg-light p-3 rounded border border-primary border-opacity-25">
+            <label class="form-label small fw-bold text-primary mb-1">
+              <i class="fa-solid fa-arrows-rotate me-1"></i>Reassign to Agency Staff Member
+            </label>
+            <select name="assigned_staff_id" class="form-select border-primary">
+              <option value="none" {% if not agent.assigned_staff_id %}selected{% endif %}>-- Unassigned (Direct Agency Admin Control) --</option>
+              {% for st in staff_list %}
+                <option value="{{ st.id }}" {% if agent.assigned_staff_id == st.id %}selected{% endif %}>
+                  {{ st.get_full_name|default:st.email }} ({{ st.email }})
+                </option>
+              {% endfor %}
+            </select>
+            <div class="form-text small text-muted">
+              Only Agency Admin can reassign this agent to another staff member. Two staff cannot access the same agent simultaneously.
+            </div>
+          </div>
+          {% else %}
+          <div class="col-12">
+            <span class="badge bg-primary-subtle text-primary px-3 py-2 small">
+              <i class="fa-solid fa-user-tie me-1"></i>Assigned to your staff account: <strong>{{ agent.assigned_staff_name|default:request.user.email }}</strong>
+            </span>
+          </div>
+          {% endif %}
           <div class="col-12">
             <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" name="is_active" id="detailAgentActive" {% if agent.is_active %}checked{% endif %}>
