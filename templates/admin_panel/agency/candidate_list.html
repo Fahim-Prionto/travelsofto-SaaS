@@ -400,19 +400,10 @@
               </div>
               <div class="col-md-4 add_b2b_group" style="display:none;">
                 <label class="form-label small fw-semibold text-primary"><i class="fa-solid fa-handshake me-1"></i>Select B2B Agent *</label>
-                <select name="b2b_agent" id="add_b2b_agent" class="form-select" onchange="loadB2BStaff(this.value, 'add_b2b_staff')">
+                <select name="b2b_agent" id="add_b2b_agent" class="form-select">
                   <option value="">— Select B2B Agent —</option>
                   {% for a in b2b_agents %}
                     <option value="{{ a.id }}">{{ a.name }} ({{ a.agent_code }})</option>
-                  {% endfor %}
-                </select>
-              </div>
-              <div class="col-md-4 add_b2b_group" style="display:none;">
-                <label class="form-label small fw-semibold text-primary"><i class="fa-solid fa-user-tag me-1"></i>Agent Staff Member</label>
-                <select name="b2b_staff" id="add_b2b_staff" class="form-select">
-                  <option value="">— Select Staff (Optional) —</option>
-                  {% for s in b2b_staff_members %}
-                    <option value="{{ s.id }}" data-agent="{{ s.agent_id }}">{{ s.name }} ({{ s.agent.name }})</option>
                   {% endfor %}
                 </select>
               </div>
@@ -423,11 +414,6 @@
             <select name="position" class="form-select">
               <option value="">— Select —</option>
               {% for p in positions %}<option value="{{ p.id }}">{{ p.title }}</option>{% endfor %}
-            </select></div>
-          <div class="col-md-4"><label class="form-label fw-semibold small">Direct Sub-Agent (Legacy)</label>
-            <select name="agent" class="form-select">
-              <option value="">— Select (Optional) —</option>
-              {% for a in agents %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}
             </select></div>
           <div class="col-md-4"><label class="form-label fw-semibold small">Company / Sponsor</label>
             <select name="company" class="form-select">
@@ -759,19 +745,10 @@
                 </div>
                 <div class="col-md-4 edit_{{ c.id }}_b2b_group" {% if c.client_type != 'b2b' %}style="display:none;"{% endif %}>
                   <label class="form-label small fw-semibold text-primary"><i class="fa-solid fa-handshake me-1"></i>B2B Agent</label>
-                  <select name="b2b_agent" class="form-select" onchange="loadB2BStaff(this.value, 'edit_b2b_staff_{{ c.id }}')">
+                  <select name="b2b_agent" class="form-select">
                     <option value="">— Select B2B Agent —</option>
                     {% for a in b2b_agents %}
                       <option value="{{ a.id }}" {% if c.b2b_agent_id == a.id or c.agent_id == a.id %}selected{% endif %}>{{ a.name }} ({{ a.agent_code }})</option>
-                    {% endfor %}
-                  </select>
-                </div>
-                <div class="col-md-4 edit_{{ c.id }}_b2b_group" {% if c.client_type != 'b2b' %}style="display:none;"{% endif %}>
-                  <label class="form-label small fw-semibold text-primary"><i class="fa-solid fa-user-tag me-1"></i>Agent Staff Member</label>
-                  <select name="b2b_staff" id="edit_b2b_staff_{{ c.id }}" class="form-select">
-                    <option value="">— Select Staff (Optional) —</option>
-                    {% for s in b2b_staff_members %}
-                      <option value="{{ s.id }}" data-agent="{{ s.agent_id }}" {% if c.b2b_staff_id == s.id %}selected{% endif %}>{{ s.name }} ({{ s.agent.name }})</option>
                     {% endfor %}
                   </select>
                 </div>
@@ -782,11 +759,6 @@
               <select name="position" class="form-select">
                 <option value="">— Select —</option>
                 {% for p in positions %}<option value="{{ p.id }}" {% if c.position_id == p.id %}selected{% endif %}>{{ p.title }}</option>{% endfor %}
-              </select></div>
-            <div class="col-md-4"><label class="form-label small fw-semibold">Direct Agent (Legacy)</label>
-              <select name="agent" class="form-select">
-                <option value="">— Select —</option>
-                {% for a in agents %}<option value="{{ a.id }}" {% if c.agent_id == a.id %}selected{% endif %}>{{ a.name }}</option>{% endfor %}
               </select></div>
             <div class="col-md-4"><label class="form-label small fw-semibold">Photo</label>
               <input type="file" name="photo" class="form-control" accept="image/*"></div>
