@@ -877,7 +877,7 @@ def staff_edit(request, pk):
         staff.save()
 
         db = get_tenant_db(request)
-        staff_display_name = staff.get_full_name() or staff.email
+        staff_display_name = getattr(staff, 'full_name', None) or (staff.get_full_name() if hasattr(staff, 'get_full_name') else staff.email) or staff.email
 
         from apps.tenants.agency_models import AgencyAgent
 
