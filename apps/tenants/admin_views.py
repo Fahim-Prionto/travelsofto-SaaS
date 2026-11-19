@@ -749,7 +749,7 @@ def customer_toggle_ban(request, pk):
 # ── STAFF MANAGEMENT ──────────────────────────────────────────────────────────
 @login_required
 def staff_list(request):
-    """List all staff members for this agency with assigned B2B agents count."""
+    """List all staff members for this agency with assigned B2B agents and agent management."""
     # Only tenant admin can manage staff
     if not (request.user.is_tenant_admin or request.user.is_super_admin):
         messages.error(request, 'You do not have permission to manage staff.')
@@ -760,15 +760,24 @@ def staff_list(request):
     ).order_by('-date_joined'))
 
     db = get_tenant_db(request)
+    all_b2b_agents = []
     try:
         from apps.tenants.agency_models import AgencyAgent
+        all_b2b_agents = list(AgencyAgent.objects.using(db).filter(agent_type='b2b', is_active=True).order_by('name'))
         for s in staff_members:
-            s.assigned_agents_count = AgencyAgent.objects.using(db).filter(assigned_staff_id=s.id).count()
+            s.assigned_agents = [ag for ag in all_b2b_agents if ag.assigned_staff_id == s.id]
+            s.assigned_agents_count = len(s.assigned_agents)
+            s.assigned_agent_ids = [ag.id for ag in s.assigned_agents]
     except Exception:
         for s in staff_members:
+            s.assigned_agents = []
             s.assigned_agents_count = 0
+            s.assigned_agent_ids = []
 
-    return render(request, 'admin_panel/staff/list.html', {'staff_members': staff_members})
+    return render(request, 'admin_panel/staff/list.html', {
+        'staff_members': staff_members,
+        'all_b2b_agents': all_b2b_agents,
+    })
 
 
 @login_required
@@ -779,11 +788,21 @@ def staff_create(request):
         return redirect('admin_panel:dashboard')
 
     if request.method == 'POST':
-        first_name = request.POST.get('first_name', '').strip()
-        last_name  = request.POST.get('last_name', '').strip()
-        email      = request.POST.get('email', '').strip()
-        mobile     = request.POST.get('mobile', '').strip()
-        password   = request.POST.get('password', '').strip()
+        first_name       = request.POST.get('first_name', '').strip()
+        last_name        = request.POST.get('last_name', '').strip()
+        email            = request.POST.get('email', '').strip()
+        mobile           = request.POST.get('mobile', '').strip()
+        password         = request.POST.get('password', '').strip()
+        confirm_password = request.POST.get('confirm_password', '').strip()
+
+        # ── Password match validation ────────────────────────────────────────
+        if password and password != confirm_password:
+            messages.error(request, 'Passwords do not match. Please try again.')
+            return render(request, 'admin_panel/staff/create.html')
+
+        if password and len(password) < 6:
+            messages.error(request, 'Password must be at least 6 characters.')
+            return render(request, 'admin_panel/staff/create.html')
 
         # ── Subscription limit check ────────────────────────────────────────
         sub_info = get_subscription_limits(request)
@@ -793,6 +812,10 @@ def staff_create(request):
                     f'🚫 Staff member limit reached ({sub_info["current_staff"]}/{sub_info["max_staff"]}). '
                     f'Upgrade your plan to add more staff.')
                 return redirect('admin_panel:staff_list')
+
+        if not email:
+            messages.error(request, 'Email address is required.')
+            return render(request, 'admin_panel/staff/create.html')
 
         if User.objects.filter(email=email).exists():
             messages.error(request, 'An account with this email address already exists.')
@@ -853,9 +876,10 @@ def staff_edit(request, pk):
 
         staff.save()
 
+        db = get_tenant_db(request)
+
         # Update cached staff name and email in tenant AgencyAgent
         try:
-            db = get_tenant_db(request)
             from apps.tenants.agency_models import AgencyAgent
             AgencyAgent.objects.using(db).filter(assigned_staff_id=staff.id).update(
                 assigned_staff_name=staff.get_full_name() or staff.email,
@@ -863,6 +887,28 @@ def staff_edit(request, pk):
             )
         except Exception:
             pass
+
+        # Handle multiple B2B agent assignments directly from this modal
+        if 'agent_assignments_submitted' in request.POST:
+            selected_agent_ids = request.POST.getlist('assigned_agent_ids')
+            selected_ids = [int(aid) for aid in selected_agent_ids if aid.isdigit()]
+            try:
+                from apps.tenants.agency_models import AgencyAgent
+                # 1. Unassign agents that were previously assigned to this staff member but were unchecked
+                AgencyAgent.objects.using(db).filter(assigned_staff_id=staff.id).exclude(id__in=selected_ids).update(
+                    assigned_staff_id=None,
+                    assigned_staff_name='',
+                    assigned_staff_email=''
+                )
+                # 2. Assign newly checked/selected agents to this staff member
+                if selected_ids:
+                    AgencyAgent.objects.using(db).filter(id__in=selected_ids).update(
+                        assigned_staff_id=staff.id,
+                        assigned_staff_name=staff.get_full_name() or staff.email,
+                        assigned_staff_email=staff.email
+                    )
+            except Exception:
+                pass
 
         messages.success(request, f'Staff member "{staff.email}" updated successfully!')
         return redirect('admin_panel:staff_list')

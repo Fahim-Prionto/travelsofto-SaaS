@@ -47,19 +47,39 @@
                            placeholder="+880 17XX XXX XXX">
                 </div>
 
-                <div class="mb-4">
-                    <label class="form-label fw-semibold text-dark" for="password">
-                        Password <span class="text-danger">*</span>
-                    </label>
-                    <div class="input-group">
-                        <input type="password" class="form-control rounded-start-3" id="password" name="password"
-                               placeholder="Set a secure password" required>
-                        <button class="btn btn-outline-secondary rounded-end-3" type="button" id="togglePassword"
-                                onclick="togglePwd()">
-                            <i class="fa-solid fa-eye" id="eyeIcon"></i>
-                        </button>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold text-dark" for="password">
+                            Password <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <input type="password" class="form-control rounded-start-3" id="password" name="password"
+                                   placeholder="Min. 6 characters" minlength="6">
+                            <button class="btn btn-outline-secondary rounded-end-3" type="button"
+                                    onclick="togglePwd('password', 'eyeIcon1')">
+                                <i class="fa-solid fa-eye" id="eyeIcon1"></i>
+                            </button>
+                        </div>
                     </div>
-                    <div class="form-text">Leave blank to use the default temporary password: <code>StaffPass@123</code></div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold text-dark" for="confirm_password">
+                            Confirm Password <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <input type="password" class="form-control rounded-start-3" id="confirm_password" name="confirm_password"
+                                   placeholder="Repeat password" minlength="6">
+                            <button class="btn btn-outline-secondary rounded-end-3" type="button"
+                                    onclick="togglePwd('confirm_password', 'eyeIcon2')">
+                                <i class="fa-solid fa-eye" id="eyeIcon2"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div id="pwdMismatchMsg" class="text-danger small d-none">
+                            <i class="fa-solid fa-triangle-exclamation me-1"></i>Passwords do not match.
+                        </div>
+                        <div class="form-text">Leave both blank to set the default temporary password: <code>StaffPass@123</code></div>
+                    </div>
                 </div>
 
                 <!-- Role Notice -->
@@ -91,9 +111,10 @@
 
 {% block extra_js %}
 <script>
-function togglePwd() {
-    const pwd = document.getElementById('password');
-    const icon = document.getElementById('eyeIcon');
+function togglePwd(inputId, iconId) {
+    const pwd = document.getElementById(inputId);
+    const icon = document.getElementById(iconId);
+    if (!pwd || !icon) return;
     if (pwd.type === 'password') {
         pwd.type = 'text';
         icon.classList.replace('fa-eye', 'fa-eye-slash');
@@ -102,5 +123,30 @@ function togglePwd() {
         icon.classList.replace('fa-eye-slash', 'fa-eye');
     }
 }
+
+// Real-time confirm password check
+document.getElementById('confirm_password').addEventListener('input', checkPwdMatch);
+document.getElementById('password').addEventListener('input', checkPwdMatch);
+function checkPwdMatch() {
+    const p1 = document.getElementById('password').value;
+    const p2 = document.getElementById('confirm_password').value;
+    const msg = document.getElementById('pwdMismatchMsg');
+    if (p2.length > 0 && p1 !== p2) {
+        msg.classList.remove('d-none');
+    } else {
+        msg.classList.add('d-none');
+    }
+}
+
+// Prevent submit if passwords don't match
+document.querySelector('form').addEventListener('submit', function(e) {
+    const p1 = document.getElementById('password').value;
+    const p2 = document.getElementById('confirm_password').value;
+    if (p1 && p1 !== p2) {
+        e.preventDefault();
+        document.getElementById('pwdMismatchMsg').classList.remove('d-none');
+        document.getElementById('confirm_password').focus();
+    }
+});
 </script>
 {% endblock %}

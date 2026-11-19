@@ -107,9 +107,10 @@
 <!-- Edit Staff Modals -->
 {% for staff in staff_members %}
 <div class="modal fade" id="editStaffModal{{ staff.pk }}" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-md">
+    <div class="modal-dialog modal-lg">
         <form method="post" action="{% url 'admin_panel:staff_edit' staff.pk %}" class="modal-content border-0 shadow-lg">
             {% csrf_token %}
+            <input type="hidden" name="agent_assignments_submitted" value="1">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title fw-bold">
                     <i class="fa-solid fa-user-pen me-2"></i>Edit Staff Member: {{ staff.full_name|default:staff.email }}
@@ -126,12 +127,12 @@
                         <label class="form-label small fw-semibold text-dark">Last Name</label>
                         <input type="text" name="last_name" class="form-control" value="{{ staff.last_name }}" placeholder="Last Name">
                     </div>
-                    <div class="col-12">
+                    <div class="col-md-6">
                         <label class="form-label small fw-semibold text-dark">Login Email Address *</label>
                         <input type="email" name="email" class="form-control" value="{{ staff.email }}" required>
-                        <div class="form-text small">Staff will use this email address to log in to the agency dashboard.</div>
+                        <div class="form-text small">Staff will use this email address to log in.</div>
                     </div>
-                    <div class="col-12">
+                    <div class="col-md-6">
                         <label class="form-label small fw-semibold text-dark">Mobile Phone</label>
                         <input type="text" name="mobile" class="form-control" value="{{ staff.mobile }}" placeholder="+8801...">
                     </div>
@@ -149,15 +150,76 @@
                             <div class="form-text small text-muted">Min. 6 characters. Leave empty if you do not want to change their password.</div>
                         </div>
                     </div>
+
+                    <!-- Direct Multi-Agent Assignment & Reassignment -->
                     <div class="col-12">
-                        <div class="p-2.5 rounded bg-light border d-flex justify-content-between align-items-center">
-                            <div>
-                                <div class="small fw-bold text-dark"><i class="fa-solid fa-handshake text-primary me-1"></i>Assigned B2B Agents</div>
-                                <div class="text-muted small">{{ staff.assigned_agents_count }} agent(s) currently managed by this staff</div>
+                        <div class="border rounded-3 p-3 bg-light">
+                            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-2.5">
+                                <div>
+                                    <label class="form-label small fw-bold text-primary mb-0">
+                                        <i class="fa-solid fa-handshake me-1.5"></i>Assign & Reassign B2B Agents Directly
+                                    </label>
+                                    <div class="text-muted" style="font-size:0.75rem;">
+                                        Select multiple agents to assign exclusively to this staff member.
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center gap-1.5">
+                                    <button type="button" class="btn btn-xs btn-outline-primary px-2 py-0.5 rounded" style="font-size:0.72rem;" onclick="selectAllAgents('{{ staff.pk }}')">Select All</button>
+                                    <button type="button" class="btn btn-xs btn-outline-secondary px-2 py-0.5 rounded" style="font-size:0.72rem;" onclick="clearAllAgents('{{ staff.pk }}')">Clear</button>
+                                    <a href="{% url 'admin_panel:b2b_agent_list' %}?staff_id={{ staff.pk }}" target="_blank" class="btn btn-xs btn-outline-dark px-2 py-0.5 rounded" style="font-size:0.72rem;" title="Open agent list in new tab">
+                                        View Agents <i class="fa-solid fa-arrow-up-right-from-square ms-0.5"></i>
+                                    </a>
+                                </div>
                             </div>
-                            <a href="{% url 'admin_panel:b2b_agent_list' %}?staff_id={{ staff.pk }}" class="btn btn-xs btn-outline-primary fw-semibold px-2.5 py-1" style="font-size:0.75rem;">
-                                View Agents <i class="fa-solid fa-arrow-right ms-1"></i>
-                            </a>
+
+                            <!-- Agent Filter Input -->
+                            <div class="input-group input-group-sm mb-2">
+                                <span class="input-group-text bg-white"><i class="fa-solid fa-search text-muted small"></i></span>
+                                <input type="text" class="form-control" placeholder="Search agents by name or code..." onkeyup="filterAgentsModal('{{ staff.pk }}', this.value)">
+                            </div>
+
+                            <!-- Scrollable Agent Checkbox List -->
+                            <div class="bg-white rounded border p-2" id="agentListContainer{{ staff.pk }}" style="max-height: 220px; overflow-y: auto;">
+                                {% for ag in all_b2b_agents %}
+                                <div class="form-check p-2 rounded mb-1 agent-item-row border-bottom border-light" data-agent-text="{{ ag.name|lower }} {{ ag.agent_code|lower }} {{ ag.company_name|lower }}">
+                                    <input class="form-check-input agent-checkbox-{{ staff.pk }} mt-1" type="checkbox" name="assigned_agent_ids" value="{{ ag.id }}" id="ag_chk_{{ staff.pk }}_{{ ag.id }}" {% if ag.id in staff.assigned_agent_ids %}checked{% endif %}>
+                                    <label class="form-check-label d-flex flex-column flex-sm-row justify-content-between align-items-sm-center w-100 ps-1 cursor-pointer" for="ag_chk_{{ staff.pk }}_{{ ag.id }}">
+                                        <div>
+                                            <span class="fw-bold text-dark small">{{ ag.name }}</span>
+                                            <span class="text-muted fw-mono small ms-1">({{ ag.agent_code }})</span>
+                                            {% if ag.company_name %}
+                                                <span class="text-muted small ms-1 d-none d-md-inline">• {{ ag.company_name }}</span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="mt-1 mt-sm-0">
+                                            {% if ag.id in staff.assigned_agent_ids %}
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-0.5" style="font-size:0.68rem;">
+                                                    <i class="fa-solid fa-check me-1"></i>Currently Assigned
+                                                </span>
+                                            {% elif ag.assigned_staff_id %}
+                                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-2 py-0.5" style="font-size:0.68rem;" title="Reassign from {{ ag.assigned_staff_name }}">
+                                                    <i class="fa-solid fa-arrows-rotate me-1"></i>Reassign from: {{ ag.assigned_staff_name }}
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-secondary-subtle text-muted rounded-pill px-2 py-0.5" style="font-size:0.68rem;">
+                                                    <i class="fa-solid fa-user-xmark me-1"></i>Unassigned
+                                                </span>
+                                            {% endif %}
+                                            <span class="text-muted ms-1 small" style="font-size:0.72rem;">Comm: {{ ag.commission_rate|floatformat:1 }}%</span>
+                                        </div>
+                                    </label>
+                                </div>
+                                {% empty %}
+                                <div class="text-center text-muted py-3 small">
+                                    <i class="fa-solid fa-handshake me-1 text-secondary"></i>No B2B agents registered in the agency yet.
+                                </div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="form-text small text-muted mt-2">
+                                <i class="fa-solid fa-circle-info text-primary me-1"></i>
+                                Checked agents will be assigned exclusively to <strong>{{ staff.full_name|default:staff.email }}</strong>. If an agent is assigned to another staff member, checking it here will transfer it directly upon saving. Unchecking will release the agent.
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -165,7 +227,7 @@
             <div class="modal-footer bg-light border-0">
                 <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
                 <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold">
-                    <i class="fa-solid fa-save me-1"></i> Save Changes
+                    <i class="fa-solid fa-save me-1"></i> Save Changes &amp; Assign Agents
                 </button>
             </div>
         </form>
@@ -185,6 +247,42 @@ function toggleStaffPwd(inputId, iconId) {
         inp.type = 'password';
         if (ico) ico.className = 'fa-solid fa-eye';
     }
+}
+
+function selectAllAgents(staffPk) {
+    const checkboxes = document.querySelectorAll('.agent-checkbox-' + staffPk);
+    checkboxes.forEach(cb => {
+        // Only select visible checkboxes if filtered
+        const row = cb.closest('.agent-item-row');
+        if (!row || row.style.display !== 'none') {
+            cb.checked = true;
+        }
+    });
+}
+
+function clearAllAgents(staffPk) {
+    const checkboxes = document.querySelectorAll('.agent-checkbox-' + staffPk);
+    checkboxes.forEach(cb => {
+        const row = cb.closest('.agent-item-row');
+        if (!row || row.style.display !== 'none') {
+            cb.checked = false;
+        }
+    });
+}
+
+function filterAgentsModal(staffPk, query) {
+    const container = document.getElementById('agentListContainer' + staffPk);
+    if (!container) return;
+    const rows = container.querySelectorAll('.agent-item-row');
+    const q = (query || '').toLowerCase().trim();
+    rows.forEach(r => {
+        const text = r.getAttribute('data-agent-text') || '';
+        if (!q || text.includes(q)) {
+            r.style.display = '';
+        } else {
+            r.style.display = 'none';
+        }
+    });
 }
 </script>
 {% endblock %}
