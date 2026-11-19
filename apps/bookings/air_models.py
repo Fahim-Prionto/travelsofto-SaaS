@@ -95,7 +95,7 @@ class FlightSchedule(models.Model):
 
 
 class AirTicketBooking(models.Model):
-    """An air ticket booking made by customer/staff/ambassador/admin."""
+    """An air ticket booking — manual entry, B2B or B2C, with optional ticket attachment and invoice."""
 
     class Status(models.TextChoices):
         PENDING = 'pending', 'Pending'
@@ -115,39 +115,68 @@ class AirTicketBooking(models.Model):
         AMBASSADOR = 'ambassador', 'Ambassador'
         ADMIN = 'admin', 'Admin'
 
+    class CustomerType(models.TextChoices):
+        B2C = 'b2c', 'B2C (Direct Customer)'
+        B2B = 'b2b', 'B2B (Agency Agent)'
+
     uid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     booking_code = models.CharField(max_length=20, unique=True, blank=True)
 
-    # Relations
-    schedule = models.ForeignKey(FlightSchedule, on_delete=models.PROTECT, related_name='bookings')
+    # ── Flight Info (manual — no schedule FK required) ─────────────────────
+    airline_name = models.CharField(max_length=200, blank=True, help_text='e.g. Biman Bangladesh, Emirates')
+    flight_number = models.CharField(max_length=30, blank=True, help_text='e.g. BG401')
+    flight_date = models.DateField(null=True, blank=True, help_text='Departure date')
+    from_city = models.CharField(max_length=150, blank=True)
+    to_city = models.CharField(max_length=150, blank=True)
+    # Optional link to a pre-configured schedule (kept for backward compat)
+    schedule = models.ForeignKey(
+        FlightSchedule, on_delete=models.SET_NULL,
+        related_name='bookings', null=True, blank=True
+    )
 
-    # Passenger Info
+    # ── Customer Type ──────────────────────────────────────────────────────
+    customer_type = models.CharField(
+        max_length=5, choices=CustomerType.choices, default=CustomerType.B2C
+    )
+    # B2B fields (denormalised — cross-DB safe)
+    b2b_agent_id = models.IntegerField(null=True, blank=True)
+    b2b_agent_name = models.CharField(max_length=255, blank=True)
+    b2b_agent_code = models.CharField(max_length=50, blank=True)
+
+    # ── Passenger Info ─────────────────────────────────────────────────────
     customer_name = models.CharField(max_length=255)
-    customer_email = models.EmailField()
+    customer_email = models.EmailField(blank=True)
     customer_mobile = models.CharField(max_length=20, blank=True)
     passenger_count = models.PositiveIntegerField(default=1)
     passport_number = models.CharField(max_length=50, blank=True)
     pnr_number = models.CharField(max_length=20, blank=True)
 
-    # Pricing
-    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    # ── Pricing ────────────────────────────────────────────────────────────
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
-    # Status
+    # ── Ticket Attachment (optional) ───────────────────────────────────────
+    ticket_file = models.FileField(upload_to='air_tickets/', null=True, blank=True)
+
+    # ── Invoice ────────────────────────────────────────────────────────────
+    invoice_number = models.CharField(max_length=30, blank=True)
+    invoice_generated = models.BooleanField(default=False)
+
+    # ── Status ─────────────────────────────────────────────────────────────
     status = models.CharField(max_length=15, choices=Status.choices, default=Status.PENDING)
     payment_status = models.CharField(max_length=15, choices=PaymentStatus.choices, default=PaymentStatus.UNPAID)
 
-    # Booking origin
-    booked_by_role = models.CharField(max_length=15, choices=BookedByRole.choices, default=BookedByRole.CUSTOMER)
-    booked_by_email = models.EmailField(blank=True, help_text='Email of staff/ambassador who made the booking')
+    # ── Booking origin ─────────────────────────────────────────────────────
+    booked_by_role = models.CharField(max_length=15, choices=BookedByRole.choices, default=BookedByRole.ADMIN)
+    booked_by_email = models.EmailField(blank=True)
 
-    # Notes
+    # ── Notes ──────────────────────────────────────────────────────────────
     special_requests = models.TextField(blank=True)
     admin_notes = models.TextField(blank=True)
     cancellation_reason = models.TextField(blank=True)
 
-    # Timestamps
+    # ── Timestamps ─────────────────────────────────────────────────────────
     booked_at = models.DateTimeField(auto_now_add=True)
     confirmed_at = models.DateTimeField(blank=True, null=True)
     cancelled_at = models.DateTimeField(blank=True, null=True)
@@ -162,8 +191,10 @@ class AirTicketBooking(models.Model):
     def save(self, *args, **kwargs):
         if not self.booking_code:
             self.booking_code = 'AIR' + ''.join(random.choices(string.digits, k=7))
-        if not self.total_amount:
-            self.total_amount = (self.unit_price * self.passenger_count) - self.discount_amount
+        if not self.invoice_number and self.invoice_generated:
+            self.invoice_number = 'INV-AIR-' + ''.join(random.choices(string.digits, k=6))
+        # Auto-calc total
+        self.total_amount = (self.unit_price * self.passenger_count) - self.discount_amount
         super().save(*args, **kwargs)
 
     def confirm(self):

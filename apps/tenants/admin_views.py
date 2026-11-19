@@ -1815,55 +1815,122 @@ def flight_schedule_delete(request, pk):
 
 @login_required
 def air_booking_list(request):
-    """View & create Air Ticket bookings by admin, staff, or ambassador."""
+    """View & create Air Ticket bookings (manual B2B/B2C, with invoice & ticket attachment)."""
     db = get_tenant_db(request)
-    from apps.bookings.air_models import FlightSchedule, AirTicketBooking
+    from apps.bookings.air_models import AirTicketBooking
+    from apps.tenants.agency_models import AgencyAgent
+
     bookings = AirTicketBooking.objects.using(db).all()
-    schedules = FlightSchedule.objects.using(db).filter(is_active=True)
+
+    # Load active B2B agents for the dropdown
+    try:
+        b2b_agents = list(AgencyAgent.objects.using(db).filter(agent_type='b2b', is_active=True).order_by('name'))
+    except Exception:
+        b2b_agents = []
 
     if request.method == 'POST':
-        sch_id = request.POST.get('schedule_id')
-        cust_name = request.POST.get('customer_name', '').strip()
-        cust_email = request.POST.get('customer_email', '').strip()
-        cust_mobile = request.POST.get('customer_mobile', '').strip()
-        passport_num = request.POST.get('passport_number', '').strip().upper()
-        pnr_num = request.POST.get('pnr_number', '').strip().upper()
-        passenger_count = int(request.POST.get('passenger_count', '1'))
+        # ── Flight Info ──────────────────────────────────────────────────────
+        airline_name   = request.POST.get('airline_name', '').strip()
+        flight_number  = request.POST.get('flight_number', '').strip().upper()
+        flight_date    = request.POST.get('flight_date', '').strip() or None
+        from_city      = request.POST.get('from_city', '').strip()
+        to_city        = request.POST.get('to_city', '').strip()
 
-        sch = get_object_or_404(FlightSchedule.objects.using(db), pk=sch_id)
-        unit_price = sch.price
-        total_amount = unit_price * passenger_count
+        # ── Customer Type & B2B ──────────────────────────────────────────────
+        customer_type  = request.POST.get('customer_type', 'b2c')
+        b2b_agent_id   = None
+        b2b_agent_name = ''
+        b2b_agent_code = ''
+        if customer_type == 'b2b':
+            raw_agent_id = request.POST.get('b2b_agent_id', '').strip()
+            if raw_agent_id.isdigit():
+                try:
+                    agent_obj = AgencyAgent.objects.using(db).get(pk=int(raw_agent_id))
+                    b2b_agent_id   = agent_obj.id
+                    b2b_agent_name = agent_obj.name
+                    b2b_agent_code = agent_obj.agent_code
+                except AgencyAgent.DoesNotExist:
+                    pass
 
+        # ── Passenger ───────────────────────────────────────────────────────
+        cust_name       = request.POST.get('customer_name', '').strip()
+        cust_email      = request.POST.get('customer_email', '').strip()
+        cust_mobile     = request.POST.get('customer_mobile', '').strip()
+        passport_num    = request.POST.get('passport_number', '').strip().upper()
+        pnr_num         = request.POST.get('pnr_number', '').strip().upper()
+        passenger_count = max(1, int(request.POST.get('passenger_count', '1') or 1))
+
+        # ── Pricing ─────────────────────────────────────────────────────────
+        try:
+            unit_price = float(request.POST.get('unit_price', '0') or 0)
+        except (ValueError, TypeError):
+            unit_price = 0.0
+
+        # ── Invoice & Attachment ─────────────────────────────────────────────
+        generate_invoice = 'generate_invoice' in request.POST
+        ticket_file      = request.FILES.get('ticket_file')
+
+        # ── Booked-by role ───────────────────────────────────────────────────
         role = AirTicketBooking.BookedByRole.ADMIN
         if request.user.is_tenant_staff:
             role = AirTicketBooking.BookedByRole.STAFF
-        elif request.user.is_ambassador:
+        elif hasattr(request.user, 'is_ambassador') and request.user.is_ambassador:
             role = AirTicketBooking.BookedByRole.AMBASSADOR
 
-        b = AirTicketBooking.objects.using(db).create(
-            schedule=sch,
+        b = AirTicketBooking(
+            airline_name=airline_name,
+            flight_number=flight_number,
+            flight_date=flight_date,
+            from_city=from_city,
+            to_city=to_city,
+            customer_type=customer_type,
+            b2b_agent_id=b2b_agent_id,
+            b2b_agent_name=b2b_agent_name,
+            b2b_agent_code=b2b_agent_code,
             customer_name=cust_name,
             customer_email=cust_email,
             customer_mobile=cust_mobile,
+            passenger_count=passenger_count,
             passport_number=passport_num,
             pnr_number=pnr_num,
-            passenger_count=passenger_count,
             unit_price=unit_price,
-            total_amount=total_amount,
+            total_amount=0,          # auto-calc in save()
+            discount_amount=0,
+            invoice_generated=generate_invoice,
             booked_by_role=role,
             booked_by_email=request.user.email,
             status=AirTicketBooking.Status.CONFIRMED,
             payment_status=AirTicketBooking.PaymentStatus.PAID,
         )
+        if ticket_file:
+            b.ticket_file = ticket_file
+        b.save(using=db)
 
-        if sch.available_seats >= passenger_count:
-            sch.available_seats -= passenger_count
-            sch.save(using=db)
+        # ── B2B agent balance auto-count ─────────────────────────────────────
+        if customer_type == 'b2b' and b2b_agent_id and unit_price > 0:
+            try:
+                from apps.tenants.agency_models import B2BTransaction, AgencyAgent
+                agent_obj = AgencyAgent.objects.using(db).get(pk=b2b_agent_id)
+                total = b.unit_price * b.passenger_count
+                B2BTransaction.objects.using(db).create(
+                    agent=agent_obj,
+                    txn_type=B2BTransaction.TxnType.DEBIT,
+                    amount=total,
+                    description=f'Air Ticket – {airline_name} {flight_number} | Booking {b.booking_code}',
+                    reference_no=b.booking_code,
+                )
+            except Exception:
+                pass
+            except Exception:
+                pass
 
-        messages.success(request, f'Air Ticket Booking {b.booking_code} created successfully!')
+        messages.success(request, f'Air Ticket Booking {b.booking_code} created!{"  Invoice " + b.invoice_number + " generated." if b.invoice_generated else ""}')
         return redirect('admin_panel:air_booking_list')
 
-    return render(request, 'admin_panel/air/bookings.html', {'bookings': bookings, 'schedules': schedules})
+    return render(request, 'admin_panel/air/bookings.html', {
+        'bookings': bookings,
+        'b2b_agents': b2b_agents,
+    })
 
 
 @login_required
