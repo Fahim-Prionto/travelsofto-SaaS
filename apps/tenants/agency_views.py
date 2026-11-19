@@ -202,6 +202,32 @@ def candidate_list(request):
             candidates_qs = candidates_qs.filter(b2b_staff_id=staff_filter)
             
         candidates = list(candidates_qs)
+
+        ALL_SECTORS_DEF = [
+            {'key': 'selection', 'name': 'Selection & Grade', 'icon': 'fa-user-check', 'color': '#4f46e5'},
+            {'key': 'medical', 'name': 'Medical Clearance', 'icon': 'fa-heart-pulse', 'color': '#10b981'},
+            {'key': 'police_clearance', 'name': 'Police Clearance', 'icon': 'fa-shield-halved', 'color': '#f59e0b'},
+            {'key': 'mofa', 'name': 'MOFA / Enjaz', 'icon': 'fa-file-shield', 'color': '#7c3aed'},
+            {'key': 'fingerprint', 'name': 'Biometric / Finger', 'icon': 'fa-fingerprint', 'color': '#0284c7'},
+            {'key': 'visa_stamping', 'name': 'Visa Stamping', 'icon': 'fa-passport', 'color': '#2563eb'},
+            {'key': 'training', 'name': 'Training', 'icon': 'fa-chalkboard-user', 'color': '#0ea5e9'},
+            {'key': 'manpower', 'name': 'Manpower / BMET', 'icon': 'fa-id-card', 'color': '#4f46e5'},
+            {'key': 'flight', 'name': 'Flight & NOC', 'icon': 'fa-plane-departure', 'color': '#ef4444'},
+        ]
+        SECTOR_NAME_MAP = {s['key']: s['name'] for s in ALL_SECTORS_DEF}
+
+        for c in candidates:
+            secs = c.applicable_sectors if isinstance(c.applicable_sectors, list) else []
+            if not secs:
+                secs = [s['key'] for s in ALL_SECTORS_DEF]
+            c.ordered_workflow = [
+                {'key': s, 'name': SECTOR_NAME_MAP.get(s, s.replace('_', ' ').title()), 'step': idx + 1}
+                for idx, s in enumerate(secs)
+                if s in SECTOR_NAME_MAP
+            ]
+            c.sector_step_map = {s: idx + 1 for idx, s in enumerate(secs)}
+            c.applicable_sectors_list = [s for s in secs if s in SECTOR_NAME_MAP]
+
         countries = list(Country.objects.using(db).filter(is_active=True).order_by('name'))
         agents = list(AgencyAgent.objects.using(db).filter(is_active=True))
         b2b_agents = [a for a in agents if getattr(a, 'agent_type', 'b2b') == 'b2b']
@@ -257,6 +283,7 @@ def candidate_list(request):
         'accounts': accounts,
         'next_cr_serial': next_cr_serial,
         'existing_vouchers': existing_vouchers,
+        'all_sectors_def': ALL_SECTORS_DEF,
     }
     return render(request, 'admin_panel/agency/candidate_list.html', context)
 
@@ -638,7 +665,7 @@ def candidate_edit(request, pk):
             if candidate.visa_lot:
                 candidate.visa_lot.update_assigned_count()
 
-        if 'applicable_sectors' in request.POST:
+        if 'applicable_sectors_submitted' in request.POST or 'applicable_sectors' in request.POST:
             candidate.applicable_sectors = request.POST.getlist('applicable_sectors')
 
         if 'photo' in request.FILES:

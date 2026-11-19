@@ -428,63 +428,58 @@
           <div class="col-md-6"><label class="form-label fw-semibold small">Photo</label>
             <input type="file" name="photo" class="form-control" accept="image/*"></div>
 
-          <!-- Sector Requirements Selection -->
+          <!-- Sector Requirements Selection (Numbered Serial Pipeline) -->
           <div class="col-12 border-top pt-2">
-            <h6 class="fw-bold text-primary small mb-2"><i class="fa-solid fa-list-check me-1"></i>Select Applicable Sectors / Workflow Stages for Candidate</h6>
-            <div class="row g-2 bg-light p-2 rounded border small">
-              <div class="col-6 col-md-3">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" name="applicable_sectors" value="selection" id="sec_sel" checked>
-                  <label class="form-check-label fw-semibold" for="sec_sel">Selection & Grade</label>
+            <div class="card border-0 bg-light p-3 rounded-3 mb-2 shadow-sm">
+              <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-2">
+                <div>
+                  <h6 class="fw-bold text-dark mb-0 small d-flex align-items-center gap-1.5">
+                    <i class="fa-solid fa-list-ol text-primary"></i> Select Applicable Sectors / Workflow Stages (Numbered Serial)
+                  </h6>
+                  <p class="text-muted mb-0" style="font-size:0.75rem;">
+                    Click items to set sequence: 1st click = <strong>Step 1</strong>, 2nd click = <strong>Step 2</strong>... Click again to remove.
+                  </p>
+                </div>
+                <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                  <button type="button" class="btn btn-xs btn-outline-primary px-2 py-1 rounded-pill fw-semibold" style="font-size:0.72rem;" onclick="setAllStagesDefault('add')">
+                    <i class="fa-solid fa-list-check me-1"></i>Default (1 to 9)
+                  </button>
+                  <button type="button" class="btn btn-xs btn-outline-secondary px-2 py-1 rounded-pill fw-semibold" style="font-size:0.72rem;" onclick="clearAllStages('add')">
+                    <i class="fa-solid fa-rotate-left me-1"></i>Clear All
+                  </button>
                 </div>
               </div>
-              <div class="col-6 col-md-3">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" name="applicable_sectors" value="medical" id="sec_med" checked>
-                  <label class="form-check-label fw-semibold" for="sec_med">Medical Clearance</label>
-                </div>
+
+              <!-- Live Pipeline Sequence Ribbon -->
+              <div class="p-2 rounded-2 bg-white border d-flex align-items-center gap-1.5 flex-wrap mb-2" id="wf_ribbon_add" style="min-height:38px;">
+                <!-- Filled via JS -->
               </div>
-              <div class="col-6 col-md-3">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" name="applicable_sectors" value="police_clearance" id="sec_pc" checked>
-                  <label class="form-check-label fw-semibold" for="sec_pc">Police Clearance</label>
-                </div>
+
+              <!-- Hidden Form Inputs Container (Submitted in Exact Serial Order) -->
+              <div id="wf_inputs_add">
+                <input type="hidden" name="applicable_sectors_submitted" value="1">
               </div>
-              <div class="col-6 col-md-3">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" name="applicable_sectors" value="mofa" id="sec_mofa" checked>
-                  <label class="form-check-label fw-semibold" for="sec_mofa">MOFA / Enjaz</label>
+
+              <!-- 9 Interactive Cards Grid -->
+              <div class="row g-2" id="wf_grid_add">
+                {% for sec_item in all_sectors_def %}
+                <div class="col-6 col-md-4">
+                  <div class="wf-tile p-2 rounded-3 border bg-white d-flex align-items-center gap-2 cursor-pointer shadow-2xs"
+                       id="wf_tile_add_{{ sec_item.key }}" onclick="toggleWorkflowStage('add', '{{ sec_item.key }}')">
+                    <span class="wf-badge-circle rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
+                          id="wf_badge_add_{{ sec_item.key }}">○</span>
+                    <div class="flex-grow-1 overflow-hidden">
+                      <div class="d-flex align-items-center justify-content-between">
+                        <span class="fw-bold small text-dark d-block text-truncate">
+                          <i class="fa-solid {{ sec_item.icon }} me-1" style="color:{{ sec_item.color }};"></i>{{ sec_item.name }}
+                        </span>
+                        <span class="wf-step-tag badge" id="wf_tag_add_{{ sec_item.key }}">Unset</span>
+                      </div>
+                      <small class="text-muted d-block wf-hint" id="wf_hint_add_{{ sec_item.key }}" style="font-size:0.68rem;">Click to select</small>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div class="col-6 col-md-3">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" name="applicable_sectors" value="fingerprint" id="sec_finger" checked>
-                  <label class="form-check-label fw-semibold" for="sec_finger">Biometric / Finger</label>
-                </div>
-              </div>
-              <div class="col-6 col-md-3">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" name="applicable_sectors" value="visa_stamping" id="sec_visa" checked>
-                  <label class="form-check-label fw-semibold" for="sec_visa">Visa Stamping</label>
-                </div>
-              </div>
-              <div class="col-6 col-md-3">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" name="applicable_sectors" value="training" id="sec_train" checked>
-                  <label class="form-check-label fw-semibold" for="sec_train">Training</label>
-                </div>
-              </div>
-              <div class="col-6 col-md-3">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" name="applicable_sectors" value="manpower" id="sec_mp" checked>
-                  <label class="form-check-label fw-semibold" for="sec_mp">Manpower / BMET</label>
-                </div>
-              </div>
-              <div class="col-6 col-md-3">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" name="applicable_sectors" value="flight" id="sec_flight" checked>
-                  <label class="form-check-label fw-semibold" for="sec_flight">Flight & NOC</label>
-                </div>
+                {% endfor %}
               </div>
             </div>
           </div>
@@ -763,63 +758,58 @@
             <div class="col-md-4"><label class="form-label small fw-semibold">Photo</label>
               <input type="file" name="photo" class="form-control" accept="image/*"></div>
 
-            <!-- Applicable Sectors Checklist in Edit Modal -->
+            <!-- Sector Requirements Selection (Numbered Serial Pipeline) in Edit Modal -->
             <div class="col-12 border-top pt-2">
-              <label class="form-label small fw-bold text-primary"><i class="fa-solid fa-list-check me-1"></i>Applicable Recruitment Sectors for Candidate</label>
-              <div class="row g-2 bg-light p-2 rounded border small">
-                <div class="col-6 col-md-3">
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="applicable_sectors" value="selection" id="edit_sec_sel_{{ c.id }}" {% if not c.applicable_sectors or 'selection' in c.applicable_sectors %}checked{% endif %}>
-                    <label class="form-check-label fw-semibold" for="edit_sec_sel_{{ c.id }}">Selection & Grade</label>
+              <div class="card border-0 bg-light p-3 rounded-3 mb-2 shadow-sm">
+                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-2">
+                  <div>
+                    <h6 class="fw-bold text-dark mb-0 small d-flex align-items-center gap-1.5">
+                      <i class="fa-solid fa-list-ol text-primary"></i> Select Applicable Sectors / Workflow Stages (Numbered Serial)
+                    </h6>
+                    <p class="text-muted mb-0" style="font-size:0.75rem;">
+                      Click items in the exact serial order you want: 1st click = <strong>Step 1</strong>, 2nd click = <strong>Step 2</strong>... Click an active stage to remove it.
+                    </p>
+                  </div>
+                  <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                    <button type="button" class="btn btn-xs btn-outline-primary px-2 py-1 rounded-pill fw-semibold" style="font-size:0.72rem;" onclick="setAllStagesDefault('edit_{{ c.id }}')">
+                      <i class="fa-solid fa-list-check me-1"></i>Default (1 to 9)
+                    </button>
+                    <button type="button" class="btn btn-xs btn-outline-secondary px-2 py-1 rounded-pill fw-semibold" style="font-size:0.72rem;" onclick="clearAllStages('edit_{{ c.id }}')">
+                      <i class="fa-solid fa-rotate-left me-1"></i>Clear All
+                    </button>
                   </div>
                 </div>
-                <div class="col-6 col-md-3">
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="applicable_sectors" value="medical" id="edit_sec_med_{{ c.id }}" {% if not c.applicable_sectors or 'medical' in c.applicable_sectors %}checked{% endif %}>
-                    <label class="form-check-label fw-semibold" for="edit_sec_med_{{ c.id }}">Medical Clearance</label>
-                  </div>
+
+                <!-- Live Pipeline Sequence Ribbon -->
+                <div class="p-2 rounded-2 bg-white border d-flex align-items-center gap-1.5 flex-wrap mb-2" id="wf_ribbon_edit_{{ c.id }}" style="min-height:38px;">
+                  <!-- Generated via JS -->
                 </div>
-                <div class="col-6 col-md-3">
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="applicable_sectors" value="police_clearance" id="edit_sec_pc_{{ c.id }}" {% if not c.applicable_sectors or 'police_clearance' in c.applicable_sectors %}checked{% endif %}>
-                    <label class="form-check-label fw-semibold" for="edit_sec_pc_{{ c.id }}">Police Clearance</label>
-                  </div>
+
+                <!-- Hidden Form Inputs Container (Submitted in Exact Serial Order) -->
+                <div id="wf_inputs_edit_{{ c.id }}">
+                  <input type="hidden" name="applicable_sectors_submitted" value="1">
                 </div>
-                <div class="col-6 col-md-3">
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="applicable_sectors" value="mofa" id="edit_sec_mofa_{{ c.id }}" {% if not c.applicable_sectors or 'mofa' in c.applicable_sectors %}checked{% endif %}>
-                    <label class="form-check-label fw-semibold" for="edit_sec_mofa_{{ c.id }}">MOFA / Enjaz</label>
+
+                <!-- 9 Interactive Cards Grid -->
+                <div class="row g-2" id="wf_grid_edit_{{ c.id }}">
+                  {% for sec_item in all_sectors_def %}
+                  <div class="col-6 col-md-4">
+                    <div class="wf-tile p-2 rounded-3 border bg-white d-flex align-items-center gap-2 cursor-pointer shadow-2xs"
+                         id="wf_tile_edit_{{ c.id }}_{{ sec_item.key }}" onclick="toggleWorkflowStage('edit_{{ c.id }}', '{{ sec_item.key }}')">
+                      <span class="wf-badge-circle rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
+                            id="wf_badge_edit_{{ c.id }}_{{ sec_item.key }}">○</span>
+                      <div class="flex-grow-1 overflow-hidden">
+                        <div class="d-flex align-items-center justify-content-between">
+                          <span class="fw-bold small text-dark d-block text-truncate">
+                            <i class="fa-solid {{ sec_item.icon }} me-1" style="color:{{ sec_item.color }};"></i>{{ sec_item.name }}
+                          </span>
+                          <span class="wf-step-tag badge" id="wf_tag_edit_{{ c.id }}_{{ sec_item.key }}">Unset</span>
+                        </div>
+                        <small class="text-muted d-block wf-hint" id="wf_hint_edit_{{ c.id }}_{{ sec_item.key }}" style="font-size:0.68rem;">Click to select</small>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div class="col-6 col-md-3">
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="applicable_sectors" value="fingerprint" id="edit_sec_finger_{{ c.id }}" {% if not c.applicable_sectors or 'fingerprint' in c.applicable_sectors %}checked{% endif %}>
-                    <label class="form-check-label fw-semibold" for="edit_sec_finger_{{ c.id }}">Biometric / Finger</label>
-                  </div>
-                </div>
-                <div class="col-6 col-md-3">
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="applicable_sectors" value="visa_stamping" id="edit_sec_visa_{{ c.id }}" {% if not c.applicable_sectors or 'visa_stamping' in c.applicable_sectors %}checked{% endif %}>
-                    <label class="form-check-label fw-semibold" for="edit_sec_visa_{{ c.id }}">Visa Stamping</label>
-                  </div>
-                </div>
-                <div class="col-6 col-md-3">
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="applicable_sectors" value="training" id="edit_sec_train_{{ c.id }}" {% if not c.applicable_sectors or 'training' in c.applicable_sectors %}checked{% endif %}>
-                    <label class="form-check-label fw-semibold" for="edit_sec_train_{{ c.id }}">Training</label>
-                  </div>
-                </div>
-                <div class="col-6 col-md-3">
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="applicable_sectors" value="manpower" id="edit_sec_mp_{{ c.id }}" {% if not c.applicable_sectors or 'manpower' in c.applicable_sectors %}checked{% endif %}>
-                    <label class="form-check-label fw-semibold" for="edit_sec_mp_{{ c.id }}">Manpower / BMET</label>
-                  </div>
-                </div>
-                <div class="col-6 col-md-3">
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="applicable_sectors" value="flight" id="edit_sec_flight_{{ c.id }}" {% if not c.applicable_sectors or 'flight' in c.applicable_sectors %}checked{% endif %}>
-                    <label class="form-check-label fw-semibold" for="edit_sec_flight_{{ c.id }}">Flight & NOC</label>
-                  </div>
+                  {% endfor %}
                 </div>
               </div>
             </div>
@@ -845,11 +835,41 @@
       <form method="post" action="{% url 'admin_panel:candidate_update_stage' c.id %}" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="modal-body">
+          <!-- Visual Workflow Pipeline Sequence -->
+          <div class="card border-0 mb-3 shadow-sm" style="background:linear-gradient(135deg, #f8fafc, #f1f5f9); border:1px solid #e2e8f0 !important; border-radius:10px;">
+            <div class="card-body p-3">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="small fw-bold text-dark d-flex align-items-center gap-1.5">
+                  <i class="fa-solid fa-list-ol text-primary"></i> Candidate Workflow Pipeline (Numbered Serial Execution)
+                </span>
+                <span class="badge bg-primary rounded-pill px-2.5 py-1 small">
+                  {{ c.ordered_workflow|length }} Active Steps
+                </span>
+              </div>
+              <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                {% for st in c.ordered_workflow %}
+                  <div class="badge bg-white text-dark border shadow-2xs rounded-pill px-2.5 py-1.5 d-inline-flex align-items-center gap-1.5" style="font-size:0.75rem;">
+                    <span class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center fw-bold" style="width:18px; height:18px; font-size:0.68rem;">{{ st.step }}</span>
+                    <span class="fw-semibold">{{ st.name }}</span>
+                  </div>
+                  {% if not forloop.last %}
+                    <i class="fa-solid fa-arrow-right-long text-primary small"></i>
+                  {% endif %}
+                {% empty %}
+                  <span class="text-muted small">All stages available by default.</span>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
           <div class="row g-3">
             <!-- Selection -->
             {% if not c.applicable_sectors or 'selection' in c.applicable_sectors %}
             <div class="col-md-6">
-              <label class="form-label small fw-bold text-primary">Selection Status</label>
+              <label class="form-label small fw-bold text-primary d-flex align-items-center gap-1">
+                {% if c.sector_step_map.selection %}<span class="badge bg-primary rounded-pill px-1.5 py-0.5" style="font-size:0.68rem;">Step {{ c.sector_step_map.selection }}</span>{% endif %}
+                Selection Status
+              </label>
               <select name="selection_status" class="form-select">
                 <option value="pending" {% if c.selection_status == 'pending' %}selected{% endif %}>Pending</option>
                 <option value="selected" {% if c.selection_status == 'selected' %}selected{% endif %}>Selected</option>
@@ -869,7 +889,10 @@
             <!-- Medical -->
             {% if not c.applicable_sectors or 'medical' in c.applicable_sectors %}
             <div class="col-md-6">
-              <label class="form-label small fw-bold text-success">Medical Status</label>
+              <label class="form-label small fw-bold text-success d-flex align-items-center gap-1">
+                {% if c.sector_step_map.medical %}<span class="badge bg-success rounded-pill px-1.5 py-0.5" style="font-size:0.68rem;">Step {{ c.sector_step_map.medical }}</span>{% endif %}
+                Medical Status
+              </label>
               <select name="medical_status" class="form-select">
                 <option value="pending" {% if c.medical_status == 'pending' %}selected{% endif %}>Pending</option>
                 <option value="fit" {% if c.medical_status == 'fit' %}selected{% endif %}>Fit</option>
@@ -887,7 +910,10 @@
             <!-- Police Clearance -->
             {% if not c.applicable_sectors or 'police_clearance' in c.applicable_sectors %}
             <div class="col-md-6">
-              <label class="form-label small fw-bold text-warning">Police Clearance</label>
+              <label class="form-label small fw-bold text-warning d-flex align-items-center gap-1">
+                {% if c.sector_step_map.police_clearance %}<span class="badge bg-warning text-dark rounded-pill px-1.5 py-0.5" style="font-size:0.68rem;">Step {{ c.sector_step_map.police_clearance }}</span>{% endif %}
+                Police Clearance
+              </label>
               <select name="police_clearance_status" class="form-select">
                 <option value="pending" {% if c.police_clearance_status == 'pending' %}selected{% endif %}>Pending</option>
                 <option value="cleared" {% if c.police_clearance_status == 'cleared' %}selected{% endif %}>Cleared</option>
@@ -903,7 +929,10 @@
             <!-- MOFA -->
             {% if not c.applicable_sectors or 'mofa' in c.applicable_sectors %}
             <div class="col-md-4">
-              <label class="form-label small fw-bold" style="color:#7c3aed;">MOFA Status</label>
+              <label class="form-label small fw-bold d-flex align-items-center gap-1" style="color:#7c3aed;">
+                {% if c.sector_step_map.mofa %}<span class="badge rounded-pill px-1.5 py-0.5" style="background:#7c3aed; color:#fff; font-size:0.68rem;">Step {{ c.sector_step_map.mofa }}</span>{% endif %}
+                MOFA Status
+              </label>
               <select name="mofa_status" class="form-select">
                 <option value="mofa_pending" {% if c.mofa_status == 'mofa_pending' %}selected{% endif %}>Mofa Pending</option>
                 <option value="enjaz_pending" {% if c.mofa_status == 'enjaz_pending' %}selected{% endif %}>Enjaz Pending</option>
@@ -915,7 +944,10 @@
             <!-- Fingerprint / Biometric -->
             {% if not c.applicable_sectors or 'fingerprint' in c.applicable_sectors %}
             <div class="col-md-4">
-              <label class="form-label small fw-bold" style="color:#7c3aed;">Finger Status</label>
+              <label class="form-label small fw-bold d-flex align-items-center gap-1" style="color:#0284c7;">
+                {% if c.sector_step_map.fingerprint %}<span class="badge rounded-pill px-1.5 py-0.5" style="background:#0284c7; color:#fff; font-size:0.68rem;">Step {{ c.sector_step_map.fingerprint }}</span>{% endif %}
+                Finger Status
+              </label>
               <select name="finger_status" class="form-select">
                 <option value="finger_pending" {% if c.finger_status == 'finger_pending' %}selected{% endif %}>Finger Pending</option>
                 <option value="finger_completed" {% if c.finger_status == 'finger_completed' %}selected{% endif %}>Finger Completed</option>
@@ -926,7 +958,10 @@
             <!-- Visa Stamping -->
             {% if not c.applicable_sectors or 'visa_stamping' in c.applicable_sectors %}
             <div class="col-md-4">
-              <label class="form-label small fw-bold" style="color:#7c3aed;">Visa Stamping</label>
+              <label class="form-label small fw-bold d-flex align-items-center gap-1" style="color:#2563eb;">
+                {% if c.sector_step_map.visa_stamping %}<span class="badge rounded-pill px-1.5 py-0.5" style="background:#2563eb; color:#fff; font-size:0.68rem;">Step {{ c.sector_step_map.visa_stamping }}</span>{% endif %}
+                Visa Stamping
+              </label>
               <select name="visa_stamping_status" class="form-select">
                 <option value="visa_pending" {% if c.visa_stamping_status == 'visa_pending' %}selected{% endif %}>Visa Pending</option>
                 <option value="visa_completed" {% if c.visa_stamping_status == 'visa_completed' %}selected{% endif %}>Visa Completed</option>
@@ -937,7 +972,10 @@
             <!-- Training -->
             {% if not c.applicable_sectors or 'training' in c.applicable_sectors %}
             <div class="col-md-6">
-              <label class="form-label small fw-bold text-info">Training Status</label>
+              <label class="form-label small fw-bold text-info d-flex align-items-center gap-1">
+                {% if c.sector_step_map.training %}<span class="badge bg-info text-dark rounded-pill px-1.5 py-0.5" style="font-size:0.68rem;">Step {{ c.sector_step_map.training }}</span>{% endif %}
+                Training Status
+              </label>
               <select name="training_status" class="form-select">
                 <option value="training_pending" {% if c.training_status == 'training_pending' %}selected{% endif %}>Training Pending</option>
                 <option value="training_completed" {% if c.training_status == 'training_completed' %}selected{% endif %}>Training Completed</option>
@@ -948,7 +986,10 @@
             <!-- Manpower -->
             {% if not c.applicable_sectors or 'manpower' in c.applicable_sectors %}
             <div class="col-md-6">
-              <label class="form-label small fw-bold text-info">Manpower Status</label>
+              <label class="form-label small fw-bold text-primary d-flex align-items-center gap-1">
+                {% if c.sector_step_map.manpower %}<span class="badge bg-primary rounded-pill px-1.5 py-0.5" style="font-size:0.68rem;">Step {{ c.sector_step_map.manpower }}</span>{% endif %}
+                Manpower Status
+              </label>
               <select name="manpower_status" class="form-select">
                 <option value="manpower_pending" {% if c.manpower_status == 'manpower_pending' %}selected{% endif %}>Manpower Approval</option>
                 <option value="manpower_completed" {% if c.manpower_status == 'manpower_completed' %}selected{% endif %}>Manpower Completed</option>
@@ -959,7 +1000,10 @@
             <!-- Flight & NOC -->
             {% if not c.applicable_sectors or 'flight' in c.applicable_sectors %}
             <div class="col-md-4">
-              <label class="form-label small fw-bold text-danger">Ticket Status</label>
+              <label class="form-label small fw-bold text-danger d-flex align-items-center gap-1">
+                {% if c.sector_step_map.flight %}<span class="badge bg-danger rounded-pill px-1.5 py-0.5" style="font-size:0.68rem;">Step {{ c.sector_step_map.flight }}</span>{% endif %}
+                Ticket Status
+              </label>
               <select name="ticket_status" class="form-select">
                 <option value="ticket_issue" {% if c.ticket_status == 'ticket_issue' %}selected{% endif %}>Ticket Issue</option>
                 <option value="ticket_pending" {% if c.ticket_status == 'ticket_pending' %}selected{% endif %}>Ticket Pending</option>
@@ -973,6 +1017,11 @@
             <div class="col-md-4">
               <label class="form-label small fw-bold text-danger">NOC Status</label>
               <select name="noc_status" class="form-select">
+                <option value="noc_pending" {% if c.noc_status == 'noc_pending' %}selected{% endif %}>NOC Pending</option>
+                <option value="noc_completed" {% if c.noc_status == 'noc_completed' %}selected{% endif %}>NOC Completed</option>
+              </select>
+            </div>
+            {% endif %}
                 <option value="noc_pending" {% if c.noc_status == 'noc_pending' %}selected{% endif %}>NOC Pending</option>
                 <option value="noc_completed" {% if c.noc_status == 'noc_completed' %}selected{% endif %}>NOC Completed</option>
               </select>
@@ -1245,7 +1294,160 @@
 </div>
 {% endfor %}
 
+<style>
+.wf-tile {
+  transition: all 0.16s ease-in-out;
+  user-select: none;
+  cursor: pointer;
+}
+.wf-tile:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+}
+.wf-badge-circle {
+  width: 26px;
+  height: 26px;
+  font-size: 0.8rem;
+  transition: all 0.16s ease;
+}
+</style>
+
 <script>
+const WORKFLOW_SECTOR_MAP = {
+  'selection': { name: 'Selection & Grade', icon: 'fa-user-check', color: '#4f46e5' },
+  'medical': { name: 'Medical Clearance', icon: 'fa-heart-pulse', color: '#10b981' },
+  'police_clearance': { name: 'Police Clearance', icon: 'fa-shield-halved', color: '#f59e0b' },
+  'mofa': { name: 'MOFA / Enjaz', icon: 'fa-file-shield', color: '#7c3aed' },
+  'fingerprint': { name: 'Biometric / Finger', icon: 'fa-fingerprint', color: '#0284c7' },
+  'visa_stamping': { name: 'Visa Stamping', icon: 'fa-passport', color: '#2563eb' },
+  'training': { name: 'Training', icon: 'fa-chalkboard-user', color: '#0ea5e9' },
+  'manpower': { name: 'Manpower / BMET', icon: 'fa-id-card', color: '#4f46e5' },
+  'flight': { name: 'Flight & NOC', icon: 'fa-plane-departure', color: '#ef4444' }
+};
+
+const DEFAULT_WORKFLOW_KEYS = [
+  'selection', 'medical', 'police_clearance', 'mofa', 'fingerprint', 'visa_stamping', 'training', 'manpower', 'flight'
+];
+
+window.workflowScopes = window.workflowScopes || {};
+
+function initWorkflowScope(scopeId, initialList) {
+  if (!initialList || !Array.isArray(initialList) || initialList.length === 0) {
+    window.workflowScopes[scopeId] = DEFAULT_WORKFLOW_KEYS.slice();
+  } else {
+    window.workflowScopes[scopeId] = initialList.filter(k => WORKFLOW_SECTOR_MAP[k]);
+  }
+  renderWorkflowScope(scopeId);
+}
+
+function toggleWorkflowStage(scopeId, stageKey) {
+  let list = window.workflowScopes[scopeId] || [];
+  const idx = list.indexOf(stageKey);
+  if (idx !== -1) {
+    list.splice(idx, 1);
+  } else {
+    list.push(stageKey);
+  }
+  window.workflowScopes[scopeId] = list;
+  renderWorkflowScope(scopeId);
+}
+
+function setAllStagesDefault(scopeId) {
+  window.workflowScopes[scopeId] = DEFAULT_WORKFLOW_KEYS.slice();
+  renderWorkflowScope(scopeId);
+}
+
+function clearAllStages(scopeId) {
+  window.workflowScopes[scopeId] = [];
+  renderWorkflowScope(scopeId);
+}
+
+function renderWorkflowScope(scopeId) {
+  const list = window.workflowScopes[scopeId] || [];
+
+  const inputsContainer = document.getElementById('wf_inputs_' + scopeId);
+  if (inputsContainer) {
+    inputsContainer.innerHTML = '<input type="hidden" name="applicable_sectors_submitted" value="1">' +
+      list.map(k => `<input type="hidden" name="applicable_sectors" value="${k}">`).join('');
+  }
+
+  const ribbon = document.getElementById('wf_ribbon_' + scopeId);
+  if (ribbon) {
+    if (list.length === 0) {
+      ribbon.innerHTML = '<span class="text-muted small ps-1"><i class="fa-solid fa-circle-info text-secondary me-1"></i>No stages selected yet. Click any stage card below to pick Step 1, Step 2, etc.</span>';
+    } else {
+      let html = `<span class="badge bg-primary rounded-pill me-1 small">${list.length} Stage${list.length > 1 ? 's' : ''} Configured:</span>`;
+      html += list.map((k, idx) => {
+        const conf = WORKFLOW_SECTOR_MAP[k] || { name: k, icon: 'fa-circle', color: '#4f46e5' };
+        return `<span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1 d-inline-flex align-items-center gap-1 shadow-2xs" style="font-size:0.75rem;">
+          <span class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center fw-bold" style="width:16px; height:16px; font-size:0.65rem;">${idx + 1}</span>
+          <i class="fa-solid ${conf.icon}" style="color:${conf.color};"></i> ${conf.name}
+        </span>`;
+      }).join('<i class="fa-solid fa-arrow-right-long text-muted small mx-0.5" style="font-size:0.7rem;"></i>');
+      ribbon.innerHTML = html;
+    }
+  }
+
+  DEFAULT_WORKFLOW_KEYS.forEach(stageKey => {
+    const tile = document.getElementById('wf_tile_' + scopeId + '_' + stageKey);
+    const badge = document.getElementById('wf_badge_' + scopeId + '_' + stageKey);
+    const tag = document.getElementById('wf_tag_' + scopeId + '_' + stageKey);
+    const hint = document.getElementById('wf_hint_' + scopeId + '_' + stageKey);
+
+    if (!tile || !badge) return;
+
+    const stepIndex = list.indexOf(stageKey);
+    if (stepIndex !== -1) {
+      const stepNumber = stepIndex + 1;
+      tile.style.border = '2px solid #4f46e5';
+      tile.style.background = '#f5f3ff';
+      tile.style.boxShadow = '0 2px 8px rgba(79, 70, 229, 0.12)';
+
+      badge.textContent = stepNumber;
+      badge.style.border = 'none';
+      badge.style.background = '#4f46e5';
+      badge.style.color = '#ffffff';
+
+      if (tag) {
+        tag.className = 'wf-step-tag badge bg-primary text-white rounded-pill px-2 py-0.5';
+        tag.textContent = 'Step #' + stepNumber;
+        tag.style.fontSize = '0.68rem';
+      }
+      if (hint) {
+        hint.textContent = 'Step ' + stepNumber + ' in workflow (click to remove)';
+        hint.className = 'd-block text-primary fw-semibold';
+      }
+    } else {
+      tile.style.border = '1px solid #e2e8f0';
+      tile.style.background = '#ffffff';
+      tile.style.boxShadow = 'none';
+
+      badge.textContent = '○';
+      badge.style.border = '2px dashed #cbd5e1';
+      badge.style.background = '#ffffff';
+      badge.style.color = '#94a3b8';
+
+      if (tag) {
+        tag.className = 'wf-step-tag badge bg-light text-muted border rounded-pill px-1.5 py-0.5';
+        tag.textContent = 'Excluded';
+        tag.style.fontSize = '0.65rem';
+      }
+      if (hint) {
+        hint.textContent = 'Click to set as Step ' + (list.length + 1);
+        hint.className = 'text-muted d-block';
+      }
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  initWorkflowScope('add', DEFAULT_WORKFLOW_KEYS);
+
+  {% for c in candidates %}
+  initWorkflowScope('edit_{{ c.id }}', [{% for s in c.applicable_sectors_list %}'{{ s }}'{% if not forloop.last %},{% endif %}{% endfor %}]);
+  {% endfor %}
+});
+
 function autoFillVoucherAmount(selectElem) {
   if (!selectElem) return;
   const selectedOption = selectElem.options[selectElem.selectedIndex];
