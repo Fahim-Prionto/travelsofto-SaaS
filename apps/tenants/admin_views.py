@@ -840,7 +840,7 @@ def staff_create(request):
 
 @login_required
 def staff_edit(request, pk):
-    """Agency Admin updates a staff member profile, contact info, and resets password."""
+    """Agency Admin updates staff profile, password, and assigns B2B agents directly."""
     if not (request.user.is_tenant_admin or request.user.is_super_admin):
         messages.error(request, 'You do not have permission to edit staff accounts.')
         return redirect('admin_panel:dashboard')
@@ -848,10 +848,10 @@ def staff_edit(request, pk):
     staff = get_object_or_404(User, pk=pk, tenant_id=request.user.tenant_id, role=User.Role.TENANT_STAFF)
 
     if request.method == 'POST':
-        first_name = request.POST.get('first_name', '').strip()
-        last_name  = request.POST.get('last_name', '').strip()
-        email      = request.POST.get('email', '').strip()
-        mobile     = request.POST.get('mobile', '').strip()
+        first_name   = request.POST.get('first_name', '').strip()
+        last_name    = request.POST.get('last_name', '').strip()
+        email        = request.POST.get('email', '').strip()
+        mobile       = request.POST.get('mobile', '').strip()
         new_password = request.POST.get('new_password', '').strip()
 
         if not email:
@@ -865,8 +865,8 @@ def staff_edit(request, pk):
             staff.email = email
 
         staff.first_name = first_name
-        staff.last_name = last_name
-        staff.mobile = mobile
+        staff.last_name  = last_name
+        staff.mobile     = mobile
 
         if new_password:
             if len(new_password) < 6:
@@ -877,44 +877,58 @@ def staff_edit(request, pk):
         staff.save()
 
         db = get_tenant_db(request)
+        staff_display_name = staff.get_full_name() or staff.email
 
-        # Update cached staff name and email in tenant AgencyAgent
-        try:
-            from apps.tenants.agency_models import AgencyAgent
-            AgencyAgent.objects.using(db).filter(assigned_staff_id=staff.id).update(
-                assigned_staff_name=staff.get_full_name() or staff.email,
-                assigned_staff_email=staff.email
-            )
-        except Exception:
-            pass
+        from apps.tenants.agency_models import AgencyAgent
 
-        # Handle multiple B2B agent assignments directly from this modal
         if 'agent_assignments_submitted' in request.POST:
-            selected_agent_ids = request.POST.getlist('assigned_agent_ids')
-            selected_ids = [int(aid) for aid in selected_agent_ids if aid.isdigit()]
+            # Parse submitted agent IDs safely
+            selected_ids = []
+            for aid in request.POST.getlist('assigned_agent_ids'):
+                try:
+                    selected_ids.append(int(aid))
+                except (ValueError, TypeError):
+                    pass
+
             try:
-                from apps.tenants.agency_models import AgencyAgent
-                # 1. Unassign agents that were previously assigned to this staff member but were unchecked
-                AgencyAgent.objects.using(db).filter(assigned_staff_id=staff.id).exclude(id__in=selected_ids).update(
+                # Step 1: Unassign agents previously owned by this staff that were unchecked
+                AgencyAgent.objects.using(db).filter(
+                    assigned_staff_id=staff.id
+                ).exclude(id__in=selected_ids).update(
                     assigned_staff_id=None,
                     assigned_staff_name='',
-                    assigned_staff_email=''
+                    assigned_staff_email='',
                 )
-                # 2. Assign newly checked/selected agents to this staff member
+                # Step 2: Assign all checked agents exclusively to this staff member
                 if selected_ids:
                     AgencyAgent.objects.using(db).filter(id__in=selected_ids).update(
                         assigned_staff_id=staff.id,
-                        assigned_staff_name=staff.get_full_name() or staff.email,
-                        assigned_staff_email=staff.email
+                        assigned_staff_name=staff_display_name,
+                        assigned_staff_email=staff.email,
                     )
+                messages.success(
+                    request,
+                    f'Staff "{staff.email}" saved. {len(selected_ids)} B2B agent(s) assigned successfully.'
+                )
+            except Exception as exc:
+                messages.warning(
+                    request,
+                    f'Staff details saved, but agent assignment failed: {exc}'
+                )
+        else:
+            # No agent panel submitted — just refresh cached name/email on already-assigned agents
+            try:
+                AgencyAgent.objects.using(db).filter(assigned_staff_id=staff.id).update(
+                    assigned_staff_name=staff_display_name,
+                    assigned_staff_email=staff.email,
+                )
             except Exception:
                 pass
+            messages.success(request, f'Staff member "{staff.email}" updated successfully!')
 
-        messages.success(request, f'Staff member "{staff.email}" updated successfully!')
         return redirect('admin_panel:staff_list')
 
     return redirect('admin_panel:staff_list')
-
 
 @login_required
 def staff_toggle_ban(request, pk):
