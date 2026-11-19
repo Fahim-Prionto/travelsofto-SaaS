@@ -459,6 +459,7 @@ class Candidate(models.Model):
     # 1. Selection & Assessment Stages
     selection_status = models.CharField(max_length=20, choices=SelectionStatus.choices, default=SelectionStatus.PENDING)
     delegate_status = models.CharField(max_length=20, choices=DelegateStatus.choices, default=DelegateStatus.PENDING)
+    selection_date = models.DateField(blank=True, null=True, help_text='Date of candidate selection')
 
     # 2. Medical & Police Clearance
     medical_status = models.CharField(max_length=20, choices=MedicalStatus.choices, default=MedicalStatus.PENDING)
@@ -488,9 +489,11 @@ class Candidate(models.Model):
     # 4. Manpower Assessment
     training_status = models.CharField(max_length=30, choices=TrainingStatus.choices, default=TrainingStatus.PENDING)
     training_center = models.CharField(max_length=150, blank=True)
+    training_date = models.DateField(blank=True, null=True, help_text='Date of training completion')
 
     manpower_status = models.CharField(max_length=30, choices=ManpowerApprovalStatus.choices, default=ManpowerApprovalStatus.PENDING)
     bmet_card_number = models.CharField(max_length=100, blank=True)
+    manpower_date = models.DateField(blank=True, null=True, help_text='Date of manpower approval')
 
     # 5. Flight & NOC Management
     travel_agency_name = models.CharField(max_length=150, blank=True)
@@ -502,6 +505,10 @@ class Candidate(models.Model):
 
     noc_status = models.CharField(max_length=30, choices=NOCStatus.choices, default=NOCStatus.PENDING)
     noc_reference = models.CharField(max_length=100, blank=True)
+    noc_date = models.DateField(blank=True, null=True, help_text='Date of NOC issue')
+
+    # Automatic Sector Dates Store
+    sector_dates = models.JSONField(default=dict, blank=True, help_text='Auto-recorded dates for all workflow sectors')
 
     # 6. Candidate Financials (Total, Paid, Due)
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'), help_text='Total agreed visa/package fee')

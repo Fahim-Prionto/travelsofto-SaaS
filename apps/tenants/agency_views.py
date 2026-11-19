@@ -170,6 +170,19 @@ def candidate_list(request):
     agent_filter = request.GET.get('agent_id', '').strip()
     staff_filter = request.GET.get('staff_id', '').strip()
 
+    ALL_SECTORS_DEF = [
+        {'key': 'selection', 'name': 'Selection & Grade', 'icon': 'fa-user-check', 'color': '#4f46e5'},
+        {'key': 'medical', 'name': 'Medical Clearance', 'icon': 'fa-heart-pulse', 'color': '#10b981'},
+        {'key': 'police_clearance', 'name': 'Police Clearance', 'icon': 'fa-shield-halved', 'color': '#f59e0b'},
+        {'key': 'mofa', 'name': 'MOFA / Enjaz', 'icon': 'fa-file-shield', 'color': '#7c3aed'},
+        {'key': 'fingerprint', 'name': 'Biometric / Finger', 'icon': 'fa-fingerprint', 'color': '#0284c7'},
+        {'key': 'visa_stamping', 'name': 'Visa Stamping', 'icon': 'fa-passport', 'color': '#2563eb'},
+        {'key': 'training', 'name': 'Training', 'icon': 'fa-chalkboard-user', 'color': '#0ea5e9'},
+        {'key': 'manpower', 'name': 'Manpower / BMET', 'icon': 'fa-id-card', 'color': '#4f46e5'},
+        {'key': 'flight', 'name': 'Flight & NOC', 'icon': 'fa-plane-departure', 'color': '#ef4444'},
+    ]
+    SECTOR_NAME_MAP = {s['key']: s['name'] for s in ALL_SECTORS_DEF}
+
     try:
         candidates_qs = Candidate.objects.using(db).select_related('b2b_agent', 'b2b_staff', 'agent', 'visa_lot').all()
         if query:
@@ -202,19 +215,6 @@ def candidate_list(request):
             candidates_qs = candidates_qs.filter(b2b_staff_id=staff_filter)
             
         candidates = list(candidates_qs)
-
-        ALL_SECTORS_DEF = [
-            {'key': 'selection', 'name': 'Selection & Grade', 'icon': 'fa-user-check', 'color': '#4f46e5'},
-            {'key': 'medical', 'name': 'Medical Clearance', 'icon': 'fa-heart-pulse', 'color': '#10b981'},
-            {'key': 'police_clearance', 'name': 'Police Clearance', 'icon': 'fa-shield-halved', 'color': '#f59e0b'},
-            {'key': 'mofa', 'name': 'MOFA / Enjaz', 'icon': 'fa-file-shield', 'color': '#7c3aed'},
-            {'key': 'fingerprint', 'name': 'Biometric / Finger', 'icon': 'fa-fingerprint', 'color': '#0284c7'},
-            {'key': 'visa_stamping', 'name': 'Visa Stamping', 'icon': 'fa-passport', 'color': '#2563eb'},
-            {'key': 'training', 'name': 'Training', 'icon': 'fa-chalkboard-user', 'color': '#0ea5e9'},
-            {'key': 'manpower', 'name': 'Manpower / BMET', 'icon': 'fa-id-card', 'color': '#4f46e5'},
-            {'key': 'flight', 'name': 'Flight & NOC', 'icon': 'fa-plane-departure', 'color': '#ef4444'},
-        ]
-        SECTOR_NAME_MAP = {s['key']: s['name'] for s in ALL_SECTORS_DEF}
 
         for c in candidates:
             secs = c.applicable_sectors if isinstance(c.applicable_sectors, list) else []
@@ -284,6 +284,7 @@ def candidate_list(request):
         'next_cr_serial': next_cr_serial,
         'existing_vouchers': existing_vouchers,
         'all_sectors_def': ALL_SECTORS_DEF,
+        'today_date': timezone.now().date().strftime('%Y-%m-%d'),
     }
     return render(request, 'admin_panel/agency/candidate_list.html', context)
 
@@ -384,6 +385,8 @@ def candidate_create(request):
             visa_lot=visa_lot,
             total_amount=total_amt,
             applicable_sectors=applicable_sectors,
+            selection_date=timezone.now().date(),
+            sector_dates={'selection': str(timezone.now().date())},
             notes=notes,
         )
 
@@ -891,67 +894,144 @@ def candidate_id_card_bulk(request):
 # ── 2. CONNECTED WORKFLOW STAGE MANAGEMENT ─────────────────────────────────
 @login_required
 def candidate_update_stage(request, pk):
-    """Quick 1-click updates for candidate connected workflow stages with document attachment."""
-    candidate = get_object_or_404(Candidate, pk=pk)
+    """Quick 1-click updates for candidate connected workflow stages with automatic date assignment and document attachment."""
+    db = get_tenant_db(request)
+    candidate = get_object_or_404(Candidate.objects.using(db), pk=pk)
+    today = timezone.now().date()
 
     if request.method == 'POST':
-        # Selection & Delegate
+        sector_dates = candidate.sector_dates or {}
+
+        # 1. Selection & Delegate
         if 'selection_status' in request.POST:
             candidate.selection_status = request.POST.get('selection_status')
         if 'delegate_status' in request.POST:
             candidate.delegate_status = request.POST.get('delegate_status')
+        sel_date = request.POST.get('selection_date')
+        if sel_date:
+            candidate.selection_date = sel_date
+            sector_dates['selection'] = str(sel_date)
+        elif not candidate.selection_date and ('selection_status' in request.POST or 'delegate_status' in request.POST):
+            candidate.selection_date = today
+            sector_dates['selection'] = str(today)
 
-        # Medical & PC
+        # 2. Medical & PC
         if 'medical_status' in request.POST:
             candidate.medical_status = request.POST.get('medical_status')
             candidate.medical_clinic = request.POST.get('medical_clinic', candidate.medical_clinic)
-            if request.POST.get('medical_date'):
-                candidate.medical_date = request.POST.get('medical_date')
+            med_date = request.POST.get('medical_date')
+            if med_date:
+                candidate.medical_date = med_date
+                sector_dates['medical'] = str(med_date)
+            elif not candidate.medical_date:
+                candidate.medical_date = today
+                sector_dates['medical'] = str(today)
 
         if 'police_clearance_status' in request.POST:
             candidate.police_clearance_status = request.POST.get('police_clearance_status')
             candidate.police_clearance_ref = request.POST.get('police_clearance_ref', candidate.police_clearance_ref)
+            pc_date = request.POST.get('police_clearance_date')
+            if pc_date:
+                candidate.police_clearance_date = pc_date
+                sector_dates['police_clearance'] = str(pc_date)
+            elif not candidate.police_clearance_date:
+                candidate.police_clearance_date = today
+                sector_dates['police_clearance'] = str(today)
 
-        # Visa Section
+        # 3. MOFA / Enjaz
         if 'mofa_status' in request.POST:
             candidate.mofa_status = request.POST.get('mofa_status')
             candidate.mofa_number = request.POST.get('mofa_number', candidate.mofa_number)
+            mofa_date = request.POST.get('mofa_date')
+            if mofa_date:
+                candidate.mofa_date = mofa_date
+                sector_dates['mofa'] = str(mofa_date)
+            elif not candidate.mofa_date:
+                candidate.mofa_date = today
+                sector_dates['mofa'] = str(today)
 
         if 'enjaz_status' in request.POST:
             candidate.enjaz_status = request.POST.get('enjaz_status')
             candidate.enjaz_number = request.POST.get('enjaz_number', candidate.enjaz_number)
 
+        # 4. Fingerprint / Biometric
         if 'finger_status' in request.POST:
             candidate.finger_status = request.POST.get('finger_status')
+            finger_date = request.POST.get('finger_date')
+            if finger_date:
+                candidate.finger_date = finger_date
+                sector_dates['fingerprint'] = str(finger_date)
+            elif not candidate.finger_date:
+                candidate.finger_date = today
+                sector_dates['fingerprint'] = str(today)
 
+        # 5. Visa Stamping
         if 'visa_stamping_status' in request.POST:
             candidate.visa_stamping_status = request.POST.get('visa_stamping_status')
             candidate.visa_number = request.POST.get('visa_number', candidate.visa_number)
+            visa_date = request.POST.get('visa_issue_date')
+            if visa_date:
+                candidate.visa_issue_date = visa_date
+                sector_dates['visa_stamping'] = str(visa_date)
+            elif not candidate.visa_issue_date:
+                candidate.visa_issue_date = today
+                sector_dates['visa_stamping'] = str(today)
 
-        # Manpower Assessment
+        # 6. Training
         if 'training_status' in request.POST:
             candidate.training_status = request.POST.get('training_status')
+            tr_date = request.POST.get('training_date')
+            if tr_date:
+                candidate.training_date = tr_date
+                sector_dates['training'] = str(tr_date)
+            elif not candidate.training_date:
+                candidate.training_date = today
+                sector_dates['training'] = str(today)
+
+        # 7. Manpower
         if 'manpower_status' in request.POST:
             candidate.manpower_status = request.POST.get('manpower_status')
             candidate.bmet_card_number = request.POST.get('bmet_card_number', candidate.bmet_card_number)
+            mp_date = request.POST.get('manpower_date')
+            if mp_date:
+                candidate.manpower_date = mp_date
+                sector_dates['manpower'] = str(mp_date)
+            elif not candidate.manpower_date:
+                candidate.manpower_date = today
+                sector_dates['manpower'] = str(today)
 
-        # Flight & NOC
+        # 8. Flight Ticket & NOC
         if 'ticket_status' in request.POST:
             candidate.ticket_status = request.POST.get('ticket_status')
             candidate.airline = request.POST.get('airline', candidate.airline)
             candidate.pnr_number = request.POST.get('pnr_number', candidate.pnr_number)
+            flight_date = request.POST.get('flight_date')
+            if flight_date:
+                candidate.flight_date = flight_date
+                sector_dates['flight'] = str(flight_date)
+            elif not candidate.flight_date:
+                candidate.flight_date = today
+                sector_dates['flight'] = str(today)
 
         if 'noc_status' in request.POST:
             candidate.noc_status = request.POST.get('noc_status')
+            noc_date = request.POST.get('noc_date')
+            if noc_date:
+                candidate.noc_date = noc_date
+                sector_dates['noc'] = str(noc_date)
+            elif not candidate.noc_date:
+                candidate.noc_date = today
+                sector_dates['noc'] = str(today)
 
-        candidate.save()
+        candidate.sector_dates = sector_dates
+        candidate.save(using=db)
 
         # Handle optional sector document uploaded during stage update
         stage_sector = request.POST.get('stage_sector')
         if stage_sector and 'stage_document' in request.FILES:
             file_obj = request.FILES['stage_document']
             doc_title = request.POST.get('document_title', '').strip() or f"{candidate.name} - {stage_sector.replace('_', ' ').title()} Attachment"
-            CandidateDocument.objects.create(
+            CandidateDocument.objects.using(db).create(
                 candidate=candidate,
                 sector=stage_sector,
                 title=doc_title,
@@ -959,7 +1039,7 @@ def candidate_update_stage(request, pk):
                 notes=f'Uploaded via {stage_sector.replace("_", " ").title()} stage update modal'
             )
 
-        messages.success(request, f'Updated workflow stage status for {candidate.name}!')
+        messages.success(request, f'Updated workflow stage status and dates for {candidate.name}!')
 
     next_url = request.META.get('HTTP_REFERER', 'admin_panel:candidate_list')
     return redirect(next_url)

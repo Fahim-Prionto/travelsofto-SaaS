@@ -865,35 +865,39 @@
           <div class="row g-3">
             <!-- Selection -->
             {% if not c.applicable_sectors or 'selection' in c.applicable_sectors %}
-            <div class="col-md-6">
+            <div class="col-md-4">
               <label class="form-label small fw-bold text-primary d-flex align-items-center gap-1">
                 {% if c.sector_step_map.selection %}<span class="badge bg-primary rounded-pill px-1.5 py-0.5" style="font-size:0.68rem;">Step {{ c.sector_step_map.selection }}</span>{% endif %}
                 Selection Status
               </label>
-              <select name="selection_status" class="form-select">
+              <select name="selection_status" class="form-select" onchange="autoSetSectorDate('sel_date_{{ c.id }}')">
                 <option value="pending" {% if c.selection_status == 'pending' %}selected{% endif %}>Pending</option>
                 <option value="selected" {% if c.selection_status == 'selected' %}selected{% endif %}>Selected</option>
                 <option value="awaiting" {% if c.selection_status == 'awaiting' %}selected{% endif %}>Awaiting</option>
                 <option value="rejected" {% if c.selection_status == 'rejected' %}selected{% endif %}>Rejected</option>
               </select>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
               <label class="form-label small fw-bold text-primary">Delegate Approval</label>
-              <select name="delegate_status" class="form-select">
+              <select name="delegate_status" class="form-select" onchange="autoSetSectorDate('sel_date_{{ c.id }}')">
                 <option value="pending" {% if c.delegate_status == 'pending' %}selected{% endif %}>Pending</option>
                 <option value="approved" {% if c.delegate_status == 'approved' %}selected{% endif %}>Approved</option>
               </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold text-primary"><i class="fa-regular fa-calendar me-1"></i>Selection Date</label>
+              <input type="date" name="selection_date" id="sel_date_{{ c.id }}" value="{{ c.selection_date|date:'Y-m-d'|default:today_date }}" class="form-control">
             </div>
             {% endif %}
 
             <!-- Medical -->
             {% if not c.applicable_sectors or 'medical' in c.applicable_sectors %}
-            <div class="col-md-6">
+            <div class="col-md-4">
               <label class="form-label small fw-bold text-success d-flex align-items-center gap-1">
                 {% if c.sector_step_map.medical %}<span class="badge bg-success rounded-pill px-1.5 py-0.5" style="font-size:0.68rem;">Step {{ c.sector_step_map.medical }}</span>{% endif %}
                 Medical Status
               </label>
-              <select name="medical_status" class="form-select">
+              <select name="medical_status" class="form-select" onchange="autoSetSectorDate('med_date_{{ c.id }}')">
                 <option value="pending" {% if c.medical_status == 'pending' %}selected{% endif %}>Pending</option>
                 <option value="fit" {% if c.medical_status == 'fit' %}selected{% endif %}>Fit</option>
                 <option value="unfit" {% if c.medical_status == 'unfit' %}selected{% endif %}>Unfit</option>
@@ -901,71 +905,91 @@
                 <option value="canceled" {% if c.medical_status == 'canceled' %}selected{% endif %}>Canceled</option>
               </select>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
               <label class="form-label small fw-bold text-success">Medical Clinic</label>
               <input name="medical_clinic" value="{{ c.medical_clinic }}" class="form-control" placeholder="Clinic name">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold text-success"><i class="fa-regular fa-calendar me-1"></i>Medical Date</label>
+              <input type="date" name="medical_date" id="med_date_{{ c.id }}" value="{{ c.medical_date|date:'Y-m-d'|default:today_date }}" class="form-control">
             </div>
             {% endif %}
 
             <!-- Police Clearance -->
             {% if not c.applicable_sectors or 'police_clearance' in c.applicable_sectors %}
-            <div class="col-md-6">
+            <div class="col-md-4">
               <label class="form-label small fw-bold text-warning d-flex align-items-center gap-1">
                 {% if c.sector_step_map.police_clearance %}<span class="badge bg-warning text-dark rounded-pill px-1.5 py-0.5" style="font-size:0.68rem;">Step {{ c.sector_step_map.police_clearance }}</span>{% endif %}
                 Police Clearance
               </label>
-              <select name="police_clearance_status" class="form-select">
+              <select name="police_clearance_status" class="form-select" onchange="autoSetSectorDate('pc_date_{{ c.id }}')">
                 <option value="pending" {% if c.police_clearance_status == 'pending' %}selected{% endif %}>Pending</option>
                 <option value="cleared" {% if c.police_clearance_status == 'cleared' %}selected{% endif %}>Cleared</option>
                 <option value="uncleared" {% if c.police_clearance_status == 'uncleared' %}selected{% endif %}>Uncleared</option>
               </select>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
               <label class="form-label small fw-bold text-warning">Police Clearance Ref</label>
               <input name="police_clearance_ref" value="{{ c.police_clearance_ref }}" class="form-control" placeholder="Reference number">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold text-warning"><i class="fa-regular fa-calendar me-1"></i>Police Clearance Date</label>
+              <input type="date" name="police_clearance_date" id="pc_date_{{ c.id }}" value="{{ c.police_clearance_date|date:'Y-m-d'|default:today_date }}" class="form-control">
             </div>
             {% endif %}
 
             <!-- MOFA -->
             {% if not c.applicable_sectors or 'mofa' in c.applicable_sectors %}
-            <div class="col-md-4">
+            <div class="col-md-6">
               <label class="form-label small fw-bold d-flex align-items-center gap-1" style="color:#7c3aed;">
                 {% if c.sector_step_map.mofa %}<span class="badge rounded-pill px-1.5 py-0.5" style="background:#7c3aed; color:#fff; font-size:0.68rem;">Step {{ c.sector_step_map.mofa }}</span>{% endif %}
                 MOFA Status
               </label>
-              <select name="mofa_status" class="form-select">
+              <select name="mofa_status" class="form-select" onchange="autoSetSectorDate('mofa_date_{{ c.id }}')">
                 <option value="mofa_pending" {% if c.mofa_status == 'mofa_pending' %}selected{% endif %}>Mofa Pending</option>
                 <option value="enjaz_pending" {% if c.mofa_status == 'enjaz_pending' %}selected{% endif %}>Enjaz Pending</option>
                 <option value="mofa_cleared" {% if c.mofa_status == 'mofa_cleared' %}selected{% endif %}>Mofa Cleared</option>
               </select>
             </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold" style="color:#7c3aed;"><i class="fa-regular fa-calendar me-1"></i>MOFA Date</label>
+              <input type="date" name="mofa_date" id="mofa_date_{{ c.id }}" value="{{ c.mofa_date|date:'Y-m-d'|default:today_date }}" class="form-control">
+            </div>
             {% endif %}
 
             <!-- Fingerprint / Biometric -->
             {% if not c.applicable_sectors or 'fingerprint' in c.applicable_sectors %}
-            <div class="col-md-4">
+            <div class="col-md-6">
               <label class="form-label small fw-bold d-flex align-items-center gap-1" style="color:#0284c7;">
                 {% if c.sector_step_map.fingerprint %}<span class="badge rounded-pill px-1.5 py-0.5" style="background:#0284c7; color:#fff; font-size:0.68rem;">Step {{ c.sector_step_map.fingerprint }}</span>{% endif %}
                 Finger Status
               </label>
-              <select name="finger_status" class="form-select">
+              <select name="finger_status" class="form-select" onchange="autoSetSectorDate('finger_date_{{ c.id }}')">
                 <option value="finger_pending" {% if c.finger_status == 'finger_pending' %}selected{% endif %}>Finger Pending</option>
                 <option value="finger_completed" {% if c.finger_status == 'finger_completed' %}selected{% endif %}>Finger Completed</option>
               </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold" style="color:#0284c7;"><i class="fa-regular fa-calendar me-1"></i>Fingerprint Date</label>
+              <input type="date" name="finger_date" id="finger_date_{{ c.id }}" value="{{ c.finger_date|date:'Y-m-d'|default:today_date }}" class="form-control">
             </div>
             {% endif %}
 
             <!-- Visa Stamping -->
             {% if not c.applicable_sectors or 'visa_stamping' in c.applicable_sectors %}
-            <div class="col-md-4">
+            <div class="col-md-6">
               <label class="form-label small fw-bold d-flex align-items-center gap-1" style="color:#2563eb;">
                 {% if c.sector_step_map.visa_stamping %}<span class="badge rounded-pill px-1.5 py-0.5" style="background:#2563eb; color:#fff; font-size:0.68rem;">Step {{ c.sector_step_map.visa_stamping }}</span>{% endif %}
-                Visa Stamping
+                Visa Stamping Status
               </label>
-              <select name="visa_stamping_status" class="form-select">
+              <select name="visa_stamping_status" class="form-select" onchange="autoSetSectorDate('visa_date_{{ c.id }}')">
                 <option value="visa_pending" {% if c.visa_stamping_status == 'visa_pending' %}selected{% endif %}>Visa Pending</option>
                 <option value="visa_completed" {% if c.visa_stamping_status == 'visa_completed' %}selected{% endif %}>Visa Completed</option>
               </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-primary"><i class="fa-regular fa-calendar me-1"></i>Visa Stamping Date</label>
+              <input type="date" name="visa_issue_date" id="visa_date_{{ c.id }}" value="{{ c.visa_issue_date|date:'Y-m-d'|default:today_date }}" class="form-control">
             </div>
             {% endif %}
 
@@ -976,10 +1000,14 @@
                 {% if c.sector_step_map.training %}<span class="badge bg-info text-dark rounded-pill px-1.5 py-0.5" style="font-size:0.68rem;">Step {{ c.sector_step_map.training }}</span>{% endif %}
                 Training Status
               </label>
-              <select name="training_status" class="form-select">
+              <select name="training_status" class="form-select" onchange="autoSetSectorDate('tr_date_{{ c.id }}')">
                 <option value="training_pending" {% if c.training_status == 'training_pending' %}selected{% endif %}>Training Pending</option>
                 <option value="training_completed" {% if c.training_status == 'training_completed' %}selected{% endif %}>Training Completed</option>
               </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-info"><i class="fa-regular fa-calendar me-1"></i>Training Date</label>
+              <input type="date" name="training_date" id="tr_date_{{ c.id }}" value="{{ c.training_date|date:'Y-m-d'|default:today_date }}" class="form-control">
             </div>
             {% endif %}
 
@@ -990,10 +1018,14 @@
                 {% if c.sector_step_map.manpower %}<span class="badge bg-primary rounded-pill px-1.5 py-0.5" style="font-size:0.68rem;">Step {{ c.sector_step_map.manpower }}</span>{% endif %}
                 Manpower Status
               </label>
-              <select name="manpower_status" class="form-select">
+              <select name="manpower_status" class="form-select" onchange="autoSetSectorDate('mp_date_{{ c.id }}')">
                 <option value="manpower_pending" {% if c.manpower_status == 'manpower_pending' %}selected{% endif %}>Manpower Approval</option>
                 <option value="manpower_completed" {% if c.manpower_status == 'manpower_completed' %}selected{% endif %}>Manpower Completed</option>
               </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-primary"><i class="fa-regular fa-calendar me-1"></i>Manpower Date</label>
+              <input type="date" name="manpower_date" id="mp_date_{{ c.id }}" value="{{ c.manpower_date|date:'Y-m-d'|default:today_date }}" class="form-control">
             </div>
             {% endif %}
 
@@ -1004,7 +1036,7 @@
                 {% if c.sector_step_map.flight %}<span class="badge bg-danger rounded-pill px-1.5 py-0.5" style="font-size:0.68rem;">Step {{ c.sector_step_map.flight }}</span>{% endif %}
                 Ticket Status
               </label>
-              <select name="ticket_status" class="form-select">
+              <select name="ticket_status" class="form-select" onchange="autoSetSectorDate('fl_date_{{ c.id }}')">
                 <option value="ticket_issue" {% if c.ticket_status == 'ticket_issue' %}selected{% endif %}>Ticket Issue</option>
                 <option value="ticket_pending" {% if c.ticket_status == 'ticket_pending' %}selected{% endif %}>Ticket Pending</option>
                 <option value="ticket_completed" {% if c.ticket_status == 'ticket_completed' %}selected{% endif %}>Ticket Completed</option>
@@ -1015,11 +1047,19 @@
               <input name="airline" value="{{ c.airline }}" class="form-control" placeholder="Airline name">
             </div>
             <div class="col-md-4">
+              <label class="form-label small fw-bold text-danger"><i class="fa-regular fa-calendar me-1"></i>Flight Date</label>
+              <input type="date" name="flight_date" id="fl_date_{{ c.id }}" value="{{ c.flight_date|date:'Y-m-d'|default:today_date }}" class="form-control">
+            </div>
+            <div class="col-md-6">
               <label class="form-label small fw-bold text-danger">NOC Status</label>
-              <select name="noc_status" class="form-select">
+              <select name="noc_status" class="form-select" onchange="autoSetSectorDate('noc_date_{{ c.id }}')">
                 <option value="noc_pending" {% if c.noc_status == 'noc_pending' %}selected{% endif %}>NOC Pending</option>
                 <option value="noc_completed" {% if c.noc_status == 'noc_completed' %}selected{% endif %}>NOC Completed</option>
               </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-danger"><i class="fa-regular fa-calendar me-1"></i>NOC Date</label>
+              <input type="date" name="noc_date" id="noc_date_{{ c.id }}" value="{{ c.noc_date|date:'Y-m-d'|default:today_date }}" class="form-control">
             </div>
             {% endif %}
 
@@ -1493,6 +1533,14 @@ function loadB2BStaff(agentId, staffSelectId) {
         opt.style.display = (opt.getAttribute('data-agent') === String(agentId)) ? '' : 'none';
       });
     });
+}
+
+function autoSetSectorDate(dateInputId) {
+  const input = document.getElementById(dateInputId);
+  if (input && !input.value) {
+    const today = new Date().toISOString().split('T')[0];
+    input.value = today;
+  }
 }
 </script>
 {% endblock %}
