@@ -2621,8 +2621,18 @@ def b2b_agent_invoice(request, pk):
     )
 
     # Calculate ledger totals
-    total_debit = sum(t.amount for t in transactions if t.txn_type in [B2BTransaction.TxnType.SERVICE_CHARGE, B2BTransaction.TxnType.PENALTY])
-    total_credit_receipts = sum(t.amount for t in transactions if t.txn_type in [B2BTransaction.TxnType.PAYMENT_RECEIVED, B2BTransaction.TxnType.COMMISSION_PAYOUT, B2BTransaction.TxnType.REFUND])
+    debit_types = {
+        B2BTransaction.TxnType.SERVICE_CHARGE,
+        B2BTransaction.TxnType.DEBIT,
+        B2BTransaction.TxnType.ADJUSTMENT_DEBIT,
+    }
+    credit_types = {
+        B2BTransaction.TxnType.PAYMENT_RECEIVED,
+        B2BTransaction.TxnType.COMMISSION_CREDIT,
+        B2BTransaction.TxnType.ADJUSTMENT_CREDIT,
+    }
+    total_debit = sum(t.amount for t in transactions if t.txn_type in debit_types)
+    total_credit_receipts = sum(t.amount for t in transactions if t.txn_type in credit_types)
 
     invoice_number = f"INV-B2B-{agent.agent_code}"
     today_date = timezone.now()

@@ -242,12 +242,12 @@
                   </span>
                 </td>
                 <td class="text-end fw-semibold">
-                  {% if t.txn_type == 'service_charge' or t.txn_type == 'penalty' %}
+                  {% if t.txn_type == 'service_charge' or t.txn_type == 'debit' or t.txn_type == 'adjustment_debit' %}
                     ৳{{ t.amount|floatformat:2 }}
                   {% else %}—{% endif %}
                 </td>
                 <td class="text-end text-success fw-semibold">
-                  {% if t.txn_type == 'payment_received' or t.txn_type == 'commission_payout' or t.txn_type == 'refund' %}
+                  {% if t.txn_type == 'payment_received' or t.txn_type == 'commission_credit' or t.txn_type == 'adjustment_credit' %}
                     ৳{{ t.amount|floatformat:2 }}
                   {% else %}—{% endif %}
                 </td>
