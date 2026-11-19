@@ -183,6 +183,11 @@
                       </a>
                     </li>
                     <li>
+                      <a class="dropdown-item" href="{% url 'admin_panel:b2b_agent_invoice' item.agent.id %}" target="_blank">
+                        <i class="fa-solid fa-file-invoice-dollar me-2 text-info"></i>Print Calculation Invoice
+                      </a>
+                    </li>
+                    <li>
                       <button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#paymentModal{{ item.agent.id }}">
                         <i class="fa-solid fa-money-bill-wave me-2 text-success"></i>Record Payment / Settlement
                       </button>

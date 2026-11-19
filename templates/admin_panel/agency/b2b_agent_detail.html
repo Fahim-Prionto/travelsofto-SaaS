@@ -41,21 +41,21 @@
         <div class="col-lg-5">
           <div class="row g-2 text-center">
             <div class="col-4">
-              <div class="p-2.5 rounded bg-white bg-opacity-10">
-                <div class="text-white-50 small" style="font-size:0.70rem;">TOTAL BILLED</div>
-                <div class="fw-bold fs-6">৳{{ total_billed|floatformat:0 }}</div>
+              <div class="p-2.5 rounded shadow-2xs" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.16);">
+                <div class="text-uppercase fw-semibold" style="font-size:0.68rem; letter-spacing: 0.5px; color: #cbd5e1;">TOTAL BILLED</div>
+                <div class="fw-bold fs-5 text-white mt-0.5">৳{{ total_billed|floatformat:0 }}</div>
               </div>
             </div>
             <div class="col-4">
-              <div class="p-2.5 rounded bg-success bg-opacity-20 text-success">
-                <div class="text-success-emphasis small" style="font-size:0.70rem;">TOTAL PAID</div>
-                <div class="fw-bold fs-6">৳{{ total_paid|floatformat:0 }}</div>
+              <div class="p-2.5 rounded shadow-2xs" style="background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(52, 211, 153, 0.5);">
+                <div class="text-uppercase fw-semibold" style="font-size:0.68rem; letter-spacing: 0.5px; color: #a7f3d0;">TOTAL PAID</div>
+                <div class="fw-bold fs-5 mt-0.5" style="color: #4ade80;">৳{{ total_paid|floatformat:0 }}</div>
               </div>
             </div>
             <div class="col-4">
-              <div class="p-2.5 rounded {% if outstanding_balance > 0 %}bg-danger bg-opacity-20 text-danger{% else %}bg-white bg-opacity-10 text-white{% endif %}">
-                <div class="small" style="font-size:0.70rem;">CURRENT DUE</div>
-                <div class="fw-bold fs-6">৳{{ outstanding_balance|floatformat:0 }}</div>
+              <div class="p-2.5 rounded shadow-2xs" style="background: {% if outstanding_balance > 0 %}rgba(239, 68, 68, 0.25); border: 1px solid rgba(248, 113, 113, 0.55);{% else %}rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.16);{% endif %}">
+                <div class="text-uppercase fw-semibold" style="font-size:0.68rem; letter-spacing: 0.5px; color: {% if outstanding_balance > 0 %}#fecaca{% else %}#cbd5e1{% endif %};">CURRENT DUE</div>
+                <div class="fw-bold fs-5 mt-0.5" style="color: {% if outstanding_balance > 0 %}#f87171{% else %}#ffffff{% endif %};">৳{{ outstanding_balance|floatformat:0 }}</div>
               </div>
             </div>
           </div>
@@ -74,9 +74,9 @@
               <i class="fa-solid fa-trash me-1"></i>Delete
             </button>
             {% endif %}
-            <button class="btn btn-outline-light btn-sm" onclick="window.print()" title="Print Statement">
-              <i class="fa-solid fa-print"></i>
-            </button>
+            <a href="{% url 'admin_panel:b2b_agent_invoice' agent.id %}" target="_blank" class="btn btn-primary btn-sm fw-bold shadow-sm" title="Print Calculation Invoice">
+              <i class="fa-solid fa-file-invoice-dollar me-1"></i>Print Invoice
+            </a>
           </div>
         </div>
       </div>
@@ -831,5 +831,23 @@ document.addEventListener('DOMContentLoaded', function() {
     </form>
   </div>
 </div>
+
+<style>
+@media print {
+  .no-print, .btn, .modal, .dropdown-menu, nav, header, footer, form {
+    display: none !important;
+  }
+  .card {
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 10pt !important;
+  }
+}
+</style>
 
 {% endblock %}

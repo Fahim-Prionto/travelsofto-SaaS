@@ -2564,6 +2564,92 @@ def b2b_agent_detail(request, pk):
 
 
 @login_required
+def b2b_agent_invoice(request, pk):
+    """
+    Dedicated printable Calculation Invoice & Statement for a B2B Agent.
+    Includes agent calculation summary, candidate breakdown, ledger history, and settlement totals.
+    """
+    db = get_tenant_db(request)
+    agent = get_object_or_404(AgencyAgent.objects.using(db), pk=pk)
+
+    # Security check: Agency Staff cannot access another staff member's agent
+    if request.user.is_tenant_staff and agent.assigned_staff_id and agent.assigned_staff_id != request.user.id:
+        messages.error(request, 'Access denied. This agent is assigned to another staff member.')
+        return redirect('admin_panel:b2b_agent_list')
+
+    # 1. Connected Candidates
+    candidates = list(
+        Candidate.objects.using(db)
+        .filter(Q(b2b_agent=agent) | Q(agent=agent))
+        .select_related('b2b_staff', 'visa_lot', 'position')
+        .order_by('-created_at')
+    )
+
+    # 2. Financial Aggregates
+    cand_fin = Candidate.objects.using(db).filter(Q(b2b_agent=agent) | Q(agent=agent)).aggregate(
+        billed=Sum('total_amount'),
+        paid=Sum('paid_amount'),
+        due=Sum('due_amount')
+    )
+    total_billed = cand_fin['billed'] or Decimal('0.00')
+    total_paid = cand_fin['paid'] or Decimal('0.00')
+    total_due = cand_fin['due'] or Decimal('0.00')
+
+    # Recalculate and fetch outstanding ledger balance
+    agent.recalculate_outstanding(using=db)
+    outstanding_balance = agent.outstanding_balance or total_due
+
+    # Credit limit calculations
+    credit_limit = agent.credit_limit or Decimal('0.00')
+    available_credit = max(Decimal('0.00'), credit_limit - outstanding_balance) if credit_limit > 0 else Decimal('0.00')
+    credit_utilization_pct = min(100, int((outstanding_balance / credit_limit) * 100)) if credit_limit > 0 else 0
+
+    # Commission earned calculation
+    comm_rate = agent.commission_rate or Decimal('0.00')
+    total_commission = agent.commission_earned if agent.commission_earned > Decimal('0.00') else (
+        (total_billed * comm_rate / Decimal('100.00')).quantize(Decimal('0.01'))
+    )
+
+    net_payable_after_commission = max(Decimal('0.00'), outstanding_balance - total_commission)
+
+    # 3. Ledger Transactions
+    transactions = list(
+        B2BTransaction.objects.using(db)
+        .filter(agent=agent)
+        .select_related('staff', 'candidate')
+        .order_by('-txn_date', '-created_at')[:50]
+    )
+
+    # Calculate ledger totals
+    total_debit = sum(t.amount for t in transactions if t.txn_type in [B2BTransaction.TxnType.SERVICE_CHARGE, B2BTransaction.TxnType.PENALTY])
+    total_credit_receipts = sum(t.amount for t in transactions if t.txn_type in [B2BTransaction.TxnType.PAYMENT_RECEIVED, B2BTransaction.TxnType.COMMISSION_PAYOUT, B2BTransaction.TxnType.REFUND])
+
+    invoice_number = f"INV-B2B-{agent.agent_code}"
+    today_date = timezone.now()
+
+    context = {
+        'agent': agent,
+        'candidates': candidates,
+        'candidates_count': len(candidates),
+        'total_billed': total_billed,
+        'total_paid': total_paid,
+        'total_due': total_due,
+        'outstanding_balance': outstanding_balance,
+        'credit_limit': credit_limit,
+        'available_credit': available_credit,
+        'credit_utilization_pct': credit_utilization_pct,
+        'total_commission': total_commission,
+        'net_payable_after_commission': net_payable_after_commission,
+        'transactions': transactions,
+        'total_debit': total_debit,
+        'total_credit_receipts': total_credit_receipts,
+        'invoice_number': invoice_number,
+        'today_date': today_date,
+    }
+    return render(request, 'admin_panel/agency/b2b_agent_invoice.html', context)
+
+
+@login_required
 def b2b_agent_add_payment(request, pk):
     """Record direct bulk or settlement payment from a B2B agent."""
     db = get_tenant_db(request)

@@ -256,6 +256,22 @@
             top: calc(100% + 8px) !important;
         }
     }
+
+    /* Print styles: Clean page without sidebar or top chrome */
+    @media print {
+        #sidebar, #sidebar-overlay, .top-nav, header.top-nav, .no-print, .btn, .modal, .dropdown-menu {
+            display: none !important;
+        }
+        #main-content {
+            margin-left: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+        }
+        body {
+            background: #ffffff !important;
+            color: #000000 !important;
+        }
+    }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -343,7 +359,7 @@
             <i class="fa-solid fa-network-wired"></i><span>B2B Overview</span>
         </a>
         <a href="{% url 'admin_panel:b2b_agent_list' %}" class="nav-link {% if 'b2b/agents' in request.path %}active{% endif %}">
-            <i class="fa-solid fa-handshake"></i><span>B2B Agency Agents</span>
+            <i class="fa-solid fa-handshake"></i><span>B2B Agent</span>
         </a>
         <a href="{% url 'admin_panel:b2b_ledger' %}" class="nav-link {% if 'b2b/ledger' in request.path %}active{% endif %}">
             <i class="fa-solid fa-scale-balanced"></i><span>Payments & Ledger</span>
