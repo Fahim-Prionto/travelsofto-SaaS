@@ -179,39 +179,51 @@
                             </div>
 
                             <!-- Scrollable Agent Checkbox List -->
-                            <div class="bg-white rounded border p-2" id="agentListContainer{{ staff.pk }}" style="max-height: 220px; overflow-y: auto;">
+                            <div id="agentListContainer{{ staff.pk }}" style="max-height:240px; overflow-y:auto; border:1px solid #dee2e6; border-radius:8px; background:#fff;">
                                 {% for ag in all_b2b_agents %}
-                                <div class="form-check p-2 rounded mb-1 agent-item-row border-bottom border-light" data-agent-text="{{ ag.name|lower }} {{ ag.agent_code|lower }} {{ ag.company_name|lower }}">
-                                    <input class="form-check-input agent-checkbox-{{ staff.pk }} mt-1" type="checkbox" name="assigned_agent_ids" value="{{ ag.id }}" id="ag_chk_{{ staff.pk }}_{{ ag.id }}" {% if ag.id in staff.assigned_agent_ids %}checked{% endif %}>
-                                    <label class="form-check-label d-flex flex-column flex-sm-row justify-content-between align-items-sm-center w-100 ps-1 cursor-pointer" for="ag_chk_{{ staff.pk }}_{{ ag.id }}">
-                                        <div>
-                                            <span class="fw-bold text-dark small">{{ ag.name }}</span>
-                                            <span class="text-muted fw-mono small ms-1">({{ ag.agent_code }})</span>
+                                <div class="agent-item-row"
+                                     data-agent-text="{{ ag.name|lower }} {{ ag.agent_code|lower }} {{ ag.company_name|lower }}"
+                                     style="border-bottom:1px solid #f0f0f0; padding:8px 12px; display:flex; align-items:center; gap:10px; cursor:pointer;"
+                                     onclick="document.getElementById('ag_chk_{{ staff.pk }}_{{ ag.id }}').click()">
+                                    <input class="agent-checkbox-{{ staff.pk }}"
+                                           type="checkbox"
+                                           name="assigned_agent_ids"
+                                           value="{{ ag.id }}"
+                                           id="ag_chk_{{ staff.pk }}_{{ ag.id }}"
+                                           onclick="event.stopPropagation()"
+                                           {% if ag.id in staff.assigned_agent_ids %}checked{% endif %}
+                                           style="width:18px; height:18px; min-width:18px; cursor:pointer; accent-color:#0d6efd;">
+                                    <label for="ag_chk_{{ staff.pk }}_{{ ag.id }}"
+                                           style="flex:1; cursor:pointer; margin:0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;"
+                                           onclick="event.stopPropagation()">
+                                        <span>
+                                            <span style="font-weight:600; font-size:0.875rem; color:#212529;">{{ ag.name }}</span>
+                                            <span style="color:#6c757d; font-size:0.80rem; margin-left:4px;">({{ ag.agent_code }})</span>
                                             {% if ag.company_name %}
-                                                <span class="text-muted small ms-1 d-none d-md-inline">• {{ ag.company_name }}</span>
+                                                <span style="color:#adb5bd; font-size:0.78rem; margin-left:4px;">• {{ ag.company_name }}</span>
                                             {% endif %}
-                                        </div>
-                                        <div class="mt-1 mt-sm-0">
+                                        </span>
+                                        <span style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
                                             {% if ag.id in staff.assigned_agent_ids %}
-                                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-0.5" style="font-size:0.68rem;">
-                                                    <i class="fa-solid fa-check me-1"></i>Currently Assigned
+                                                <span style="font-size:0.70rem; background:#d1e7dd; color:#0f5132; border:1px solid #badbcc; border-radius:20px; padding:2px 8px; white-space:nowrap;">
+                                                    <i class="fa-solid fa-check me-1"></i>Assigned to this staff
                                                 </span>
                                             {% elif ag.assigned_staff_id %}
-                                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-2 py-0.5" style="font-size:0.68rem;" title="Reassign from {{ ag.assigned_staff_name }}">
-                                                    <i class="fa-solid fa-arrows-rotate me-1"></i>Reassign from: {{ ag.assigned_staff_name }}
+                                                <span style="font-size:0.70rem; background:#fff3cd; color:#664d03; border:1px solid #ffecb5; border-radius:20px; padding:2px 8px; white-space:nowrap;" title="Assigned to: {{ ag.assigned_staff_name }}">
+                                                    <i class="fa-solid fa-arrows-rotate me-1"></i>{{ ag.assigned_staff_name }}
                                                 </span>
                                             {% else %}
-                                                <span class="badge bg-secondary-subtle text-muted rounded-pill px-2 py-0.5" style="font-size:0.68rem;">
-                                                    <i class="fa-solid fa-user-xmark me-1"></i>Unassigned
+                                                <span style="font-size:0.70rem; background:#f8f9fa; color:#6c757d; border:1px solid #dee2e6; border-radius:20px; padding:2px 8px; white-space:nowrap;">
+                                                    Unassigned
                                                 </span>
                                             {% endif %}
-                                            <span class="text-muted ms-1 small" style="font-size:0.72rem;">Comm: {{ ag.commission_rate|floatformat:1 }}%</span>
-                                        </div>
+                                            <span style="font-size:0.72rem; color:#6c757d; white-space:nowrap;">{{ ag.commission_rate|floatformat:1 }}%</span>
+                                        </span>
                                     </label>
                                 </div>
                                 {% empty %}
-                                <div class="text-center text-muted py-3 small">
-                                    <i class="fa-solid fa-handshake me-1 text-secondary"></i>No B2B agents registered in the agency yet.
+                                <div style="text-align:center; color:#6c757d; padding:20px; font-size:0.875rem;">
+                                    <i class="fa-solid fa-handshake me-1"></i>No B2B agents registered yet.
                                 </div>
                                 {% endfor %}
                             </div>
@@ -252,11 +264,8 @@ function toggleStaffPwd(inputId, iconId) {
 function selectAllAgents(staffPk) {
     const checkboxes = document.querySelectorAll('.agent-checkbox-' + staffPk);
     checkboxes.forEach(cb => {
-        // Only select visible checkboxes if filtered
         const row = cb.closest('.agent-item-row');
-        if (!row || row.style.display !== 'none') {
-            cb.checked = true;
-        }
+        if (!row || row.style.display !== 'none') cb.checked = true;
     });
 }
 
@@ -264,9 +273,7 @@ function clearAllAgents(staffPk) {
     const checkboxes = document.querySelectorAll('.agent-checkbox-' + staffPk);
     checkboxes.forEach(cb => {
         const row = cb.closest('.agent-item-row');
-        if (!row || row.style.display !== 'none') {
-            cb.checked = false;
-        }
+        if (!row || row.style.display !== 'none') cb.checked = false;
     });
 }
 
@@ -277,12 +284,14 @@ function filterAgentsModal(staffPk, query) {
     const q = (query || '').toLowerCase().trim();
     rows.forEach(r => {
         const text = r.getAttribute('data-agent-text') || '';
-        if (!q || text.includes(q)) {
-            r.style.display = '';
-        } else {
-            r.style.display = 'none';
-        }
+        r.style.display = (!q || text.includes(q)) ? '' : 'none';
     });
 }
+
+// Hover highlight for agent rows
+document.querySelectorAll('.agent-item-row').forEach(row => {
+    row.addEventListener('mouseenter', () => row.style.background = '#f0f4ff');
+    row.addEventListener('mouseleave', () => row.style.background = '');
+});
 </script>
 {% endblock %}
